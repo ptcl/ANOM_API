@@ -1,0 +1,171 @@
+// src/services/bungieService.ts - Corrigé pour la structure réelle
+import axios, { AxiosInstance } from 'axios';
+import { bungieConfig } from '../config/bungie';
+import { BungieTokenResponse, BungieUserProfile, BungieAPIResponse } from '../types/bungie';
+
+class BungieService {
+    private apiClient: AxiosInstance;
+
+    constructor() {
+        this.apiClient = axios.create({
+            baseURL: bungieConfig.baseUrl,
+            timeout: 15000,
+            headers: {
+                'X-API-Key': bungieConfig.apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        this.apiClient.interceptors.request.use((config) => {
+            console.log(`🔗 Bungie API: ${config.method?.toUpperCase()} ${config.url}`);
+            return config;
+        });
+
+        this.apiClient.interceptors.response.use(
+            (response) => {
+                console.log(`✅ Bungie API: ${response.status} - ${response.config.url}`);
+                return response;
+            },
+            (error) => {
+                console.error(`❌ Bungie API Error: ${error.response?.status} - ${error.config?.url}`);
+                return Promise.reject(error);
+            }
+        );
+    }
+
+    generateAuthUrl(state: string): string {
+        const params = new URLSearchParams({
+            client_id: bungieConfig.clientId,
+            response_type: 'code',
+            state: state,
+            redirect_uri: bungieConfig.redirectUri
+        });
+
+        const authUrl = `${bungieConfig.authUrl}?${params.toString()}`;
+        console.log('🔐 Generated Bungie auth URL:', authUrl);
+
+        return authUrl;
+    }
+
+    async exchangeCodeForTokens(code: string): Promise<BungieTokenResponse> {
+        try {
+            console.log('🔄 Exchanging authorization code for tokens...');
+
+            const response = await axios.post(bungieConfig.tokenUrl,
+                new URLSearchParams({
+                    grant_type: 'authorization_code',
+                    code: code,
+                    client_id: bungieConfig.clientId,
+                    client_secret: bungieConfig.clientSecret,
+                    redirect_uri: bungieConfig.redirectUri
+                }),
+                {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-API-Key': bungieConfig.apiKey
+                    }
+                }
+            );
+
+            console.log('✅ Successfully obtained Bungie tokens');
+            return response.data;
+        } catch (error: any) {
+            console.error('❌ Token exchange failed:', error.response?.data || error.message);
+            throw new Error(`Failed to exchange code for tokens: ${error.response?.data?.error_description || error.message}`);
+        }
+    }
+
+    async getCurrentUser(accessToken: string): Promise<BungieUserProfile> {
+        try {
+            console.log('👤 Fetching current user profile...');
+
+            const response = await this.apiClient.get<BungieAPIResponse<any>>(
+                '/User/GetCurrentBungieAccount/',
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                }
+            );
+
+            if (response.data.ErrorCode !== 1) {
+                throw new Error(`Bungie API Error: ${response.data.ErrorStatus} - ${response.data.Message}`);
+            }
+
+            const rawData = response.data.Response;
+
+            // 🆕 EXTRACTION DES DONNÉES SELON LA VRAIE STRUCTURE
+            const bungieNetUser = rawData.bungieNetUser;
+            const destinyMemberships = rawData.destinyMemberships || [];
+
+            // Prend le premier membership Destiny actif (le plus récent)
+            const primaryDestinyMembership = destinyMemberships.find((m: any) => m.crossSaveOverride) || destinyMemberships[0];
+
+            // Construit le profil unifié
+            const profile: BungieUserProfile = {
+                membershipId: bungieNetUser.membershipId,
+                displayName: bungieNetUser.displayName || bungieNetUser.cachedBungieGlobalDisplayName,
+                membershipType: primaryDestinyMembership?.membershipType || 0,
+                profilePicturePath: bungieNetUser.profilePicturePath,
+                about: bungieNetUser.about,
+                destinyMemberships: destinyMemberships.map((m: any) => ({
+                    membershipType: m.membershipType,
+                    membershipId: m.membershipId,
+                    displayName: m.displayName
+                }))
+            };
+
+            console.log('🔍 Processed Profile:');
+            console.log('   membershipId:', profile.membershipId);
+            console.log('   displayName:', profile.displayName);
+            console.log('   membershipType:', profile.membershipType);
+            console.log('   profilePicturePath:', profile.profilePicturePath);
+            console.log('   destinyMemberships count:', profile.destinyMemberships?.length || 0);
+
+            console.log(`✅ Retrieved profile for: ${profile.displayName}`);
+            return profile;
+        } catch (error: any) {
+            console.error('❌ Failed to get user profile:', error.response?.data || error.message);
+            throw new Error(`Failed to get user profile: ${error.message}`);
+        }
+    }
+
+    async refreshAccessToken(refreshToken: string): Promise<BungieTokenResponse> {
+        try {
+            console.log('🔄 Refreshing access token...');
+
+            const response = await axios.post(bungieConfig.tokenUrl,
+                new URLSearchParams({
+                    grant_type: 'refresh_token',
+                    refresh_token: refreshToken,
+                    client_id: bungieConfig.clientId,
+                    client_secret: bungieConfig.clientSecret
+                }),
+                {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-API-Key': bungieConfig.apiKey
+                    }
+                }
+            );
+
+            console.log('✅ Successfully refreshed access token');
+            return response.data;
+        } catch (error: any) {
+            console.error('❌ Token refresh failed:', error.response?.data || error.message);
+            throw new Error(`Failed to refresh token: ${error.response?.data?.error_description || error.message}`);
+        }
+    }
+
+    async validateToken(accessToken: string): Promise<boolean> {
+        try {
+            await this.getCurrentUser(accessToken);
+            return true;
+        } catch (error) {
+            console.log('❌ Token validation failed');
+            return false;
+        }
+    }
+}
+
+export const bungieService = new BungieService();
