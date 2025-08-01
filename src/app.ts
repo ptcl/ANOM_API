@@ -22,12 +22,23 @@ const createApp = (): express.Application => {
         crossOriginEmbedderPolicy: false
     }));
 
-    // CORS avec configuration d'environnement
     app.use(cors({
-        origin: 'http://localhost:3001', // Port de ton frontend Next.js
+        origin: 'https://ladybird-helping-blindly.ngrok-free.app',
         credentials: true
     }))
-
+    // app.use(cors({
+    //     origin: serverConfig.corsOrigins,
+    //     credentials: true,
+    //     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    //     allowedHeaders: [
+    //         'Origin',
+    //         'X-Requested-With',
+    //         'Content-Type',
+    //         'Accept',
+    //         'Authorization',
+    //         'X-API-Key'
+    //     ]
+    // }));
     // Body parsing
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
