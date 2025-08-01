@@ -23,9 +23,14 @@ const createApp = (): express.Application => {
     }));
 
     app.use(cors({
-        origin: 'https://ladybird-helping-blindly.ngrok-free.app',
+        origin: [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'https://ladybird-helping-blindly.ngrok-free.app',
+        ],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         credentials: true
-    }))
+    }));
     // app.use(cors({
     //     origin: serverConfig.corsOrigins,
     //     credentials: true,
@@ -39,11 +44,9 @@ const createApp = (): express.Application => {
     //         'X-API-Key'
     //     ]
     // }));
-    // Body parsing
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // Request logger (plus détaillé en dev)
     app.use((req, res, next) => {
         const timestamp = new Date().toISOString();
         if (isDev()) {
@@ -54,7 +57,6 @@ const createApp = (): express.Application => {
         next();
     });
 
-    // Health check avec info environnement
     app.get('/health', (req, res) => {
         const mongoConfig = require('./utils/environment').getMongoConfig();
 
@@ -66,15 +68,13 @@ const createApp = (): express.Application => {
             environment: process.env.NODE_ENV || 'development',
             database: {
                 name: mongoConfig.dbName,
-                connected: true // TODO: vérifier vraiment la connexion
+                connected: true
             }
         });
     });
 
-    // API Routes
     app.use('/api', routes);
 
-    // 404 handler
     app.use('/api/*', (req, res) => {
         res.status(404).json({
             success: false,
@@ -84,7 +84,6 @@ const createApp = (): express.Application => {
         });
     });
 
-    // Catch all other 404s
     app.use('*', (req, res) => {
         res.status(404).json({
             success: false,
@@ -94,7 +93,6 @@ const createApp = (): express.Application => {
         });
     });
 
-    // Global error handler
     app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
         console.error('❌ Global error:', error);
 
