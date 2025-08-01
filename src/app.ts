@@ -24,18 +24,9 @@ const createApp = (): express.Application => {
 
     // CORS avec configuration d'environnement
     app.use(cors({
-        origin: serverConfig.corsOrigins,
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: [
-            'Origin',
-            'X-Requested-With',
-            'Content-Type',
-            'Accept',
-            'Authorization',
-            'X-API-Key'
-        ]
-    }));
+        origin: 'http://localhost:3001', // Port de ton frontend Next.js
+        credentials: true
+    }))
 
     // Body parsing
     app.use(express.json({ limit: '10mb' }));

@@ -34,15 +34,14 @@ export const initiateLogin = async (req: Request, res: Response) => {
 /**
  * Traite le callback d'autorisation Bungie avec persistance
  */
+// Dans ton contrôleur handleCallback - MODIFICATION
 export const handleCallback = async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
 
     if (!code) {
-      return res.status(400).json({
-        success: false,
-        error: 'Authorization code missing'
-      });
+      // Redirection vers frontend avec erreur
+      return res.redirect('http://localhost:3000/?error=missing_code');
     }
 
     console.log('📝 Processing Bungie callback...');
@@ -68,33 +67,88 @@ export const handleCallback = async (req: Request, res: Response) => {
 
     console.log(`✅ Authentication successful for: ${player.displayName} (ID: ${player._id})`);
 
-    // 🆕 TOUJOURS RETOURNER JSON (pas de redirection)
-    return res.json({
-      success: true,
-      data: {
-        token: jwtToken,
-        player: {
-          id: player._id,
-          bungieId: player.bungieId,
-          displayName: player.displayName,
-          role: player.role,
-          profilePicture: player.profilePicturePath,
-          joinedAt: player.joinedAt,
-        }
-      },
-      message: 'Authentication successful - Copy the token for your requests!'
-    });
+    // 🆕 REDIRECTION vers le frontend avec le token
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const callbackUrl = `${frontendUrl}/auth/bungie/callback?token=${encodeURIComponent(jwtToken)}&player=${encodeURIComponent(JSON.stringify({
+      id: player._id,
+      bungieId: player.bungieId,
+      displayName: player.displayName,
+      role: player.role,
+      profilePicture: player.profilePicturePath,
+      joinedAt: player.joinedAt,
+    }))}`;
+
+    return res.redirect(callbackUrl);
 
   } catch (error: any) {
     console.error('❌ Bungie callback failed:', error);
 
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Authentication failed'
-    });
+    // Redirection vers frontend avec erreur
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/?error=${encodeURIComponent(error.message)}`);
   }
 };
+// export const handleCallback = async (req: Request, res: Response) => {
+//   try {
+//     const { code, state } = req.query;
+
+//     if (!code) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Authorization code missing'
+//       });
+//     }
+
+//     console.log('📝 Processing Bungie callback...');
+
+//     // Échange le code contre des tokens
+//     const tokens = await bungieService.exchangeCodeForTokens(code as string);
+
+//     // Récupère le profil utilisateur
+//     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
+
+//     // Sauvegarde en base
+//     const player = await playerService.createOrUpdatePlayer(userProfile, tokens);
+
+//     // Génère JWT
+//     const jwtPayload = {
+//       playerId: player._id!.toString(),
+//       bungieId: player.bungieId,
+//       displayName: player.displayName,
+//       role: player.role
+//     };
+
+//     const jwtToken = generateJWT(jwtPayload);
+
+//     console.log(`✅ Authentication successful for: ${player.displayName} (ID: ${player._id})`);
+
+//     // 🆕 TOUJOURS RETOURNER JSON (pas de redirection)
+//     return res.json({
+//       success: true,
+//       data: {
+//         token: jwtToken,
+//         player: {
+//           id: player._id,
+//           bungieId: player.bungieId,
+//           displayName: player.displayName,
+//           role: player.role,
+//           profilePicture: player.profilePicturePath,
+//           joinedAt: player.joinedAt,
+//         }
+//       },
+//       message: 'Authentication successful - Copy the token for your requests!'
+//     });
+
+//   } catch (error: any) {
+//     console.error('❌ Bungie callback failed:', error);
+
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message,
+//       message: 'Authentication failed'
+//     });
+//   }
+// };
 /**
  * Vérifie un token JWT et retourne les infos du joueur
  */
@@ -146,6 +200,80 @@ export const verifyToken = async (req: Request, res: Response) => {
       success: false,
       data: { valid: false },
       message: 'Token is invalid or expired'
+    });
+  }
+};
+
+/**
+ * Rafraîchit un token JWT avant son expiration
+ */
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token required'
+      });
+    }
+
+    // Vérifie l'ancien token
+    let decoded;
+    try {
+      decoded = verifyJWT(token);
+    } catch (error: any) {
+      // Si le token est déjà expiré ou invalide
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token',
+        message: 'Please log in again'
+      });
+    }
+
+    // Récupère les infos actuelles du joueur
+    const player = await playerService.getPlayerById(decoded.playerId);
+
+    if (!player) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found'
+      });
+    }
+
+    // Génère un nouveau JWT
+    const jwtPayload = {
+      playerId: player._id!.toString(),
+      bungieId: player.bungieId,
+      displayName: player.displayName,
+      role: player.role
+    };
+
+    const newToken = generateJWT(jwtPayload);
+
+    // Met à jour la dernière activité
+    await playerService.updateLastActivity(player._id!.toString());
+
+    return res.json({
+      success: true,
+      data: {
+        token: newToken,
+        player: {
+          id: player._id,
+          bungieId: player.bungieId,
+          displayName: player.displayName,
+          role: player.role,
+          profilePicture: player.profilePicturePath,
+        }
+      },
+      message: 'Token refreshed successfully'
+    });
+  } catch (error: any) {
+    console.error('❌ Error refreshing token:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to refresh token',
+      message: error.message
     });
   }
 };

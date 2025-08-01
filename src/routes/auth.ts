@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { initiateLogin, handleCallback, verifyToken, getProfile } from '../controllers';
+import { initiateLogin, handleCallback, verifyToken, getProfile, refreshToken } from '../controllers';
 
 const router = Router();
 
@@ -11,6 +11,9 @@ router.get('/bungie/callback', handleCallback);
 
 // Vérification de token
 router.post('/verify-token', verifyToken);
+
+// Rafraîchissement de token
+router.post('/refresh-token', refreshToken);
 
 // Profil du joueur connecté
 router.get('/profile', getProfile);
