@@ -19,7 +19,7 @@ declare global {
 /**
  * Middleware qui vérifie si l'utilisateur est authentifié via JWT
  */
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -57,7 +57,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       await playerService.updateLastActivity(decoded.playerId);
       
       // Continue vers la route protégée
-      next();
+      return next();
     } catch (error) {
       return res.status(401).json({
         success: false,
