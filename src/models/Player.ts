@@ -6,7 +6,7 @@ export interface Player {
     displayName: string;
     membershipType: number;
     profilePicturePath?: string;
-    role: 'player' | 'creator' | 'admin';
+    role: 'agent' | 'specialist' | 'founder' | 'admin';
 
     // OAuth tokens
     bungieTokens?: {
@@ -15,6 +15,13 @@ export interface Player {
         expiresAt: Date;
     };
 
+    protocol?: {
+        agentName: string;
+        species: 'HUMAN' | 'EXO' | 'AWOKEN';
+        clearanceLevel: 1 | 2 | 3;
+        hasSeenRecruitment: boolean;
+        protocolJoinedAt?: Date;
+    };
     // Timestamps
     joinedAt: Date;
     lastActivity: Date;
@@ -23,6 +30,8 @@ export interface Player {
     settings?: {
         notifications: boolean;
         publicProfile: boolean;
+        protocolOSTheme?: 'default' | 'classic';
+        protocolSounds?: boolean;
     };
 
 }

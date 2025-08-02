@@ -76,6 +76,8 @@ export const handleCallback = async (req: Request, res: Response) => {
       role: player.role,
       profilePicture: player.profilePicturePath,
       joinedAt: player.joinedAt,
+      protocol: player.protocol,
+      settings: player.settings
     }))}`;
 
     return res.redirect(callbackUrl);
@@ -191,6 +193,8 @@ export const verifyToken = async (req: Request, res: Response) => {
           profilePicture: player.profilePicturePath,
           joinedAt: player.joinedAt,
           lastActivity: player.lastActivity,
+          protocol: player.protocol,
+          settings: player.settings
         }
       },
       message: 'Token is valid'
@@ -264,6 +268,8 @@ export const refreshToken = async (req: Request, res: Response) => {
           displayName: player.displayName,
           role: player.role,
           profilePicture: player.profilePicturePath,
+          protocol: player.protocol,
+          settings: player.settings
         }
       },
       message: 'Token refreshed successfully'
@@ -369,7 +375,8 @@ export const getProfile = async (req: Request, res: Response) => {
           profilePicture: player.profilePicturePath,
           joinedAt: player.joinedAt,
           lastActivity: player.lastActivity,
-          settings: player.settings,
+          protocol: player.protocol,
+          settings: player.settings
         }
       }
     });

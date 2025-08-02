@@ -63,17 +63,25 @@ class PlayerService {
                     displayName: bungieProfile.displayName || 'Unknown Player',
                     membershipType: bungieProfile.membershipType || 0,
                     profilePicturePath: bungieProfile.profilePicturePath,
-                    role: 'player',
+                    role: 'agent',
                     bungieTokens: {
                         accessToken: tokens.access_token,
                         refreshToken: tokens.refresh_token,
                         expiresAt: expiresAt
                     },
+                    protocol: {
+                        agentName: `Agent ${bungieProfile.displayName || 'Unknown'}`,
+                        species: 'HUMAN', // Valeur par défaut
+                        clearanceLevel: 1,
+                        hasSeenRecruitment: false
+                    },
                     joinedAt: now,
                     lastActivity: now,
                     settings: {
                         notifications: true,
-                        publicProfile: true
+                        publicProfile: true,
+                        protocolOSTheme: 'default',
+                        protocolSounds: true
                     },
                 };
 
