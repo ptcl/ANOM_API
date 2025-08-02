@@ -150,6 +150,67 @@ class PlayerService {
             console.error('❌ Error updating last activity:', error);
         }
     }
+
+    async updatePlayerProfile(playerId: string, updateData: Partial<Player>): Promise<Player | null> {
+        try {
+            console.log(`🔄 Updating profile for player: ${playerId}`);
+            console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
+            
+            // Récupère le joueur actuel pour pouvoir fusionner correctement les objets imbriqués
+            const currentPlayer = await this.getPlayerById(playerId);
+            if (!currentPlayer) {
+                console.error(`❌ Player not found with ID: ${playerId}`);
+                return null;
+            }
+            
+            // Supprime les champs qui ne doivent pas être modifiables directement
+            const sanitizedUpdateData = { ...updateData };
+            delete sanitizedUpdateData._id;
+            delete sanitizedUpdateData.bungieId;
+            delete sanitizedUpdateData.membershipType;
+            delete sanitizedUpdateData.bungieTokens;
+            delete sanitizedUpdateData.joinedAt;
+            delete sanitizedUpdateData.lastActivity;
+            
+            // Mise à jour de la dernière activité
+            sanitizedUpdateData.lastActivity = new Date();
+            
+            // Traitement spécial pour les objets imbriqués (protocol et settings)
+            // Si protocol est présent dans la mise à jour, on le fusionne avec l'existant au lieu de le remplacer
+            if (sanitizedUpdateData.protocol && currentPlayer.protocol) {
+                sanitizedUpdateData.protocol = {
+                    ...currentPlayer.protocol,
+                    ...sanitizedUpdateData.protocol
+                };
+            }
+            
+            // Si settings est présent dans la mise à jour, on le fusionne avec l'existant au lieu de le remplacer
+            if (sanitizedUpdateData.settings && currentPlayer.settings) {
+                sanitizedUpdateData.settings = {
+                    ...currentPlayer.settings,
+                    ...sanitizedUpdateData.settings
+                };
+            }
+            
+            const db = this.db();
+            const result = await db.collection<Player>('players').findOneAndUpdate(
+                { _id: new ObjectId(playerId) },
+                { $set: sanitizedUpdateData },
+                { returnDocument: 'after' }
+            );
+            
+            if (result) {
+                console.log(`✅ Successfully updated profile for: ${result.displayName}`);
+                return result;
+            } else {
+                console.error(`❌ Player not found with ID: ${playerId}`);
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Error updating player profile:', error);
+            throw new Error(`Failed to update player profile: ${error}`);
+        }
+    }
 }
 
 export const playerService = new PlayerService();

@@ -388,3 +388,85 @@ export const getProfile = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * Met à jour le profil d'un joueur
+ */
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    // Vérification du token d'authentification
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized - Valid token required'
+      });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    
+    try {
+      decoded = verifyJWT(token);
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token'
+      });
+    }
+    
+    // Récupération des données de mise à jour
+    const updateData = req.body;
+    
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No update data provided'
+      });
+    }
+    
+    // Validation des données de mise à jour (exemple)
+    if (updateData.role && !['agent', 'specialist', 'founder', 'admin'].includes(updateData.role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role specified'
+      });
+    }
+    
+    // Mise à jour du profil
+    const updatedPlayer = await playerService.updatePlayerProfile(decoded.playerId, updateData);
+    
+    if (!updatedPlayer) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found'
+      });
+    }
+    
+    return res.json({
+      success: true,
+      data: {
+        player: {
+          id: updatedPlayer._id,
+          bungieId: updatedPlayer.bungieId,
+          displayName: updatedPlayer.displayName,
+          role: updatedPlayer.role,
+          profilePicture: updatedPlayer.profilePicturePath,
+          joinedAt: updatedPlayer.joinedAt,
+          lastActivity: updatedPlayer.lastActivity,
+          protocol: updatedPlayer.protocol,
+          settings: updatedPlayer.settings
+        }
+      },
+      message: 'Profile updated successfully'
+    });
+  } catch (error: any) {
+    console.error('❌ Error updating profile:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update profile',
+      message: error.message
+    });
+  }
+};
