@@ -16,13 +16,15 @@ class PlayerService {
 
             // 🆕 DEBUG: Log du profil reçu
             console.log('🔍 Bungie Profile received:');
-            console.log('   membershipId:', bungieProfile.membershipId);
-            console.log('   displayName:', bungieProfile.displayName);
-            console.log('   membershipType:', bungieProfile.membershipType);
-            console.log('   profilePicturePath:', bungieProfile.profilePicturePath);
+            // console.log('   membershipId:', bungieProfile.membershipId);
+            // console.log('   displayName:', bungieProfile.displayName);
+            // console.log('   membershipType:', bungieProfile.membershipType);
+            // console.log('   profilePicturePath:', bungieProfile.profilePicturePath);
             console.log('   Full profile keys:', Object.keys(bungieProfile));
+            console.log('   Full profile keys:', bungieProfile.destinyMemberships);
+            console.log('   Full profile keys:', bungieProfile.membershipId);
 
-            console.log(`👤 Creating/updating player: ${bungieProfile.displayName || 'UNDEFINED_NAME'}`);
+            // console.log(`👤 Creating/updating player: ${bungieProfile.displayName || 'UNDEFINED_NAME'}`);
 
             const now = new Date();
             const expiresAt = new Date(now.getTime() + (tokens.expires_in * 1000));
