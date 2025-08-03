@@ -59,6 +59,7 @@ export const handleCallback = async (req: Request, res: Response) => {
     const jwtPayload = {
       playerId: player._id!.toString(),
       bungieId: player.bungieId,
+      membershipId: player.membershipId,
       displayName: player.displayName,
       role: player.role
     };
@@ -73,6 +74,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       id: player._id,
       bungieId: player.bungieId,
       displayName: player.displayName,
+      membershipId: player.membershipId,
       role: player.role,
       profilePicture: player.profilePicturePath,
       joinedAt: player.joinedAt,
@@ -188,6 +190,7 @@ export const verifyToken = async (req: Request, res: Response) => {
         player: {
           id: player._id,
           bungieId: player.bungieId,
+          membershipId: player.membershipId,
           displayName: player.displayName,
           role: player.role,
           profilePicture: player.profilePicturePath,
@@ -249,6 +252,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     const jwtPayload = {
       playerId: player._id!.toString(),
       bungieId: player.bungieId,
+      membershipId: player.membershipId,
       displayName: player.displayName,
       role: player.role
     };
@@ -265,6 +269,7 @@ export const refreshToken = async (req: Request, res: Response) => {
         player: {
           id: player._id,
           bungieId: player.bungieId,
+          membershipId: player.membershipId,
           displayName: player.displayName,
           role: player.role,
           profilePicture: player.profilePicturePath,
@@ -370,6 +375,7 @@ export const getProfile = async (req: Request, res: Response) => {
         player: {
           id: player._id,
           bungieId: player.bungieId,
+          membershipId: player.membershipId,
           displayName: player.displayName,
           role: player.role,
           profilePicture: player.profilePicturePath,
@@ -396,17 +402,17 @@ export const updateProfile = async (req: Request, res: Response) => {
   try {
     // Vérification du token d'authentification
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized - Valid token required'
       });
     }
-    
+
     const token = authHeader.split(' ')[1];
     let decoded;
-    
+
     try {
       decoded = verifyJWT(token);
     } catch (error) {
@@ -415,17 +421,17 @@ export const updateProfile = async (req: Request, res: Response) => {
         error: 'Invalid or expired token'
       });
     }
-    
+
     // Récupération des données de mise à jour
     const updateData = req.body;
-    
+
     if (!updateData || Object.keys(updateData).length === 0) {
       return res.status(400).json({
         success: false,
         error: 'No update data provided'
       });
     }
-    
+
     // Validation des données de mise à jour (exemple)
     if (updateData.role && !['agent', 'specialist', 'founder', 'admin'].includes(updateData.role)) {
       return res.status(400).json({
@@ -433,17 +439,17 @@ export const updateProfile = async (req: Request, res: Response) => {
         error: 'Invalid role specified'
       });
     }
-    
+
     // Mise à jour du profil
     const updatedPlayer = await playerService.updatePlayerProfile(decoded.playerId, updateData);
-    
+
     if (!updatedPlayer) {
       return res.status(404).json({
         success: false,
         error: 'Player not found'
       });
     }
-    
+
     return res.json({
       success: true,
       data: {

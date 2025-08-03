@@ -4,6 +4,7 @@ export interface Player {
     _id?: ObjectId;
     bungieId: string;
     displayName: string;
+    membershipId: string; // Réintégré comme chaîne de caractères pour correspondre au type de l'API Bungie
     membershipType: number;
     profilePicturePath?: string;
     role: 'agent' | 'specialist' | 'founder' | 'admin';

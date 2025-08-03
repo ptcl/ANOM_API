@@ -41,6 +41,7 @@ class PlayerService {
                     {
                         $set: {
                             displayName: bungieProfile.displayName || 'Unknown Player',
+                            membershipId: bungieProfile.membershipId, // Ajouté pour mettre à jour ce champ
                             membershipType: bungieProfile.membershipType || 0,
                             profilePicturePath: bungieProfile.profilePicturePath,
                             lastActivity: now,
@@ -60,6 +61,7 @@ class PlayerService {
                 // Crée un nouveau joueur
                 const newPlayer: Player = {
                     bungieId: bungieProfile.membershipId,
+                    membershipId: bungieProfile.membershipId, // Réintégré
                     displayName: bungieProfile.displayName || 'Unknown Player',
                     membershipType: bungieProfile.membershipType || 0,
                     profilePicturePath: bungieProfile.profilePicturePath,
@@ -167,6 +169,7 @@ class PlayerService {
             const sanitizedUpdateData = { ...updateData };
             delete sanitizedUpdateData._id;
             delete sanitizedUpdateData.bungieId;
+            delete sanitizedUpdateData.membershipId; // Ajouté pour protéger ce champ
             delete sanitizedUpdateData.membershipType;
             delete sanitizedUpdateData.bungieTokens;
             delete sanitizedUpdateData.joinedAt;
