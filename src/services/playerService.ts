@@ -20,10 +20,7 @@ class PlayerService {
             // console.log('   displayName:', bungieProfile.displayName);
             // console.log('   membershipType:', bungieProfile.membershipType);
             // console.log('   profilePicturePath:', bungieProfile.profilePicturePath);
-            console.log('   Full profile keys:', Object.keys(bungieProfile));
-            console.log('   Full profile keys:', bungieProfile.destinyMemberships);
-            console.log('   Full profile keys:', bungieProfile.membershipId);
-
+            // console.log('   Full profile keys:', Object.keys(bungieProfile));
             // console.log(`👤 Creating/updating player: ${bungieProfile.displayName || 'UNDEFINED_NAME'}`);
 
             const now = new Date();
@@ -43,7 +40,7 @@ class PlayerService {
                     {
                         $set: {
                             displayName: bungieProfile.displayName || 'Unknown Player',
-                            membershipId: bungieProfile.membershipId, // Ajouté pour mettre à jour ce champ
+                            membershipId: bungieProfile.membershipId,
                             membershipType: bungieProfile.membershipType || 0,
                             profilePicturePath: bungieProfile.profilePicturePath,
                             lastActivity: now,
@@ -63,7 +60,6 @@ class PlayerService {
                 // Crée un nouveau joueur
                 const newPlayer: Player = {
                     bungieId: bungieProfile.membershipId,
-                    membershipId: bungieProfile.membershipId, // Réintégré
                     displayName: bungieProfile.displayName || 'Unknown Player',
                     membershipType: bungieProfile.membershipType || 0,
                     profilePicturePath: bungieProfile.profilePicturePath,
@@ -75,9 +71,17 @@ class PlayerService {
                     },
                     protocol: {
                         agentName: `Agent ${bungieProfile.displayName || 'Unknown'}`,
-                        species: 'HUMAN', // Valeur par défaut
+                        group: 'INDEPENDENT',
+                        customName: "",
+                        projectAccess: {
+                            ANOM: true,
+                            AURORA: false,
+                            ZENITH: false
+                        },
+                        species: 'HUMAN',
                         clearanceLevel: 1,
-                        hasSeenRecruitment: false
+                        hasSeenRecruitment: false,
+                        protocolJoinedAt: now
                     },
                     joinedAt: now,
                     lastActivity: now,
@@ -159,27 +163,26 @@ class PlayerService {
         try {
             console.log(`🔄 Updating profile for player: ${playerId}`);
             console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
-            
+
             // Récupère le joueur actuel pour pouvoir fusionner correctement les objets imbriqués
             const currentPlayer = await this.getPlayerById(playerId);
             if (!currentPlayer) {
                 console.error(`❌ Player not found with ID: ${playerId}`);
                 return null;
             }
-            
+
             // Supprime les champs qui ne doivent pas être modifiables directement
             const sanitizedUpdateData = { ...updateData };
             delete sanitizedUpdateData._id;
             delete sanitizedUpdateData.bungieId;
-            delete sanitizedUpdateData.membershipId; // Ajouté pour protéger ce champ
             delete sanitizedUpdateData.membershipType;
             delete sanitizedUpdateData.bungieTokens;
             delete sanitizedUpdateData.joinedAt;
             delete sanitizedUpdateData.lastActivity;
-            
+
             // Mise à jour de la dernière activité
             sanitizedUpdateData.lastActivity = new Date();
-            
+
             // Traitement spécial pour les objets imbriqués (protocol et settings)
             // Si protocol est présent dans la mise à jour, on le fusionne avec l'existant au lieu de le remplacer
             if (sanitizedUpdateData.protocol && currentPlayer.protocol) {
@@ -188,7 +191,7 @@ class PlayerService {
                     ...sanitizedUpdateData.protocol
                 };
             }
-            
+
             // Si settings est présent dans la mise à jour, on le fusionne avec l'existant au lieu de le remplacer
             if (sanitizedUpdateData.settings && currentPlayer.settings) {
                 sanitizedUpdateData.settings = {
@@ -196,14 +199,14 @@ class PlayerService {
                     ...sanitizedUpdateData.settings
                 };
             }
-            
+
             const db = this.db();
             const result = await db.collection<Player>('players').findOneAndUpdate(
                 { _id: new ObjectId(playerId) },
                 { $set: sanitizedUpdateData },
                 { returnDocument: 'after' }
             );
-            
+
             if (result) {
                 console.log(`✅ Successfully updated profile for: ${result.displayName}`);
                 return result;

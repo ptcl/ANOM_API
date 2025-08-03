@@ -4,10 +4,9 @@ export interface Player {
     _id?: ObjectId;
     bungieId: string;
     displayName: string;
-    membershipId: string; // Réintégré comme chaîne de caractères pour correspondre au type de l'API Bungie
     membershipType: number;
     profilePicturePath?: string;
-    role: 'agent' | 'specialist' | 'founder' | 'admin';
+    role: 'agent' | 'specialist' | 'founder';
 
     // OAuth tokens
     bungieTokens?: {
@@ -18,10 +17,17 @@ export interface Player {
 
     protocol?: {
         agentName: string;
+        customName?: string;
         species: 'HUMAN' | 'EXO' | 'AWOKEN';
         clearanceLevel: 1 | 2 | 3;
         hasSeenRecruitment: boolean;
         protocolJoinedAt?: Date;
+        group?: 'PROTOCOL' | 'AURORA' | 'ZENITH' | 'EXODUS' | 'GUARDIAN' | 'INDEPENDENT';
+        projectAccess?: {
+            ANOM: boolean;
+            AURORA: boolean;
+            ZENITH: boolean;
+        };
     };
     // Timestamps
     joinedAt: Date;

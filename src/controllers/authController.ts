@@ -59,7 +59,6 @@ export const handleCallback = async (req: Request, res: Response) => {
     const jwtPayload = {
       playerId: player._id!.toString(),
       bungieId: player.bungieId,
-      membershipId: player.membershipId,
       displayName: player.displayName,
       role: player.role
     };
@@ -74,7 +73,6 @@ export const handleCallback = async (req: Request, res: Response) => {
       id: player._id,
       bungieId: player.bungieId,
       displayName: player.displayName,
-      membershipId: player.membershipId,
       role: player.role,
       profilePicture: player.profilePicturePath,
       joinedAt: player.joinedAt,
@@ -190,7 +188,6 @@ export const verifyToken = async (req: Request, res: Response) => {
         player: {
           id: player._id,
           bungieId: player.bungieId,
-          membershipId: player.membershipId,
           displayName: player.displayName,
           role: player.role,
           profilePicture: player.profilePicturePath,
@@ -252,7 +249,6 @@ export const refreshToken = async (req: Request, res: Response) => {
     const jwtPayload = {
       playerId: player._id!.toString(),
       bungieId: player.bungieId,
-      membershipId: player.membershipId,
       displayName: player.displayName,
       role: player.role
     };
@@ -269,7 +265,6 @@ export const refreshToken = async (req: Request, res: Response) => {
         player: {
           id: player._id,
           bungieId: player.bungieId,
-          membershipId: player.membershipId,
           displayName: player.displayName,
           role: player.role,
           profilePicture: player.profilePicturePath,
@@ -375,7 +370,6 @@ export const getProfile = async (req: Request, res: Response) => {
         player: {
           id: player._id,
           bungieId: player.bungieId,
-          membershipId: player.membershipId,
           displayName: player.displayName,
           role: player.role,
           profilePicture: player.profilePicturePath,
