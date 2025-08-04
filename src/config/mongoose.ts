@@ -10,39 +10,36 @@ export const connectMongoose = async (): Promise<void> => {
         console.log('🔌 Connecting to MongoDB with Mongoose...');
         console.log(`   Environment: ${isDev() ? 'Development' : 'Production'}`);
         console.log(`   Database: ${mongoConfig.dbName}`);
-        console.log(`   URI: ${mongoConfig.uri.replace(/\/\/.*@/, '//***@')}`); // Masque les credentials
-        
-        // Configurer les options de connexion Mongoose
+        console.log(`   URI: ${mongoConfig.uri.replace(/\/\/.*@/, '//***@')}`);
+
         mongoose.set('strictQuery', false);
-        
-        // Augmenter le délai de connexion pour éviter les timeouts
+
         const mongooseOptions = {
-            serverSelectionTimeoutMS: 30000, // 30 secondes au lieu de 10
+            serverSelectionTimeoutMS: 30000,
             socketTimeoutMS: 45000,
             maxPoolSize: isDev() ? 5 : 10,
-            family: 4
+            family: 4,
+            dbName: mongoConfig.dbName
         };
-        
-        // Connexion à MongoDB avec Mongoose
+
         await mongoose.connect(mongoConfig.uri, mongooseOptions);
-        
+
         connection = mongoose.connection;
-        
-        // Événements de connexion
+
         connection.on('error', (err) => {
             console.error('❌ Mongoose connection error:', err);
         });
-        
+
         connection.on('disconnected', () => {
             console.log('❗ Mongoose disconnected');
         });
-        
+
         connection.on('reconnected', () => {
             console.log('✅ Mongoose reconnected');
         });
-        
+
         console.log('✅ Connected to MongoDB with Mongoose successfully');
-        
+
     } catch (error) {
         console.error('❌ Mongoose connection error:', error);
         throw new Error(`Failed to connect to MongoDB with Mongoose: ${error}`);
