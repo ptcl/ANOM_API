@@ -102,8 +102,13 @@ class BungieService {
             const primaryDestinyMembership = destinyMemberships.find((m: any) => m.crossSaveOverride) || destinyMemberships[0];
 
             // Construit le profil unifié
-            const profile: any = {
-                // Ajout des données brutes complètes
+            const profile: BungieUserProfile = {
+                membershipId: bungieNetUser.membershipId,
+                displayName: bungieNetUser.displayName,
+                membershipType: primaryDestinyMembership ? primaryDestinyMembership.membershipType : 0,
+                profilePicturePath: bungieNetUser.profilePicturePath,
+                about: bungieNetUser.about,
+                destinyMemberships: destinyMemberships,
                 rawData: rawData
             };
 

@@ -60,6 +60,21 @@ export const handleCallback = async (req: Request, res: Response) => {
     // Récupère le profil utilisateur
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
 
+    // Vérification du profil avant sauvegarde
+    if (!userProfile || !userProfile.membershipId) {
+      console.error('❌ Profil Bungie invalide:', userProfile);
+      return res.status(400).json({
+        success: false,
+        error: 'Profil Bungie invalide ou incomplet',
+        message: 'Les données du profil Bungie sont incomplètes ou invalides'
+      });
+    }
+
+    // Log des données importantes
+    console.log('👤 Profil utilisateur récupéré:');
+    console.log('   membershipId:', userProfile.membershipId);
+    console.log('   displayName:', userProfile.displayName);
+
     // Sauvegarde en base
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
@@ -105,11 +120,18 @@ export const handleCallback = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('❌ Bungie callback failed:', error);
 
+    // Journalisation détaillée pour le débogage
+    if (error.response) {
+      console.error('   Réponse d\'erreur:', error.response.data);
+      console.error('   Status:', error.response.status);
+    }
+
     // Retourne une erreur en JSON
     return res.status(500).json({
       success: false,
       error: error.message || 'Authentication failed',
-      message: 'Failed to process Bungie callback'
+      message: 'Failed to process Bungie callback',
+      details: error.stack
     });
   }
 };

@@ -21,6 +21,14 @@ class AgentService {
         try {
             // Log du profil reçu
             console.log('🔍 Bungie Profile received:');
+            console.log('   membershipId:', bungieProfile.membershipId);
+            console.log('   displayName:', bungieProfile.displayName);
+            console.log('   membershipType:', bungieProfile.membershipType);
+
+            if (!bungieProfile.membershipId) {
+                console.error('❌ ERREUR: membershipId manquant dans le profil Bungie');
+                throw new Error('Le membershipId est manquant dans le profil Bungie. Impossible de créer ou mettre à jour l\'agent.');
+            }
 
             const now = new Date();
             const expiresAt = new Date(now.getTime() + (tokens.expires_in * 1000));
@@ -77,16 +85,25 @@ class AgentService {
                     updatedAt: now
                 });
 
-                // Log de l'agent à créer
                 console.log('🔍 Creating new agent with data:');
                 console.log('   bungieId:', newAgent.bungieId);
                 console.log('   agentName:', newAgent.protocol.agentName);
 
-                await newAgent.save();
-
-                console.log(`🎉 Created new agent: ${newAgent.displayName} (ID: ${newAgent._id})`);
-
-                return newAgent as IAgentDocument;
+                try {
+                    await newAgent.save();
+                    console.log(`🎉 Created new agent: ${newAgent.protocol.agentName} (ID: ${newAgent._id})`);
+                    return newAgent as IAgentDocument;
+                } catch (saveError: any) {
+                    console.error('❌ Erreur lors de la sauvegarde du nouvel agent:', saveError);
+                    if (saveError.name === 'ValidationError') {
+                        // Affiche les détails des erreurs de validation
+                        const validationErrors = Object.keys(saveError.errors).map(field => {
+                            return `${field}: ${saveError.errors[field].message}`;
+                        }).join(', ');
+                        throw new Error(`Validation error: ${validationErrors}`);
+                    }
+                    throw saveError;
+                }
             }
         } catch (error) {
             console.error('❌ Error creating/updating agent:', error);
