@@ -7,7 +7,6 @@ const agentSchema = new mongoose.Schema({
         refreshToken: { type: String, required: true },
         expiresAt: { type: Date, required: true }
     },
-    lastActivity: { type: Date, default: Date.now },
     rawdata: { type: mongoose.Schema.Types.Mixed },
     protocol: {
         agentName: { type: String, required: true },
@@ -24,10 +23,24 @@ const agentSchema = new mongoose.Schema({
             protocolOSTheme: { type: String, enum: ['DEFAULT', 'DARKNESS'], default: 'DEFAULT' },
             protocolSounds: { type: Boolean, default: true }
         }
-    }
+    },
+    lastActivity: { type: Date, default: Date.now },
 },
     {
-        timestamps: true
+        timestamps: true,
+        toJSON: {
+            virtuals: true,
+            transform: function(doc, ret) {
+                // Assurez-vous que rawdata est inclus, même s'il est null
+                if (ret.rawdata === undefined) {
+                    ret.rawdata = null;
+                }
+                return ret;
+            }
+        },
+        toObject: {
+            virtuals: true
+        }
     });
 
 // Ajout d'index pour améliorer les performances

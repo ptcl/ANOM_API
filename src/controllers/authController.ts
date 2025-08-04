@@ -78,6 +78,10 @@ export const handleCallback = async (req: Request, res: Response) => {
     // Sauvegarde en base
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
+    // Log pour déboguer rawdata
+    console.log('👁️ Agent rawdata présent:', agent.rawdata ? 'OUI' : 'NON');
+    console.log('👁️ Taille rawdata:', agent.rawdata ? Object.keys(agent.rawdata).length : 0);
+    
     // Génère JWT
     const jwtPayload = {
       agentId: agent._id!.toString(),

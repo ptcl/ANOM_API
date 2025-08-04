@@ -6,7 +6,6 @@ export interface IAgent {
         refreshToken: string;
         expiresAt: Date;
     };
-    lastActivity?: Date;
     rawdata?: any;
     protocol: {
         agentName: string;
@@ -24,6 +23,7 @@ export interface IAgent {
             protocolSounds?: boolean;
         }
     }
+    lastActivity?: Date;
     createdAt: Date;
     updatedAt: Date;
 }

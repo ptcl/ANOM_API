@@ -95,6 +95,10 @@ class BungieService {
 
             const rawData = response.data.Response;
 
+            // Log pour déboguer rawData
+            console.log('📊 rawData récupéré:', rawData ? 'OUI' : 'NON');
+            console.log('📊 Taille rawData:', rawData ? Object.keys(rawData).length : 0);
+            
             // 🆕 EXTRACTION DES DONNÉES SELON LA VRAIE STRUCTURE
             const bungieNetUser = rawData.bungieNetUser;
             const destinyMemberships = rawData.destinyMemberships || [];
@@ -105,7 +109,12 @@ class BungieService {
             // Construit directement un Agent au lieu d'un BungieUserProfile
             const agent: IAgent = {
                 bungieId: bungieNetUser.membershipId,
-                rawdata: rawData,
+                // Garder seulement les informations importantes pour éviter des objets trop volumineux
+                rawdata: {
+                    bungieNetUser: bungieNetUser,
+                    destinyMemberships: destinyMemberships,
+                    // Ajouter d'autres champs essentiels au besoin
+                },
                 protocol: {
                     agentName: bungieNetUser.displayName,
                     species: 'HUMAN', // Valeur par défaut, à personnaliser plus tard

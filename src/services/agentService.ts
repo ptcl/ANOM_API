@@ -23,6 +23,8 @@ class AgentService {
             console.log('🔍 Agent Profile received:');
             console.log('   bungieId:', agent.bungieId);
             console.log('   agentName:', agent.protocol.agentName);
+            console.log('   rawdata présent:', agent.rawdata ? 'OUI' : 'NON');
+            console.log('   taille rawdata:', agent.rawdata ? Object.keys(agent.rawdata).length : 0);
 
             if (!agent.bungieId) {
                 console.error('❌ ERREUR: bungieId manquant dans le profil Agent');
@@ -42,12 +44,13 @@ class AgentService {
 
                 // Met à jour le joueur existant
                 existingPlayer.protocol.agentName = agent.protocol.agentName;
-                existingPlayer.lastActivity = now;
+                existingPlayer.rawdata = agent.rawdata; // Ajout des données brutes
                 existingPlayer.bungieTokens = {
                     accessToken: tokens.access_token,
                     refreshToken: tokens.refresh_token,
                     expiresAt: expiresAt
                 };
+                existingPlayer.lastActivity = now;
                 existingPlayer.updatedAt = now;
 
                 await existingPlayer.save();
@@ -58,6 +61,7 @@ class AgentService {
                 // Crée un nouveau joueur
                 const newAgent = new AgentModel({
                     bungieId: agent.bungieId,
+                    rawdata: agent.rawdata, // Ajout des données brutes
                     bungieTokens: {
                         accessToken: tokens.access_token,
                         refreshToken: tokens.refresh_token,
