@@ -3,7 +3,7 @@ import { BungieTokenResponse } from '../types/bungie';
 import { ObjectId } from 'mongoose';
 import { IAgent } from '../types/agent';
 
-interface IAgentDocument extends IAgent {
+interface IPlayerDocument extends IAgent {
     bungieId: string;
     bungieTokens: {
         accessToken: string;
@@ -13,21 +13,14 @@ interface IAgentDocument extends IAgent {
     joinedAt: Date;
 }
 
-class AgentService {
-    async createOrUpdateAgent(
+class PlayerService {
+    async createOrUpdatePlayer(
         agent: IAgent,
         tokens: BungieTokenResponse
-    ): Promise<IAgentDocument> {
+    ): Promise<IPlayerDocument> {
         try {
             // Log du profil reçu
             console.log('🔍 Agent Profile received:');
-            console.log('   bungieId:', agent.bungieId);
-            console.log('   agentName:', agent.protocol.agentName);
-
-            if (!agent.bungieId) {
-                console.error('❌ ERREUR: bungieId manquant dans le profil Agent');
-                throw new Error('Le bungieId est manquant dans le profil Agent. Impossible de créer ou mettre à jour l\'agent.');
-            }
 
             const now = new Date();
             const expiresAt = new Date(now.getTime() + (tokens.expires_in * 1000));
@@ -52,11 +45,11 @@ class AgentService {
 
                 await existingPlayer.save();
 
-                console.log(`✅ Updated existing agent: ${existingPlayer.protocol.agentName || 'UNDEFINED_NAME'}`);
-                return existingPlayer as IAgentDocument;
+                console.log(`✅ Updated existing player: ${existingPlayer.protocol.agentName || 'UNDEFINED_NAME'}`);
+                return existingPlayer as IPlayerDocument;
             } else {
                 // Crée un nouveau joueur
-                const newAgent = new AgentModel({
+                const newPlayer = new AgentModel({
                     bungieId: agent.bungieId,
                     bungieTokens: {
                         accessToken: tokens.access_token,
@@ -84,79 +77,70 @@ class AgentService {
                     updatedAt: now
                 });
 
-                console.log('🔍 Creating new agent with data:');
-                console.log('   bungieId:', newAgent.bungieId);
-                console.log('   agentName:', newAgent.protocol.agentName);
+                // Log du joueur à créer
+                console.log('🔍 Creating new player with data:');
+                console.log('   bungieId:', newPlayer.bungieId);
+                console.log('   agentName:', newPlayer.protocol.agentName);
 
-                try {
-                    await newAgent.save();
-                    console.log(`🎉 Created new agent: ${newAgent.protocol.agentName} (ID: ${newAgent._id})`);
-                    return newAgent as IAgentDocument;
-                } catch (saveError: any) {
-                    console.error('❌ Erreur lors de la sauvegarde du nouvel agent:', saveError);
-                    if (saveError.name === 'ValidationError') {
-                        // Affiche les détails des erreurs de validation
-                        const validationErrors = Object.keys(saveError.errors).map(field => {
-                            return `${field}: ${saveError.errors[field].message}`;
-                        }).join(', ');
-                        throw new Error(`Validation error: ${validationErrors}`);
-                    }
-                    throw saveError;
-                }
+                await newPlayer.save();
+
+                console.log(`🎉 Created new player: ${newPlayer.displayName} (ID: ${newPlayer._id})`);
+
+                return newPlayer as IPlayerDocument;
             }
         } catch (error) {
-            console.error('❌ Error creating/updating agent:', error);
-            throw new Error(`Failed to create/update agent: ${error}`);
+            console.error('❌ Error creating/updating player:', error);
+            throw new Error(`Failed to create/update player: ${error}`);
         }
     }
 
-    async getAgentById(agentId: string): Promise<IAgentDocument | null> {
+    async getPlayerById(playerId: string): Promise<IPlayerDocument | null> {
         try {
-            const agent = await AgentModel.findById(agentId);
+            const player = await AgentModel.findById(playerId);
 
-            if (agent) {
-                console.log(`🔍 Found agent: ${agent.protocol.agentName} (ID: ${agentId})`);
+            if (player) {
+                console.log(`🔍 Found player: ${player.protocol.agentName} (ID: ${playerId})`);
             } else {
-                console.log(`❌ Agent not found with ID: ${agentId}`);
+                console.log(`❌ Player not found with ID: ${playerId}`);
             }
 
-            return agent as IAgentDocument;
+            return player as IPlayerDocument;
         } catch (error) {
-            console.error('❌ Error getting agent by ID:', error);
+            console.error('❌ Error getting player by ID:', error);
             return null;
         }
     }
 
-    async getAgentByBungieId(bungieId: string): Promise<IAgentDocument | null> {
+    async getPlayerByBungieId(bungieId: string): Promise<IPlayerDocument | null> {
         try {
-            return await AgentModel.findOne({ bungieId }) as IAgentDocument;
+            return await AgentModel.findOne({ bungieId }) as IPlayerDocument;
         } catch (error) {
-            console.error('❌ Error getting agent by Bungie ID:', error);
+            console.error('❌ Error getting player by Bungie ID:', error);
             return null;
         }
     }
 
-    async updateLastActivity(agentId: string): Promise<void> {
+    async updateLastActivity(playerId: string): Promise<void> {
         try {
             const now = new Date();
-            await AgentModel.findByIdAndUpdate(agentId, {
+            await AgentModel.findByIdAndUpdate(playerId, {
                 $set: { lastActivity: now, updatedAt: now }
             });
-            console.log(`⏰ Updated last activity for agent: ${agentId}`);
+            console.log(`⏰ Updated last activity for player: ${playerId}`);
         } catch (error) {
             console.error('❌ Error updating last activity:', error);
         }
     }
 
-    async updateAgentProfile(agentId: string, updateData: Partial<IAgentDocument>): Promise<IAgentDocument | null> {
+    async updatePlayerProfile(playerId: string, updateData: Partial<IPlayerDocument>): Promise<IPlayerDocument | null> {
         try {
-            console.log(`🔄 Updating profile for agent: ${agentId}`);
+            console.log(`🔄 Updating profile for player: ${playerId}`);
             console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
 
-            // Récupère l'agent actuel pour pouvoir fusionner correctement les objets imbriqués
-            const currentAgent = await this.getAgentById(agentId);
-            if (!currentAgent) {
-                console.error(`❌ Agent not found with ID: ${agentId}`);
+            // Récupère le joueur actuel pour pouvoir fusionner correctement les objets imbriqués
+            const currentPlayer = await this.getPlayerById(playerId);
+            if (!currentPlayer) {
+                console.error(`❌ Player not found with ID: ${playerId}`);
                 return null;
             }
 
@@ -174,36 +158,36 @@ class AgentService {
 
             // Traitement spécial pour les objets imbriqués (protocol)
             // Si protocol est présent dans la mise à jour, on le fusionne avec l'existant au lieu de le remplacer
-            if (sanitizedUpdateData.protocol && currentAgent.protocol) {
+            if (sanitizedUpdateData.protocol && currentPlayer.protocol) {
                 sanitizedUpdateData.protocol = {
-                    ...currentAgent.protocol,
+                    ...currentPlayer.protocol,
                     ...sanitizedUpdateData.protocol,
                     // Assurer que les settings sont également fusionnés
                     settings: {
-                        ...currentAgent.protocol.settings,
+                        ...currentPlayer.protocol.settings,
                         ...sanitizedUpdateData.protocol.settings
                     }
                 };
             }
 
             const result = await AgentModel.findByIdAndUpdate(
-                agentId,
+                playerId,
                 { $set: sanitizedUpdateData },
                 { new: true } // Équivalent à returnDocument: 'after'
             );
 
             if (result) {
                 console.log(`✅ Successfully updated profile for: ${result.protocol.agentName}`);
-                return result as IAgentDocument;
+                return result as IPlayerDocument;
             } else {
-                console.error(`❌ Agent not found with ID: ${agentId}`);
+                console.error(`❌ Player not found with ID: ${playerId}`);
                 return null;
             }
         } catch (error) {
-            console.error('❌ Error updating agent profile:', error);
-            throw new Error(`Failed to update agent profile: ${error}`);
+            console.error('❌ Error updating player profile:', error);
+            throw new Error(`Failed to update player profile: ${error}`);
         }
     }
 }
 
-export const agentService = new AgentService();
+export const playerService = new PlayerService();

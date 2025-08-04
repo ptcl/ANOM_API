@@ -61,7 +61,7 @@ export const handleCallback = async (req: Request, res: Response) => {
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
 
     // Vérification du profil avant sauvegarde
-    if (!userProfile || !userProfile.membershipId) {
+    if (!userProfile || !userProfile.bungieId) {
       console.error('❌ Profil Bungie invalide:', userProfile);
       return res.status(400).json({
         success: false,
@@ -72,8 +72,8 @@ export const handleCallback = async (req: Request, res: Response) => {
 
     // Log des données importantes
     console.log('👤 Profil utilisateur récupéré:');
-    console.log('   membershipId:', userProfile.membershipId);
-    console.log('   displayName:', userProfile.displayName);
+    console.log('   bungieId:', userProfile.bungieId);
+    console.log('   agentName:', userProfile.protocol.agentName);
 
     // Sauvegarde en base
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
@@ -111,8 +111,7 @@ export const handleCallback = async (req: Request, res: Response) => {
           },
           createdAt: agent.createdAt,
           updatedAt: agent.updatedAt
-        } as IAgent,
-        bungieProfile: userProfile // Pour la rétrocompatibilité
+        } as IAgent
       },
       message: 'Authentication successful'
     });
@@ -360,10 +359,10 @@ export const getProfile = async (req: Request, res: Response) => {
     }
 
     // Récupérer les données Bungie complètes si l'agent a un token d'accès valide
-    let bungieProfile = null;
+    let updatedAgent = null;
     try {
       if (agent.bungieTokens && agent.bungieTokens.accessToken) {
-        bungieProfile = await bungieService.getCurrentUser(agent.bungieTokens.accessToken);
+        updatedAgent = await bungieService.getCurrentUser(agent.bungieTokens.accessToken);
       }
     } catch (error) {
       console.log('⚠️ Impossible de récupérer le profil Bungie complet:', error);
@@ -375,7 +374,7 @@ export const getProfile = async (req: Request, res: Response) => {
       data: {
         agent: {
           _id: agent._id,
-          rawdata: bungieProfile?.rawData || null,
+          rawdata: updatedAgent?.rawdata || agent.rawdata || null,
           protocol: {
             agentName: agent.protocol.agentName,
             customName: agent.protocol?.customName || undefined,
@@ -389,8 +388,7 @@ export const getProfile = async (req: Request, res: Response) => {
           },
           createdAt: agent.createdAt,
           updatedAt: agent.updatedAt
-        } as IAgent,
-        bungieProfile: bungieProfile // Pour la rétrocompatibilité
+        } as IAgent
       }
     });
   } catch (error) {
