@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { bungieService } from '../services';
+import { IAgent } from '../types/agent';
 
 /**
  * @function getDestinyProfile
@@ -31,10 +32,36 @@ export const getDestinyProfile = async (req: Request, res: Response) => {
             components
         );
         
+        // Construire la réponse en utilisant l'interface Agent
+        const agentResponse: IAgent = {
+            _id: undefined,
+            rawdata: profileData,
+            protocol: {
+                agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
+                customName: undefined,
+                species: 'HUMAN',
+                role: 'AGENT',
+                clearanceLevel: 1,
+                hasSeenRecruitment: false,
+                protocolJoinedAt: undefined,
+                group: 'PROTOCOL',
+                settings: {
+                    notifications: false,
+                    publicProfile: false,
+                    protocolOSTheme: 'DEFAULT',
+                    protocolSounds: false
+                }
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
         return res.json({
             success: true,
             message: 'Profil Destiny2 récupéré avec succès',
-            data: profileData
+            data: {
+                agent: agentResponse
+            }
         });
     } catch (error: any) {
         console.error('❌ Erreur lors de la récupération du profil Destiny2:', error);
@@ -76,10 +103,36 @@ export const getCharacters = async (req: Request, res: Response) => {
             components
         );
         
+        // Construire la réponse au format Agent
+        const agentResponse: IAgent = {
+            _id: undefined,
+            rawdata: profileData,
+            protocol: {
+                agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
+                customName: undefined,
+                species: 'HUMAN',
+                role: 'AGENT',
+                clearanceLevel: 1,
+                hasSeenRecruitment: false,
+                protocolJoinedAt: undefined,
+                group: 'PROTOCOL',
+                settings: {
+                    notifications: false,
+                    publicProfile: false,
+                    protocolOSTheme: 'DEFAULT',
+                    protocolSounds: false
+                }
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
         return res.json({
             success: true,
             message: 'Personnages Destiny2 récupérés avec succès',
-            data: profileData.characters || {}
+            data: {
+                agent: agentResponse
+            }
         });
     } catch (error: any) {
         console.error('❌ Erreur lors de la récupération des personnages Destiny2:', error);
@@ -121,13 +174,35 @@ export const getItems = async (req: Request, res: Response) => {
             components
         );
         
+        // Construire la réponse au format Agent
+        const agentResponse: IAgent = {
+            _id: undefined,
+            rawdata: profileData,
+            protocol: {
+                agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
+                customName: undefined,
+                species: 'HUMAN',
+                role: 'AGENT',
+                clearanceLevel: 1,
+                hasSeenRecruitment: false,
+                protocolJoinedAt: undefined,
+                group: 'PROTOCOL',
+                settings: {
+                    notifications: false,
+                    publicProfile: false,
+                    protocolOSTheme: 'DEFAULT',
+                    protocolSounds: false
+                }
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
         return res.json({
             success: true,
             message: 'Items Destiny2 récupérés avec succès',
             data: {
-                profileInventory: profileData.profileInventory || {},
-                characterInventories: profileData.characterInventories || {},
-                itemComponents: profileData.itemComponents || {}
+                agent: agentResponse
             }
         });
     } catch (error: any) {
@@ -153,13 +228,38 @@ export const getManifestDefinition = async (req: Request, res: Response) => {
         // À implémenter - Accès au manifeste Destiny2
         // Cela nécessiterait un autre service ou une autre méthode dans bungieService
         
+        // Construire une réponse au format Agent même si les données ne sont pas encore disponibles
+        const agentResponse: IAgent = {
+            _id: undefined,
+            rawdata: {
+                definition,
+                hash
+            },
+            protocol: {
+                agentName: "Manifest Agent",
+                customName: undefined,
+                species: 'HUMAN',
+                role: 'AGENT',
+                clearanceLevel: 1,
+                hasSeenRecruitment: false,
+                protocolJoinedAt: undefined,
+                group: 'PROTOCOL',
+                settings: {
+                    notifications: false,
+                    publicProfile: false,
+                    protocolOSTheme: 'DEFAULT',
+                    protocolSounds: false
+                }
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
         return res.json({
             success: true,
             message: 'Définition du manifeste récupérée avec succès',
             data: {
-                definition,
-                hash,
-                // Données à implémenter
+                agent: agentResponse
             }
         });
     } catch (error: any) {

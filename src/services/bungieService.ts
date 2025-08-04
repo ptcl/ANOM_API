@@ -102,17 +102,7 @@ class BungieService {
             const primaryDestinyMembership = destinyMemberships.find((m: any) => m.crossSaveOverride) || destinyMemberships[0];
 
             // Construit le profil unifié
-            const profile: BungieUserProfile = {
-                membershipId: bungieNetUser.membershipId,
-                displayName: bungieNetUser.displayName || bungieNetUser.cachedBungieGlobalDisplayName,
-                membershipType: primaryDestinyMembership?.membershipType || 0,
-                profilePicturePath: bungieNetUser.profilePicturePath,
-                about: bungieNetUser.about,
-                destinyMemberships: destinyMemberships.map((m: any) => ({
-                    membershipType: m.membershipType,
-                    membershipId: m.membershipId,
-                    displayName: m.displayName
-                })),
+            const profile: any = {
                 // Ajout des données brutes complètes
                 rawData: rawData
             };
@@ -172,13 +162,13 @@ class BungieService {
     async getDestinyProfile(accessToken: string, membershipType: string, membershipId: string, components?: string): Promise<any> {
         try {
             console.log(`📊 Fetching Destiny2 profile for membershipType: ${membershipType}, membershipId: ${membershipId}`);
-            
+
             // Construire la requête avec les composants
             let url = `/Destiny2/${membershipType}/Profile/${membershipId}/`;
             if (components) {
                 url += `?components=${components}`;
             }
-            
+
             const response = await this.apiClient.get<BungieAPIResponse<any>>(
                 url,
                 {

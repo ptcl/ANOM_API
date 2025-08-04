@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { generateState, generateJWT, verifyJWT } from '../utils/auth';
 import { bungieService } from '../services';
 import { playerService } from '../services/playerService';
+import { IAgent } from '../types/agent';
 
 
 
@@ -72,17 +73,29 @@ export const handleCallback = async (req: Request, res: Response) => {
       success: true,
       data: {
         token: jwtToken,
-        player: {
-          id: player._id,
-          bungieId: player.bungieId,
-          displayName: player.displayName,
-          role: player.role,
-          profilePicture: player.profilePicturePath,
-          joinedAt: player.joinedAt,
-          protocol: player.protocol,
-          settings: player.settings
-        },
-        bungieProfile: userProfile // Ajout du profil Bungie complet
+        agent: {
+          _id: player._id,
+          rawdata: null,
+          protocol: {
+            agentName: player.displayName,
+            customName: player.protocol?.customName,
+            species: 'HUMAN',
+            role: player.role.toUpperCase(),
+            clearanceLevel: player.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: player.protocol?.protocolJoinedAt,
+            group: 'PROTOCOL',
+            settings: {
+              notifications: player.settings?.notifications || false,
+              publicProfile: player.settings?.publicProfile || false,
+              protocolOSTheme: 'DEFAULT',
+              protocolSounds: player.settings?.protocolSounds || false
+            }
+          },
+          createdAt: player.joinedAt,
+          updatedAt: player.lastActivity
+        } as IAgent,
+        bungieProfile: userProfile // Pour la rétrocompatibilité
       },
       message: 'Authentication successful'
     });
@@ -98,70 +111,6 @@ export const handleCallback = async (req: Request, res: Response) => {
     });
   }
 };
-// export const handleCallback = async (req: Request, res: Response) => {
-//   try {
-//     const { code, state } = req.query;
-
-//     if (!code) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'Authorization code missing'
-//       });
-//     }
-
-//     console.log('📝 Processing Bungie callback...');
-
-//     // Échange le code contre des tokens
-//     const tokens = await bungieService.exchangeCodeForTokens(code as string);
-
-//     // Récupère le profil utilisateur
-//     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
-
-//     // Sauvegarde en base
-//     const player = await playerService.createOrUpdatePlayer(userProfile, tokens);
-
-//     // Génère JWT
-//     const jwtPayload = {
-//       playerId: player._id!.toString(),
-//       bungieId: player.bungieId,
-//       displayName: player.displayName,
-//       role: player.role
-//     };
-
-//     const jwtToken = generateJWT(jwtPayload);
-
-//     console.log(`✅ Authentication successful for: ${player.displayName} (ID: ${player._id})`);
-
-//     // 🆕 TOUJOURS RETOURNER JSON (pas de redirection)
-//     return res.json({
-//       success: true,
-//       data: {
-//         token: jwtToken,
-//         player: {
-//           id: player._id,
-//           bungieId: player.bungieId,
-//           displayName: player.displayName,
-//           role: player.role,
-//           profilePicture: player.profilePicturePath,
-//           joinedAt: player.joinedAt,
-//         }
-//       },
-//       message: 'Authentication successful - Copy the token for your requests!'
-//     });
-
-//   } catch (error: any) {
-//     console.error('❌ Bungie callback failed:', error);
-
-//     return res.status(500).json({
-//       success: false,
-//       error: error.message,
-//       message: 'Authentication failed'
-//     });
-//   }
-// };
-/**
- * Vérifie un token JWT et retourne les infos du joueur
- */
 export const verifyToken = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
@@ -193,17 +142,28 @@ export const verifyToken = async (req: Request, res: Response) => {
       success: true,
       data: {
         valid: true,
-        player: {
-          id: player._id,
-          bungieId: player.bungieId,
-          displayName: player.displayName,
-          role: player.role,
-          profilePicture: player.profilePicturePath,
-          joinedAt: player.joinedAt,
-          lastActivity: player.lastActivity,
-          protocol: player.protocol,
-          settings: player.settings
-        }
+        agent: {
+          _id: player._id,
+          rawdata: null, // On n'a pas les données Bungie ici
+          protocol: {
+            agentName: player.displayName,
+            customName: player.protocol?.customName || undefined,
+            species: (player.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
+            role: (player.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
+            clearanceLevel: player.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: player.protocol?.protocolJoinedAt,
+            group: (player.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
+            settings: {
+              notifications: player.settings?.notifications || false,
+              publicProfile: player.settings?.publicProfile || false,
+              protocolOSTheme: (player.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
+              protocolSounds: player.settings?.protocolSounds || false
+            }
+          },
+          createdAt: player.joinedAt,
+          updatedAt: player.lastActivity
+        } as IAgent
       },
       message: 'Token is valid'
     });
@@ -270,15 +230,28 @@ export const refreshToken = async (req: Request, res: Response) => {
       success: true,
       data: {
         token: newToken,
-        player: {
-          id: player._id,
-          bungieId: player.bungieId,
-          displayName: player.displayName,
-          role: player.role,
-          profilePicture: player.profilePicturePath,
-          protocol: player.protocol,
-          settings: player.settings
-        }
+        agent: {
+          _id: player._id,
+          rawdata: null, // On n'a pas les données Bungie ici
+          protocol: {
+            agentName: player.displayName,
+            customName: player.protocol?.customName || undefined,
+            species: (player.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
+            role: (player.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
+            clearanceLevel: player.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: player.protocol?.protocolJoinedAt,
+            group: (player.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
+            settings: {
+              notifications: player.settings?.notifications || false,
+              publicProfile: player.settings?.publicProfile || false,
+              protocolOSTheme: (player.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
+              protocolSounds: player.settings?.protocolSounds || false
+            }
+          },
+          createdAt: player.joinedAt,
+          updatedAt: player.lastActivity
+        } as IAgent
       },
       message: 'Token refreshed successfully'
     });
@@ -386,18 +359,29 @@ export const getProfile = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       data: {
-        player: {
-          id: player._id,
-          bungieId: player.bungieId,
-          displayName: player.displayName,
-          role: player.role,
-          profilePicture: player.profilePicturePath,
-          joinedAt: player.joinedAt,
-          lastActivity: player.lastActivity,
-          protocol: player.protocol,
-          settings: player.settings
-        },
-        bungieProfile: bungieProfile // Ajout du profil Bungie complet
+        agent: {
+          _id: player._id,
+          rawdata: bungieProfile?.rawData || null,
+          protocol: {
+            agentName: player.displayName,
+            customName: player.protocol?.customName || undefined,
+            species: (player.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
+            role: (player.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
+            clearanceLevel: player.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: player.protocol?.protocolJoinedAt,
+            group: (player.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
+            settings: {
+              notifications: player.settings?.notifications || false,
+              publicProfile: player.settings?.publicProfile || false,
+              protocolOSTheme: (player.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
+              protocolSounds: player.settings?.protocolSounds || false
+            }
+          },
+          createdAt: player.joinedAt,
+          updatedAt: player.lastActivity
+        } as IAgent,
+        bungieProfile: bungieProfile // Pour la rétrocompatibilité
       }
     });
   } catch (error) {
@@ -467,17 +451,28 @@ export const updateProfile = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       data: {
-        player: {
-          id: updatedPlayer._id,
-          bungieId: updatedPlayer.bungieId,
-          displayName: updatedPlayer.displayName,
-          role: updatedPlayer.role,
-          profilePicture: updatedPlayer.profilePicturePath,
-          joinedAt: updatedPlayer.joinedAt,
-          lastActivity: updatedPlayer.lastActivity,
-          protocol: updatedPlayer.protocol,
-          settings: updatedPlayer.settings
-        }
+        agent: {
+          _id: updatedPlayer._id,
+          rawdata: null, // On n'a pas les données Bungie ici
+          protocol: {
+            agentName: updatedPlayer.displayName,
+            customName: updatedPlayer.protocol?.customName || undefined,
+            species: (updatedPlayer.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
+            role: (updatedPlayer.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
+            clearanceLevel: updatedPlayer.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: updatedPlayer.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: updatedPlayer.protocol?.protocolJoinedAt,
+            group: (updatedPlayer.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
+            settings: {
+              notifications: updatedPlayer.settings?.notifications || false,
+              publicProfile: updatedPlayer.settings?.publicProfile || false,
+              protocolOSTheme: (updatedPlayer.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
+              protocolSounds: updatedPlayer.settings?.protocolSounds || false
+            }
+          },
+          createdAt: updatedPlayer.joinedAt,
+          updatedAt: updatedPlayer.lastActivity
+        } as IAgent
       },
       message: 'Profile updated successfully'
     });

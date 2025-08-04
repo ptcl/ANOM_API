@@ -38,6 +38,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.18.0",
+    "mongoose": "^8.17.0",
     "typescript": "^5.8.3"
   },
   "devDependencies": {

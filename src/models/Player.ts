@@ -1,44 +1,25 @@
-import { ObjectId } from 'mongodb';
+import mongoose from "mongoose";
 
-export interface Player {
-    _id?: ObjectId;
-    bungieId: string;
-    displayName: string;
-    membershipType: number;
-    profilePicturePath?: string;
-    role: 'agent' | 'specialist' | 'founder';
+const agentSchema = new mongoose.Schema({
+    rawdata: { type: mongoose.Schema.Types.Mixed },
+    protocol: {
+        agentName: { type: String, required: true },
+        customName: { type: String },
+        species: { type: String, enum: ['HUMAN', 'EXO', 'AWOKEN'], required: true },
+        role: { type: String, enum: ['AGENT', 'SPECIALIST', 'FOUNDER', ''], default: 'AGENT' },
+        clearanceLevel: { type: Number, enum: [1, 2, 3], required: true },
+        hasSeenRecruitment: { type: Boolean, default: false },
+        protocolJoinedAt: { type: Date },
+        group: { type: String, enum: ['PROTOCOL', 'AURORA', 'ZENITH'] },
+        settings: {
+            notifications: { type: Boolean, default: true },
+            publicProfile: { type: Boolean, default: false },
+            protocolOSTheme: { type: String, enum: ['DEFAULT', 'DARKNESS'], default: 'DEFAULT' },
+            protocolSounds: { type: Boolean, default: true }
+        }
+    }
+}, {
+    timestamps: true
+});
 
-    // OAuth tokens
-    bungieTokens?: {
-        accessToken: string;
-        refreshToken: string;
-        expiresAt: Date;
-    };
-
-    protocol?: {
-        agentName: string;
-        customName?: string;
-        species: 'HUMAN' | 'EXO' | 'AWOKEN';
-        clearanceLevel: 1 | 2 | 3;
-        hasSeenRecruitment: boolean;
-        protocolJoinedAt?: Date;
-        group?: 'PROTOCOL' | 'AURORA' | 'ZENITH' | 'EXODUS' | 'GUARDIAN' | 'INDEPENDENT';
-        projectAccess?: {
-            ANOM: boolean;
-            AURORA: boolean;
-            ZENITH: boolean;
-        };
-    };
-    // Timestamps
-    joinedAt: Date;
-    lastActivity: Date;
-
-    // Settings
-    settings?: {
-        notifications: boolean;
-        publicProfile: boolean;
-        protocolOSTheme?: 'default' | 'classic';
-        protocolSounds?: boolean;
-    };
-
-}
+export const AgentModel = mongoose.models.Agent || mongoose.model('Agent', agentSchema);
