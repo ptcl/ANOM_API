@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { generateState, generateJWT, verifyJWT } from '../utils/auth';
 import { bungieService } from '../services';
-import { playerService } from '../services/playerService';
 import { IAgent } from '../types/agent';
+import { agentService } from '../services/agentService';
 
 
 
@@ -54,19 +54,19 @@ export const handleCallback = async (req: Request, res: Response) => {
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
 
     // Sauvegarde en base
-    const player = await playerService.createOrUpdatePlayer(userProfile, tokens);
+    const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
     // Génère JWT
     const jwtPayload = {
-      playerId: player._id!.toString(),
-      bungieId: player.bungieId,
-      displayName: player.displayName,
-      role: player.role
+      agentId: agent._id!.toString(),
+      bungieId: agent.bungieId,
+      agentName: agent.protocol.agentName,
+      role: agent.protocol.role
     };
 
     const jwtToken = generateJWT(jwtPayload);
 
-    console.log(`✅ Authentication successful for: ${player.displayName} (ID: ${player._id})`);
+    console.log(`✅ Authentication successful for: ${agent.protocol.agentName} (ID: ${agent._id})`);
 
     // Retourne une réponse JSON au lieu de rediriger
     return res.json({
@@ -74,26 +74,21 @@ export const handleCallback = async (req: Request, res: Response) => {
       data: {
         token: jwtToken,
         agent: {
-          _id: player._id,
+          _id: agent._id,
           rawdata: null,
           protocol: {
-            agentName: player.displayName,
-            customName: player.protocol?.customName,
-            species: 'HUMAN',
-            role: player.role.toUpperCase(),
-            clearanceLevel: player.protocol?.clearanceLevel || 1,
-            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
-            protocolJoinedAt: player.protocol?.protocolJoinedAt,
-            group: 'PROTOCOL',
-            settings: {
-              notifications: player.settings?.notifications || false,
-              publicProfile: player.settings?.publicProfile || false,
-              protocolOSTheme: 'DEFAULT',
-              protocolSounds: player.settings?.protocolSounds || false
-            }
+            agentName: agent.protocol.agentName,
+            customName: agent.protocol?.customName,
+            species: agent.protocol.species,
+            role: agent.protocol.role,
+            clearanceLevel: agent.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: agent.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: agent.protocol?.protocolJoinedAt,
+            group: agent.protocol.group,
+            settings: agent.protocol.settings
           },
-          createdAt: player.joinedAt,
-          updatedAt: player.lastActivity
+          createdAt: agent.createdAt,
+          updatedAt: agent.updatedAt
         } as IAgent,
         bungieProfile: userProfile // Pour la rétrocompatibilité
       },
@@ -124,45 +119,40 @@ export const verifyToken = async (req: Request, res: Response) => {
 
     const decoded = verifyJWT(token);
 
-    // Récupère les infos actuelles du joueur
-    const player = await playerService.getPlayerById(decoded.playerId);
+    // Récupère les infos actuelles de l'agent
+    const agent = await agentService.getAgentById(decoded.agentId);
 
-    if (!player) {
+    if (!agent) {
       return res.json({
         success: false,
         data: { valid: false },
-        message: 'Player not found'
+        message: 'Agent not found'
       });
     }
 
     // Met à jour la dernière activité
-    await playerService.updateLastActivity(player._id!.toString());
+    await agentService.updateLastActivity(agent._id!.toString());
 
     return res.json({
       success: true,
       data: {
         valid: true,
         agent: {
-          _id: player._id,
+          _id: agent._id,
           rawdata: null, // On n'a pas les données Bungie ici
           protocol: {
-            agentName: player.displayName,
-            customName: player.protocol?.customName || undefined,
-            species: (player.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
-            role: (player.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
-            clearanceLevel: player.protocol?.clearanceLevel || 1,
-            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
-            protocolJoinedAt: player.protocol?.protocolJoinedAt,
-            group: (player.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
-            settings: {
-              notifications: player.settings?.notifications || false,
-              publicProfile: player.settings?.publicProfile || false,
-              protocolOSTheme: (player.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
-              protocolSounds: player.settings?.protocolSounds || false
-            }
+            agentName: agent.protocol.agentName,
+            customName: agent.protocol?.customName || undefined,
+            species: agent.protocol.species,
+            role: agent.protocol.role,
+            clearanceLevel: agent.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: agent.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: agent.protocol?.protocolJoinedAt,
+            group: agent.protocol.group,
+            settings: agent.protocol.settings
           },
-          createdAt: player.joinedAt,
-          updatedAt: player.lastActivity
+          createdAt: agent.createdAt,
+          updatedAt: agent.updatedAt
         } as IAgent
       },
       message: 'Token is valid'
@@ -203,54 +193,49 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Récupère les infos actuelles du joueur
-    const player = await playerService.getPlayerById(decoded.playerId);
+    // Récupère les infos actuelles de l'agent
+    const agent = await agentService.getAgentById(decoded.agentId);
 
-    if (!player) {
+    if (!agent) {
       return res.status(404).json({
         success: false,
-        error: 'Player not found'
+        error: 'Agent not found'
       });
     }
 
     // Génère un nouveau JWT
     const jwtPayload = {
-      playerId: player._id!.toString(),
-      bungieId: player.bungieId,
-      displayName: player.displayName,
-      role: player.role
+      agentId: agent._id!.toString(),
+      bungieId: agent.bungieId,
+      agentName: agent.protocol.agentName,
+      role: agent.protocol.role
     };
 
     const newToken = generateJWT(jwtPayload);
 
     // Met à jour la dernière activité
-    await playerService.updateLastActivity(player._id!.toString());
+    await agentService.updateLastActivity(agent._id!.toString());
 
     return res.json({
       success: true,
       data: {
         token: newToken,
         agent: {
-          _id: player._id,
+          _id: agent._id,
           rawdata: null, // On n'a pas les données Bungie ici
           protocol: {
-            agentName: player.displayName,
-            customName: player.protocol?.customName || undefined,
-            species: (player.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
-            role: (player.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
-            clearanceLevel: player.protocol?.clearanceLevel || 1,
-            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
-            protocolJoinedAt: player.protocol?.protocolJoinedAt,
-            group: (player.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
-            settings: {
-              notifications: player.settings?.notifications || false,
-              publicProfile: player.settings?.publicProfile || false,
-              protocolOSTheme: (player.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
-              protocolSounds: player.settings?.protocolSounds || false
-            }
+            agentName: agent.protocol.agentName,
+            customName: agent.protocol?.customName || undefined,
+            species: agent.protocol.species,
+            role: agent.protocol.role,
+            clearanceLevel: agent.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: agent.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: agent.protocol?.protocolJoinedAt,
+            group: agent.protocol.group,
+            settings: agent.protocol.settings
           },
-          createdAt: player.joinedAt,
-          updatedAt: player.lastActivity
+          createdAt: agent.createdAt,
+          updatedAt: agent.updatedAt
         } as IAgent
       },
       message: 'Token refreshed successfully'
@@ -336,20 +321,20 @@ export const getProfile = async (req: Request, res: Response) => {
       });
     }
 
-    const player = await playerService.getPlayerById(decoded.playerId);
+    const agent = await agentService.getAgentById(decoded.agentId);
 
-    if (!player) {
+    if (!agent) {
       return res.status(404).json({
         success: false,
-        error: 'Player not found'
+        error: 'Agent not found'
       });
     }
 
-    // Récupérer les données Bungie complètes si le joueur a un token d'accès valide
+    // Récupérer les données Bungie complètes si l'agent a un token d'accès valide
     let bungieProfile = null;
     try {
-      if (player.bungieTokens && player.bungieTokens.accessToken) {
-        bungieProfile = await bungieService.getCurrentUser(player.bungieTokens.accessToken);
+      if (agent.bungieTokens && agent.bungieTokens.accessToken) {
+        bungieProfile = await bungieService.getCurrentUser(agent.bungieTokens.accessToken);
       }
     } catch (error) {
       console.log('⚠️ Impossible de récupérer le profil Bungie complet:', error);
@@ -360,26 +345,21 @@ export const getProfile = async (req: Request, res: Response) => {
       success: true,
       data: {
         agent: {
-          _id: player._id,
+          _id: agent._id,
           rawdata: bungieProfile?.rawData || null,
           protocol: {
-            agentName: player.displayName,
-            customName: player.protocol?.customName || undefined,
-            species: (player.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
-            role: (player.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
-            clearanceLevel: player.protocol?.clearanceLevel || 1,
-            hasSeenRecruitment: player.protocol?.hasSeenRecruitment || false,
-            protocolJoinedAt: player.protocol?.protocolJoinedAt,
-            group: (player.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
-            settings: {
-              notifications: player.settings?.notifications || false,
-              publicProfile: player.settings?.publicProfile || false,
-              protocolOSTheme: (player.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
-              protocolSounds: player.settings?.protocolSounds || false
-            }
+            agentName: agent.protocol.agentName,
+            customName: agent.protocol?.customName || undefined,
+            species: agent.protocol.species,
+            role: agent.protocol.role,
+            clearanceLevel: agent.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: agent.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: agent.protocol?.protocolJoinedAt,
+            group: agent.protocol.group,
+            settings: agent.protocol.settings
           },
-          createdAt: player.joinedAt,
-          updatedAt: player.lastActivity
+          createdAt: agent.createdAt,
+          updatedAt: agent.updatedAt
         } as IAgent,
         bungieProfile: bungieProfile // Pour la rétrocompatibilité
       }
@@ -439,12 +419,12 @@ export const updateProfile = async (req: Request, res: Response) => {
     }
 
     // Mise à jour du profil
-    const updatedPlayer = await playerService.updatePlayerProfile(decoded.playerId, updateData);
+    const updatedAgent = await agentService.updateAgentProfile(decoded.agentId, updateData);
 
-    if (!updatedPlayer) {
+    if (!updatedAgent) {
       return res.status(404).json({
         success: false,
-        error: 'Player not found'
+        error: 'Agent not found'
       });
     }
 
@@ -452,26 +432,21 @@ export const updateProfile = async (req: Request, res: Response) => {
       success: true,
       data: {
         agent: {
-          _id: updatedPlayer._id,
+          _id: updatedAgent._id,
           rawdata: null, // On n'a pas les données Bungie ici
           protocol: {
-            agentName: updatedPlayer.displayName,
-            customName: updatedPlayer.protocol?.customName || undefined,
-            species: (updatedPlayer.protocol?.species as 'HUMAN' | 'EXO' | 'AWOKEN') || 'HUMAN',
-            role: (updatedPlayer.role.toUpperCase() as 'AGENT' | 'SPECIALIST' | 'FOUNDER'),
-            clearanceLevel: updatedPlayer.protocol?.clearanceLevel || 1,
-            hasSeenRecruitment: updatedPlayer.protocol?.hasSeenRecruitment || false,
-            protocolJoinedAt: updatedPlayer.protocol?.protocolJoinedAt,
-            group: (updatedPlayer.protocol?.group as 'PROTOCOL' | 'AURORA' | 'ZENITH') || 'PROTOCOL',
-            settings: {
-              notifications: updatedPlayer.settings?.notifications || false,
-              publicProfile: updatedPlayer.settings?.publicProfile || false,
-              protocolOSTheme: (updatedPlayer.settings?.protocolOSTheme?.toUpperCase() as 'DEFAULT' | 'DARKNESS') || 'DEFAULT',
-              protocolSounds: updatedPlayer.settings?.protocolSounds || false
-            }
+            agentName: updatedAgent.protocol.agentName,
+            customName: updatedAgent.protocol?.customName || undefined,
+            species: updatedAgent.protocol.species,
+            role: updatedAgent.protocol.role,
+            clearanceLevel: updatedAgent.protocol?.clearanceLevel || 1,
+            hasSeenRecruitment: updatedAgent.protocol?.hasSeenRecruitment || false,
+            protocolJoinedAt: updatedAgent.protocol?.protocolJoinedAt,
+            group: updatedAgent.protocol.group,
+            settings: updatedAgent.protocol.settings
           },
-          createdAt: updatedPlayer.joinedAt,
-          updatedAt: updatedPlayer.lastActivity
+          createdAt: updatedAgent.createdAt,
+          updatedAt: updatedAgent.updatedAt
         } as IAgent
       },
       message: 'Profile updated successfully'

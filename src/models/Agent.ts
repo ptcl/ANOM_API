@@ -18,8 +18,9 @@ const agentSchema = new mongoose.Schema({
             protocolSounds: { type: Boolean, default: true }
         }
     }
-}, {
-    timestamps: true
-});
+},
+    {
+        timestamps: true
+    });
 
 export const AgentModel = mongoose.models.Agent || mongoose.model('Agent', agentSchema);

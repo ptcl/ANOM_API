@@ -1,2 +1,2 @@
 export * from './bungieService';
-export * from './playerService';
+export * from './agentService';

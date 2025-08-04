@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJWT } from '../utils/auth';
-import { playerService } from '../services/playerService';
+import { agentService } from '../services/agentService';
 
 // Étendre l'interface Request pour inclure l'utilisateur
 declare global {
@@ -44,17 +44,17 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         role: decoded.role
       };
 
-      // Vérifie que le joueur existe toujours en base
-      const player = await playerService.getPlayerById(decoded.playerId);
-      if (!player) {
+      // Vérifie que l'agent existe toujours en base
+      const agent = await agentService.getAgentById(decoded.agentId);
+      if (!agent) {
         return res.status(404).json({
           success: false,
-          error: 'Player not found'
+          error: 'Agent not found'
         });
       }
 
       // Met à jour la dernière activité
-      await playerService.updateLastActivity(decoded.playerId);
+      await agentService.updateLastActivity(decoded.agentId);
       
       // Continue vers la route protégée
       return next();
