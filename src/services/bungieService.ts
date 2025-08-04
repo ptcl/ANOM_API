@@ -112,7 +112,9 @@ class BungieService {
                     membershipType: m.membershipType,
                     membershipId: m.membershipId,
                     displayName: m.displayName
-                }))
+                })),
+                // Ajout des données brutes complètes
+                rawData: rawData
             };
 
             console.log('🔍 Processed Profile:');
@@ -164,6 +166,37 @@ class BungieService {
         } catch (error) {
             console.log('❌ Token validation failed');
             return false;
+        }
+    }
+
+    async getDestinyProfile(accessToken: string, membershipType: string, membershipId: string, components?: string): Promise<any> {
+        try {
+            console.log(`📊 Fetching Destiny2 profile for membershipType: ${membershipType}, membershipId: ${membershipId}`);
+            
+            // Construire la requête avec les composants
+            let url = `/Destiny2/${membershipType}/Profile/${membershipId}/`;
+            if (components) {
+                url += `?components=${components}`;
+            }
+            
+            const response = await this.apiClient.get<BungieAPIResponse<any>>(
+                url,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                }
+            );
+
+            if (response.data.ErrorCode !== 1) {
+                throw new Error(`Bungie API Error: ${response.data.ErrorStatus} - ${response.data.Message}`);
+            }
+
+            console.log(`✅ Retrieved Destiny2 profile data for membershipId: ${membershipId}`);
+            return response.data.Response;
+        } catch (error: any) {
+            console.error('❌ Failed to get Destiny profile:', error.response?.data || error.message);
+            throw new Error(`Failed to get Destiny profile: ${error.message}`);
         }
     }
 }

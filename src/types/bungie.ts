@@ -14,6 +14,7 @@ export interface BungieUserProfile {
     profilePicturePath?: string;
     about?: string;
     destinyMemberships?: DestinyMembership[];
+    rawData?: any; // Données brutes complètes de l'API Bungie
 }
 
 export interface DestinyMembership {

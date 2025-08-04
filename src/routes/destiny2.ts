@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth';
+import { getDestinyProfile, getCharacters, getItems, getManifestDefinition } from '../controllers/destiny2Controller';
 
 const router = Router();
 
@@ -16,18 +17,7 @@ const router = Router();
  * @param {string} [components] - Composants à inclure (ex: 100,200,300)
  * @access Privé
  */
-router.get('/:membershipType/Profile/:membershipId', authMiddleware, (req, res) => {
-    // À implémenter avec un contrôleur dédié
-    res.json({
-        success: true,
-        message: 'Route disponible prochainement',
-        data: {
-            membershipType: req.params.membershipType,
-            membershipId: req.params.membershipId,
-            components: req.query.components
-        }
-    });
-});
+router.get('/:membershipType/Profile/:membershipId', authMiddleware, getDestinyProfile);
 
 /**
  * @route GET /destiny2/:membershipType/Profile/:membershipId/Characters
@@ -37,18 +27,7 @@ router.get('/:membershipType/Profile/:membershipId', authMiddleware, (req, res) 
  * @param {string} [components] - Composants à inclure (ex: 200)
  * @access Privé
  */
-router.get('/:membershipType/Profile/:membershipId/Characters', authMiddleware, (req, res) => {
-    // À implémenter avec un contrôleur dédié
-    res.json({
-        success: true,
-        message: 'Route disponible prochainement',
-        data: {
-            membershipType: req.params.membershipType,
-            membershipId: req.params.membershipId,
-            components: req.query.components
-        }
-    });
-});
+router.get('/:membershipType/Profile/:membershipId/Characters', authMiddleware, getCharacters);
 
 /**
  * @route GET /destiny2/:membershipType/Profile/:membershipId/Items
@@ -58,18 +37,7 @@ router.get('/:membershipType/Profile/:membershipId/Characters', authMiddleware, 
  * @param {string} [components] - Composants à inclure (ex: 102,201,300)
  * @access Privé
  */
-router.get('/:membershipType/Profile/:membershipId/Items', authMiddleware, (req, res) => {
-    // À implémenter avec un contrôleur dédié
-    res.json({
-        success: true,
-        message: 'Route disponible prochainement',
-        data: {
-            membershipType: req.params.membershipType,
-            membershipId: req.params.membershipId,
-            components: req.query.components
-        }
-    });
-});
+router.get('/:membershipType/Profile/:membershipId/Items', authMiddleware, getItems);
 
 /**
  * @route GET /destiny2/Manifest/:definition/:hash
@@ -78,16 +46,6 @@ router.get('/:membershipType/Profile/:membershipId/Items', authMiddleware, (req,
  * @param {string} hash - Hash de l'élément à récupérer
  * @access Privé
  */
-router.get('/Manifest/:definition/:hash', authMiddleware, (req, res) => {
-    // À implémenter avec un contrôleur dédié
-    res.json({
-        success: true,
-        message: 'Route disponible prochainement',
-        data: {
-            definition: req.params.definition,
-            hash: req.params.hash
-        }
-    });
-});
+router.get('/Manifest/:definition/:hash', authMiddleware, getManifestDefinition);
 
 export default router;

@@ -81,7 +81,8 @@ export const handleCallback = async (req: Request, res: Response) => {
           joinedAt: player.joinedAt,
           protocol: player.protocol,
           settings: player.settings
-        }
+        },
+        bungieProfile: userProfile // Ajout du profil Bungie complet
       },
       message: 'Authentication successful'
     });
@@ -371,6 +372,17 @@ export const getProfile = async (req: Request, res: Response) => {
       });
     }
 
+    // Récupérer les données Bungie complètes si le joueur a un token d'accès valide
+    let bungieProfile = null;
+    try {
+      if (player.bungieTokens && player.bungieTokens.accessToken) {
+        bungieProfile = await bungieService.getCurrentUser(player.bungieTokens.accessToken);
+      }
+    } catch (error) {
+      console.log('⚠️ Impossible de récupérer le profil Bungie complet:', error);
+      // On continue même si la récupération du profil Bungie échoue
+    }
+
     return res.json({
       success: true,
       data: {
@@ -384,7 +396,8 @@ export const getProfile = async (req: Request, res: Response) => {
           lastActivity: player.lastActivity,
           protocol: player.protocol,
           settings: player.settings
-        }
+        },
+        bungieProfile: bungieProfile // Ajout du profil Bungie complet
       }
     });
   } catch (error) {

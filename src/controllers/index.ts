@@ -1,4 +1,5 @@
 export * from './authController';
+export * from './destiny2Controller';
 
 // src/routes/auth.ts
 import { Router } from 'express';
