@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { getServerConfig, isDev } from './utils/environment';
 import { routes } from './routes';
+// Import temporaire pour le debug
+import { printApiRoutes } from './utils/routeDebugger';
 
 const createApp = (): express.Application => {
     const app = express();
@@ -108,6 +110,11 @@ const createApp = (): express.Application => {
             timestamp: new Date().toISOString()
         });
     });
+
+    // DEBUG: Afficher toutes les routes disponibles
+    if (isDev()) {
+        printApiRoutes(app);
+    }
 
     return app;
 };

@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { getProfile, updateProfile } from '../controllers';
-import { playerService } from '../services/playerService';
 
 const router = Router();
 
-// Obtenir le profil de l'utilisateur connecté
+/**
+ * Routes de gestion du profil utilisateur
+ * @route GET /user/profile - Récupère le profil de l'utilisateur connecté
+ * @route PUT /user/profile - Met à jour le profil de l'utilisateur connecté
+ */
 router.get('/profile', getProfile);
-
-// Mettre à jour le profil de l'utilisateur connecté
 router.put('/profile', updateProfile);
-
 
 export default router;

@@ -67,27 +67,34 @@ export const handleCallback = async (req: Request, res: Response) => {
 
     console.log(`✅ Authentication successful for: ${player.displayName} (ID: ${player._id})`);
 
-    // 🆕 REDIRECTION vers le frontend avec le token
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const callbackUrl = `${frontendUrl}/auth/bungie/callback?token=${encodeURIComponent(jwtToken)}&player=${encodeURIComponent(JSON.stringify({
-      id: player._id,
-      bungieId: player.bungieId,
-      displayName: player.displayName,
-      role: player.role,
-      profilePicture: player.profilePicturePath,
-      joinedAt: player.joinedAt,
-      protocol: player.protocol,
-      settings: player.settings
-    }))}`;
-
-    return res.redirect(callbackUrl);
+    // Retourne une réponse JSON au lieu de rediriger
+    return res.json({
+      success: true,
+      data: {
+        token: jwtToken,
+        player: {
+          id: player._id,
+          bungieId: player.bungieId,
+          displayName: player.displayName,
+          role: player.role,
+          profilePicture: player.profilePicturePath,
+          joinedAt: player.joinedAt,
+          protocol: player.protocol,
+          settings: player.settings
+        }
+      },
+      message: 'Authentication successful'
+    });
 
   } catch (error: any) {
     console.error('❌ Bungie callback failed:', error);
 
-    // Redirection vers frontend avec erreur
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/?error=${encodeURIComponent(error.message)}`);
+    // Retourne une erreur en JSON
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Authentication failed',
+      message: 'Failed to process Bungie callback'
+    });
   }
 };
 // export const handleCallback = async (req: Request, res: Response) => {
