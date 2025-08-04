@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 
 const agentSchema = new mongoose.Schema({
+    bungieId: { type: String, required: true, unique: true },
+    bungieTokens: {
+        accessToken: { type: String, required: true },
+        refreshToken: { type: String, required: true },
+        expiresAt: { type: Date, required: true }
+    },
+    lastActivity: { type: Date, default: Date.now },
     rawdata: { type: mongoose.Schema.Types.Mixed },
     protocol: {
         agentName: { type: String, required: true },
@@ -22,5 +29,10 @@ const agentSchema = new mongoose.Schema({
     {
         timestamps: true
     });
+
+// Ajout d'index pour améliorer les performances
+agentSchema.index({ bungieId: 1 }, { unique: true });
+agentSchema.index({ 'protocol.agentName': 1 });
+agentSchema.index({ lastActivity: 1 });
 
 export const AgentModel = mongoose.models.Agent || mongoose.model('Agent', agentSchema);

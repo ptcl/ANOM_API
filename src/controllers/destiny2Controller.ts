@@ -35,6 +35,7 @@ export const getDestinyProfile = async (req: Request, res: Response) => {
         // Construire la réponse en utilisant l'interface Agent
         const agentResponse: IAgent = {
             _id: undefined,
+            bungieId: membershipId,
             rawdata: profileData,
             protocol: {
                 agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
@@ -106,6 +107,7 @@ export const getCharacters = async (req: Request, res: Response) => {
         // Construire la réponse au format Agent
         const agentResponse: IAgent = {
             _id: undefined,
+            bungieId: membershipId,
             rawdata: profileData,
             protocol: {
                 agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
@@ -177,6 +179,7 @@ export const getItems = async (req: Request, res: Response) => {
         // Construire la réponse au format Agent
         const agentResponse: IAgent = {
             _id: undefined,
+            bungieId: membershipId,
             rawdata: profileData,
             protocol: {
                 agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
@@ -231,10 +234,12 @@ export const getManifestDefinition = async (req: Request, res: Response) => {
         // Construire une réponse au format Agent même si les données ne sont pas encore disponibles
         const agentResponse: IAgent = {
             _id: undefined,
+            bungieId: hash, // Utilisation du hash comme identifiant Bungie temporaire
             rawdata: {
                 definition,
                 hash
             },
+            
             protocol: {
                 agentName: "Manifest Agent",
                 customName: undefined,
@@ -253,9 +258,7 @@ export const getManifestDefinition = async (req: Request, res: Response) => {
             },
             createdAt: new Date(),
             updatedAt: new Date()
-        };
-        
-        return res.json({
+        };        return res.json({
             success: true,
             message: 'Définition du manifeste récupérée avec succès',
             data: {

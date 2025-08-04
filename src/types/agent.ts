@@ -1,5 +1,12 @@
 export interface IAgent {
     _id?: any;
+    bungieId: string;
+    bungieTokens?: {
+        accessToken: string;
+        refreshToken: string;
+        expiresAt: Date;
+    };
+    lastActivity?: Date;
     rawdata?: any;
     protocol: {
         agentName: string;

@@ -15,6 +15,13 @@ export const initiateLogin = async (req: Request, res: Response) => {
     const state = generateState();
     const authUrl = bungieService.generateAuthUrl(state);
 
+    // Option de redirection directe si demandée
+    const { direct } = req.query;
+    if (direct === 'true') {
+      console.log('🔄 Redirecting directly to Bungie auth URL');
+      return res.redirect(authUrl);
+    }
+
     res.json({
       success: true,
       data: {

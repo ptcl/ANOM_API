@@ -1,5 +1,6 @@
 import { env, getServerConfig } from './utils/environment';
 import { connectDB, dbHealthCheck, closeDB } from './config/database';
+import { connectMongoose, closeMongoose } from './config/mongoose';
 import app from './app';
 
 const startServer = async () => {
@@ -11,6 +12,9 @@ const startServer = async () => {
 
         // Connexion MongoDB avec config d'environnement
         await connectDB();
+        
+        // Connexion Mongoose (pour les modèles)
+        await connectMongoose();
 
         // Vérification santé DB
         const isDbHealthy = await dbHealthCheck();
@@ -45,6 +49,7 @@ const startServer = async () => {
                 console.log('🔒 HTTP server closed');
 
                 try {
+                    await closeMongoose();
                     await closeDB();
                     console.log('📴 Database connection closed');
                     console.log('✅ Graceful shutdown completed');
