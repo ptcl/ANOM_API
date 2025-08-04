@@ -97,7 +97,7 @@ export const handleCallback = async (req: Request, res: Response) => {
         token: jwtToken,
         agent: {
           _id: agent._id,
-          rawdata: null,
+          rawdata: agent.rawdata,
           protocol: {
             agentName: agent.protocol.agentName,
             customName: agent.protocol?.customName,
