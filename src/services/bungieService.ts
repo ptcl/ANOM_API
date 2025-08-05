@@ -1,7 +1,7 @@
-// src/services/bungieService.ts - Corrigé pour la structure réelle
 import axios, { AxiosInstance } from 'axios';
 import { bungieConfig } from '../config/bungie';
-import { BungieTokenResponse, BungieUserProfile, BungieAPIResponse } from '../types/bungie';
+import { BungieTokenResponse, BungieAPIResponse } from '../types/bungie';
+import { IAgent } from '../types/agent';
 
 class BungieService {
     private apiClient: AxiosInstance;
@@ -75,7 +75,7 @@ class BungieService {
         }
     }
 
-    async getCurrentUser(accessToken: string): Promise<BungieUserProfile> {
+    async getCurrentUser(accessToken: string): Promise<IAgent> {
         try {
             console.log('👤 Fetching current user profile...');
 
@@ -92,38 +92,56 @@ class BungieService {
                 throw new Error(`Bungie API Error: ${response.data.ErrorStatus} - ${response.data.Message}`);
             }
 
-            const rawData = response.data.Response;
 
-            // 🆕 EXTRACTION DES DONNÉES SELON LA VRAIE STRUCTURE
+
+            const rawData = response.data.Response;
             const bungieNetUser = rawData.bungieNetUser;
             const destinyMemberships = rawData.destinyMemberships || [];
 
-            // Prend le premier membership Destiny actif (le plus récent)
-            const primaryDestinyMembership = destinyMemberships.find((m: any) => m.crossSaveOverride) || destinyMemberships[0];
-
-            // Construit le profil unifié
-            const profile: BungieUserProfile = {
-                membershipId: bungieNetUser.membershipId,
-                displayName: bungieNetUser.displayName || bungieNetUser.cachedBungieGlobalDisplayName,
-                membershipType: primaryDestinyMembership?.membershipType || 0,
-                profilePicturePath: bungieNetUser.profilePicturePath,
-                about: bungieNetUser.about,
-                destinyMemberships: destinyMemberships.map((m: any) => ({
-                    membershipType: m.membershipType,
-                    membershipId: m.membershipId,
-                    displayName: m.displayName
-                }))
+            const agent: IAgent = {
+                bungieId: bungieNetUser.membershipId,
+                destinyMemberships: destinyMemberships,
+                bungieUser: {
+                    membershipId: parseInt(bungieNetUser.membershipId),
+                    uniqueName: bungieNetUser.uniqueName || bungieNetUser.displayName,
+                    displayName: bungieNetUser.displayName,
+                    profilePicture: bungieNetUser.profilePicture || 0,
+                    about: bungieNetUser.about || '',
+                    firstAccess: bungieNetUser.firstAccess || '',
+                    lastAccess: bungieNetUser.lastAccess || '',
+                    psnDisplayName: bungieNetUser.psnDisplayName || '',
+                    showActivity: bungieNetUser.showActivity || false,
+                    locale: bungieNetUser.locale || '',
+                    localeInheritDefault: bungieNetUser.localeInheritDefault || false,
+                    profilePicturePath: bungieNetUser.profilePicturePath || '',
+                    profileThemeName: bungieNetUser.profileThemeName || '',
+                    steamDisplayName: bungieNetUser.steamDisplayName || '',
+                    twitchDisplayName: bungieNetUser.twitchDisplayName || '',
+                    cachedBungieGlobalDisplayName: bungieNetUser.cachedBungieGlobalDisplayName || '',
+                    cachedBungieGlobalDisplayNameCode: bungieNetUser.cachedBungieGlobalDisplayNameCode || 0
+                },
+                protocol: {
+                    agentName: bungieNetUser.displayName,
+                    species: 'HUMAN',
+                    role: 'AGENT',
+                    clearanceLevel: 1,
+                    hasSeenRecruitment: false,
+                    settings: {
+                        notifications: true,
+                        publicProfile: true
+                    }
+                },
+                createdAt: new Date(),
+                updatedAt: new Date()
             };
 
-            console.log('🔍 Processed Profile:');
-            console.log('   membershipId:', profile.membershipId);
-            console.log('   displayName:', profile.displayName);
-            console.log('   membershipType:', profile.membershipType);
-            console.log('   profilePicturePath:', profile.profilePicturePath);
-            console.log('   destinyMemberships count:', profile.destinyMemberships?.length || 0);
+            console.log('🔍 Processed Agent Profile:');
+            console.log('   bungieId:', agent.bungieId);
+            console.log('   agentName:', agent.protocol.agentName);
+            console.log('   role:', agent.protocol.role);
 
-            console.log(`✅ Retrieved profile for: ${profile.displayName}`);
-            return profile;
+            console.log(`✅ Retrieved profile for: ${agent.protocol.agentName}`);
+            return agent;
         } catch (error: any) {
             console.error('❌ Failed to get user profile:', error.response?.data || error.message);
             throw new Error(`Failed to get user profile: ${error.message}`);
@@ -164,6 +182,36 @@ class BungieService {
         } catch (error) {
             console.log('❌ Token validation failed');
             return false;
+        }
+    }
+
+    async getDestinyProfile(accessToken: string, membershipType: string, membershipId: string, components?: string): Promise<any> {
+        try {
+            console.log(`📊 Fetching Destiny2 profile for membershipType: ${membershipType}, membershipId: ${membershipId}`);
+
+            let url = `/Destiny2/${membershipType}/Profile/${membershipId}/`;
+            if (components) {
+                url += `?components=${components}`;
+            }
+
+            const response = await this.apiClient.get<BungieAPIResponse<any>>(
+                url,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                }
+            );
+
+            if (response.data.ErrorCode !== 1) {
+                throw new Error(`Bungie API Error: ${response.data.ErrorStatus} - ${response.data.Message}`);
+            }
+
+            console.log(`✅ Retrieved Destiny2 profile data for membershipId: ${membershipId}`);
+            return response.data.Response;
+        } catch (error: any) {
+            console.error('❌ Failed to get Destiny profile:', error.response?.data || error.message);
+            throw new Error(`Failed to get Destiny profile: ${error.message}`);
         }
     }
 }

@@ -22,7 +22,7 @@ class DatabaseService {
             console.log('🔌 Connecting to MongoDB...');
             console.log(`   Environment: ${isDev() ? 'Development' : 'Production'}`);
             console.log(`   Database: ${mongoConfig.dbName}`);
-            console.log(`   URI: ${mongoConfig.uri.replace(/\/\/.*@/, '//***@')}`); // Masque les credentials
+            console.log(`   URI: ${mongoConfig.uri.replace(/\/\/.*@/, '//***@')}`);
 
             this.client = new MongoClient(mongoConfig.uri, {
                 maxPoolSize: isDev() ? 5 : 10,
@@ -33,47 +33,15 @@ class DatabaseService {
 
             await this.client.connect();
 
-            // Test the connection
-            await this.client.db('admin').command({ ping: 1 });
-
             this.db = this.client.db(mongoConfig.dbName);
 
             console.log('✅ Connected to MongoDB successfully');
             console.log(`📊 Database: ${this.db.databaseName}`);
 
-            // Create indexes
-            await this.createIndexes();
 
         } catch (error) {
             console.error('❌ MongoDB connection error:', error);
             throw error;
-        }
-    }
-
-    private async createIndexes(): Promise<void> {
-        if (!this.db) return;
-
-        try {
-            console.log('🔧 Creating database indexes...');
-
-            // Players collection indexes
-            await this.db.collection('players').createIndex(
-                { bungieId: 1 },
-                { unique: true, name: 'bungieId_unique' }
-            );
-            await this.db.collection('players').createIndex(
-                { displayName: 1 },
-                { name: 'displayName_index' }
-            );
-            await this.db.collection('players').createIndex(
-                { lastActivity: -1 },
-                { name: 'lastActivity_desc' }
-            );
-
-            console.log('✅ Database indexes created successfully');
-        } catch (error) {
-            console.error('❌ Error creating indexes:', error);
-            // Ne pas faire planter l'app pour les indexes
         }
     }
 
@@ -105,7 +73,6 @@ class DatabaseService {
     }
 }
 
-// Export singleton
 const databaseService = DatabaseService.getInstance();
 
 export const connectDB = () => databaseService.connect();

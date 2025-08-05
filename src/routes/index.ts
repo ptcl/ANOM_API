@@ -1,22 +1,17 @@
 import { Router } from 'express';
-import testRoutes from './test';
-import authRoutes from './auth';
-import userRoutes from './user';
+import authRoutes from './identity';
+import destiny2Routes from './destiny2';
+import protocolRoutes from './protocol';
+import healthRoutes from './health';
+import statusRoutes from './status';
 import { authMiddleware } from '../middlewares/auth';
 
 const router = Router();
 
-// Test routes
-router.use('/test', testRoutes);
-router.use('/auth', authRoutes);
-router.use('/user', authMiddleware, userRoutes);
-// API status
-router.get('/status', (req, res) => {
-    res.json({
-        success: true,
-        message: 'AN0M API is running',
-        timestamp: new Date().toISOString()
-    });
-});
+router.use('/identity', authRoutes);
+router.use('/health', healthRoutes);
+router.use('/status', statusRoutes);
+router.use('/destiny2', authMiddleware, destiny2Routes);
+router.use('/protocol', protocolRoutes);
 
 export { router as routes };

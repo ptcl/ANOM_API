@@ -1,14 +1,18 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { getServerConfig, isDev } from './utils/environment';
+import swaggerUi from 'swagger-ui-express';
+import { getMongoConfig, getServerConfig, isDev } from './utils/environment';
 import { routes } from './routes';
+import { swaggerSpec } from './config/swagger';
+// Import de la documentation
+import './docs';
+import { MongoClient } from 'mongodb';
 
 const createApp = (): express.Application => {
     const app = express();
     const serverConfig = getServerConfig();
 
-    // Security middleware
     app.use(helmet({
         contentSecurityPolicy: {
             directives: {
@@ -57,23 +61,13 @@ const createApp = (): express.Application => {
         next();
     });
 
-    app.get('/health', (req, res) => {
-        const mongoConfig = require('./utils/environment').getMongoConfig();
-
-        res.json({
-            status: 'OK',
-            timestamp: new Date().toISOString(),
-            service: 'AN0M ARCHIVE API',
-            version: '1.0.0',
-            environment: process.env.NODE_ENV || 'development',
-            database: {
-                name: mongoConfig.dbName,
-                connected: true
-            }
-        });
-    });
-
     app.use('/api', routes);
+
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        explorer: true,
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'Protocol API Documentation',
+    }));
 
     app.use('/api/*', (req, res) => {
         res.status(404).json({
@@ -96,7 +90,6 @@ const createApp = (): express.Application => {
     app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
         console.error('❌ Global error:', error);
 
-        // Log plus détaillé en dev
         if (isDev()) {
             console.error('Stack:', error.stack);
         }
