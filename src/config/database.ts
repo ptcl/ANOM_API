@@ -22,7 +22,7 @@ class DatabaseService {
             console.log('🔌 Connecting to MongoDB...');
             console.log(`   Environment: ${isDev() ? 'Development' : 'Production'}`);
             console.log(`   Database: ${mongoConfig.dbName}`);
-            console.log(`   URI: ${mongoConfig.uri.replace(/\/\/.*@/, '//***@')}`); // Masque les credentials
+            console.log(`   URI: ${mongoConfig.uri.replace(/\/\/.*@/, '//***@')}`);
 
             this.client = new MongoClient(mongoConfig.uri, {
                 maxPoolSize: isDev() ? 5 : 10,
@@ -73,7 +73,6 @@ class DatabaseService {
     }
 }
 
-// Export singleton
 const databaseService = DatabaseService.getInstance();
 
 export const connectDB = () => databaseService.connect();

@@ -1,6 +1,4 @@
 import dotenv from 'dotenv';
-
-// Force le chargement du .env
 dotenv.config();
 
 export type Environment = 'development' | 'production' | 'test';
@@ -21,9 +19,6 @@ class EnvironmentManager {
         return EnvironmentManager.instance;
     }
 
-    /**
-     * Valide que toutes les variables d'environnement nécessaires sont présentes
-     */
     private validateEnvironment(): void {
         console.log(`🌍 Environment: ${this.env}`);
 
@@ -35,7 +30,6 @@ class EnvironmentManager {
             'BUNGIE_REDIRECT_URI'
         ];
 
-        // Variables spécifiques à l'environnement
         if (this.isDevelopment()) {
             requiredVars.push('MONGO_URL', 'MONGO_DB_NAME_DEV');
         } else if (this.isProduction()) {
@@ -61,9 +55,6 @@ class EnvironmentManager {
         }
     }
 
-    /**
-     * Retourne la configuration MongoDB selon l'environnement
-     */
     getMongoConfig(): { uri: string; dbName: string } {
         if (this.isProduction()) {
             return {
@@ -78,9 +69,6 @@ class EnvironmentManager {
         }
     }
 
-    /**
-     * Retourne la configuration Bungie (commune aux environnements)
-     */
     getBungieConfig() {
         return {
             apiKey: process.env.BUNGIE_API_KEY!,
@@ -90,18 +78,12 @@ class EnvironmentManager {
         };
     }
 
-    /**
-     * Retourne la configuration JWT
-     */
     getJWTConfig() {
         return {
             secret: process.env.JWT_SECRET!,
         };
     }
 
-    /**
-     * Retourne la configuration serveur
-     */
     getServerConfig() {
         return {
             port: parseInt(process.env.PORT || '3000', 10),
@@ -112,9 +94,7 @@ class EnvironmentManager {
         };
     }
 
-    /**
-     * Méthodes utilitaires pour vérifier l'environnement
-     */
+
     isDevelopment(): boolean {
         return this.env === 'development';
     }
@@ -131,9 +111,6 @@ class EnvironmentManager {
         return this.env;
     }
 
-    /**
-     * Log de la configuration (sans secrets)
-     */
     logConfiguration(): void {
         const mongoConfig = this.getMongoConfig();
         const serverConfig = this.getServerConfig();
@@ -152,10 +129,8 @@ class EnvironmentManager {
     }
 }
 
-// Export singleton
 const environmentManager = EnvironmentManager.getInstance();
 
-// Exports pratiques
 export const env = environmentManager;
 export const isDev = () => environmentManager.isDevelopment();
 export const isProd = () => environmentManager.isProduction();

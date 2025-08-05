@@ -1,19 +1,16 @@
 import { Router } from 'express';
-import authRoutes from './auth';
+import authRoutes from './identity';
 import destiny2Routes from './destiny2';
 import protocolRoutes from './protocol';
 import { authMiddleware } from '../middlewares/auth';
 
 const router = Router();
 
-// Routes publiques
-router.use('/auth', authRoutes);
+router.use('/identity', authRoutes);
 
-// Routes protégées par authentification
 router.use('/destiny2', authMiddleware, destiny2Routes);
 router.use('/protocol', protocolRoutes);
 
-// Route de statut API
 router.get('/status', (req, res) => {
     res.json({
         success: true,

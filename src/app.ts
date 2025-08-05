@@ -4,13 +4,11 @@ import helmet from 'helmet';
 import { getServerConfig, isDev } from './utils/environment';
 import { routes } from './routes';
 // Import temporaire pour le debug
-import { printApiRoutes } from './utils/routeDebugger';
 
 const createApp = (): express.Application => {
     const app = express();
     const serverConfig = getServerConfig();
 
-    // Security middleware
     app.use(helmet({
         contentSecurityPolicy: {
             directives: {
@@ -98,7 +96,6 @@ const createApp = (): express.Application => {
     app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
         console.error('❌ Global error:', error);
 
-        // Log plus détaillé en dev
         if (isDev()) {
             console.error('Stack:', error.stack);
         }
@@ -110,11 +107,6 @@ const createApp = (): express.Application => {
             timestamp: new Date().toISOString()
         });
     });
-
-    // DEBUG: Afficher toutes les routes disponibles
-    if (isDev()) {
-        printApiRoutes(app);
-    }
 
     return app;
 };

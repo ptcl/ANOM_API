@@ -56,8 +56,6 @@ const agentSchema = new mongoose.Schema({
     lastActivity: { type: Date, default: Date.now },
 });
 
-// Ajout d'index pour améliorer les performances
-agentSchema.index({ bungieId: 1 }, { unique: true });
 agentSchema.index({ 'protocol.agentName': 1 });
 agentSchema.index({ lastActivity: 1 });
 

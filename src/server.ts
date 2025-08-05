@@ -7,25 +7,17 @@ const startServer = async () => {
     try {
         console.log('🚀 Starting AN0M ARCHIVE API...');
 
-        // Log de la configuration
         env.logConfiguration();
-
-        // Connexion MongoDB avec config d'environnement
         await connectDB();
-        
-        // Connexion Mongoose (pour les modèles)
         await connectMongoose();
 
-        // Vérification santé DB
         const isDbHealthy = await dbHealthCheck();
         if (!isDbHealthy) {
             throw new Error('Database health check failed');
         }
 
-        // Configuration serveur
         const serverConfig = getServerConfig();
 
-        // Démarrage serveur
         const server = app.listen(serverConfig.port, () => {
             console.log(`
 ╔══════════════════════════════════════╗
@@ -36,12 +28,11 @@ const startServer = async () => {
 ║  🔐 Environment: ${env.getEnvironment().padEnd(11)} ║
 ║                                      ║
 ║  🔗 Health: /health                  ║
-║  📡 Auth: /api/auth/bungie/login     ║
+║  📡 Auth: /api/identity/bungie/login     ║
 ╚══════════════════════════════════════╝
       `);
         });
 
-        // Graceful shutdown
         const gracefulShutdown = async (signal: string) => {
             console.log(`\n📴 ${signal} received, shutting down gracefully...`);
 
@@ -60,7 +51,6 @@ const startServer = async () => {
                 }
             });
 
-            // Force close after 10 seconds
             setTimeout(() => {
                 console.error('⚠️  Forced shutdown after 10 seconds');
                 process.exit(1);
@@ -70,7 +60,6 @@ const startServer = async () => {
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-        // Handle uncaught exceptions
         process.on('uncaughtException', (error) => {
             console.error('💥 Uncaught Exception:', error);
             gracefulShutdown('UNCAUGHT_EXCEPTION');

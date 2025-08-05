@@ -1,6 +1,5 @@
 import { AgentModel } from '../models/Agent';
 import { BungieTokenResponse } from '../types/bungie';
-import { ObjectId } from 'mongoose';
 import { IAgent } from '../types/agent';
 
 interface IAgentDocument extends IAgent {
@@ -15,7 +14,6 @@ class AgentService {
         tokens: BungieTokenResponse
     ): Promise<IAgentDocument> {
         try {
-            // Log du profil reçu
             console.log('🔍 Agent Profile received:');
             console.log('   bungieId:', agent.bungieId);
             console.log('   agentName:', agent.protocol.agentName);
@@ -38,8 +36,8 @@ class AgentService {
 
                 // Met à jour le joueur existant
                 existingPlayer.protocol.agentName = agent.protocol.agentName;
-                existingPlayer.destinyMemberships = agent.destinyMemberships; // Ajout des membres Destiny
-                existingPlayer.bungieUser = agent.bungieUser; // Ajout de l'utilisateur Bungie
+                existingPlayer.destinyMemberships = agent.destinyMemberships;
+                existingPlayer.bungieUser = agent.bungieUser;
                 existingPlayer.bungieTokens = {
                     accessToken: tokens.access_token,
                     refreshToken: tokens.refresh_token,
@@ -53,11 +51,10 @@ class AgentService {
                 console.log(`✅ Updated existing agent: ${existingPlayer.protocol.agentName || 'UNDEFINED_NAME'}`);
                 return existingPlayer as IAgentDocument;
             } else {
-                // Crée un nouveau joueur
                 const newAgent = new AgentModel({
                     bungieId: agent.bungieId,
-                    destinyMemberships: agent.destinyMemberships, // Ajout des membres Destiny
-                    bungieUser: agent.bungieUser, // Ajout de l'utilisateur Bungie
+                    destinyMemberships: agent.destinyMemberships,
+                    bungieUser: agent.bungieUser,
                     bungieTokens: {
                         accessToken: tokens.access_token,
                         refreshToken: tokens.refresh_token,
@@ -95,7 +92,6 @@ class AgentService {
                 } catch (saveError: any) {
                     console.error('❌ Erreur lors de la sauvegarde du nouvel agent:', saveError);
                     if (saveError.name === 'ValidationError') {
-                        // Affiche les détails des erreurs de validation
                         const validationErrors = Object.keys(saveError.errors).map(field => {
                             return `${field}: ${saveError.errors[field].message}`;
                         }).join(', ');
@@ -136,10 +132,6 @@ class AgentService {
         }
     }
 
-    /**
-     * Récupère un agent par son membershipType et membershipId
-     * Ces identifiants sont recherchés dans le tableau destinyMemberships
-     */
     async getAgentByDestinyMembership(membershipType: number, membershipId: string): Promise<IAgentDocument | null> {
         try {
             const agent = await AgentModel.findOne({
@@ -181,14 +173,12 @@ class AgentService {
             console.log(`🔄 Updating profile for agent: ${agentId}`);
             console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
 
-            // Récupère l'agent actuel pour pouvoir fusionner correctement les objets imbriqués
             const currentAgent = await this.getAgentById(agentId);
             if (!currentAgent) {
                 console.error(`❌ Agent not found with ID: ${agentId}`);
                 return null;
             }
 
-            // Supprime les champs qui ne doivent pas être modifiables directement
             const sanitizedUpdateData = { ...updateData };
             delete sanitizedUpdateData._id;
             delete sanitizedUpdateData.bungieId;
@@ -196,17 +186,13 @@ class AgentService {
             delete sanitizedUpdateData.joinedAt;
             delete sanitizedUpdateData.createdAt;
 
-            // Mise à jour des dates d'activité
             const now = new Date();
             sanitizedUpdateData.updatedAt = now;
 
-            // Traitement spécial pour les objets imbriqués (protocol)
-            // Si protocol est présent dans la mise à jour, on le fusionne avec l'existant au lieu de le remplacer
             if (sanitizedUpdateData.protocol && currentAgent.protocol) {
                 sanitizedUpdateData.protocol = {
                     ...currentAgent.protocol,
                     ...sanitizedUpdateData.protocol,
-                    // Assurer que les settings sont également fusionnés
                     settings: {
                         ...currentAgent.protocol.settings,
                         ...sanitizedUpdateData.protocol.settings
@@ -217,7 +203,7 @@ class AgentService {
             const result = await AgentModel.findByIdAndUpdate(
                 agentId,
                 { $set: sanitizedUpdateData },
-                { new: true } // Équivalent à returnDocument: 'after'
+                { new: true }
             );
 
             if (result) {

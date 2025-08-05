@@ -7,9 +7,9 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        playerId: string;
+        agentId: string;
         bungieId: string;
-        displayName: string;
+        agentName: string;
         role: string;
       };
     }
@@ -38,9 +38,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       
       // Stocke l'ID du joueur dans l'objet req pour un usage ultérieur
       req.user = {
-        playerId: decoded.playerId,
+        agentId: decoded.agentId,
         bungieId: decoded.bungieId,
-        displayName: decoded.displayName,
+        agentName: decoded.agentName,
         role: decoded.role
       };
 
@@ -69,6 +69,42 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     return res.status(500).json({
       success: false,
       error: 'Authentication failed',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Middleware qui vérifie si l'utilisateur est un administrateur
+ * Doit être utilisé après le middleware authMiddleware
+ */
+export const adminMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    // Vérifie que l'utilisateur est authentifié
+    if (!req.user || !req.user.agentId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      });
+    }
+
+    // Vérifie le rôle de l'utilisateur
+    if (req.user.role !== 'FOUNDER') {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Admin privileges required'
+      });
+    }
+
+    // L'utilisateur est un administrateur, continue vers la route protégée
+    return next();
+  } catch (error: any) {
+    console.error('❌ Admin middleware error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Authorization failed',
       message: error.message
     });
   }

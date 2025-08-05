@@ -1,4 +1,3 @@
-// src/services/bungieService.ts - Corrigé pour la structure réelle
 import axios, { AxiosInstance } from 'axios';
 import { bungieConfig } from '../config/bungie';
 import { BungieTokenResponse, BungieAPIResponse } from '../types/bungie';
@@ -95,15 +94,10 @@ class BungieService {
 
 
 
-            // 🆕 EXTRACTION DES DONNÉES SELON LA VRAIE STRUCTURE
             const rawData = response.data.Response;
             const bungieNetUser = rawData.bungieNetUser;
             const destinyMemberships = rawData.destinyMemberships || [];
 
-            // Prend le premier membership Destiny actif (le plus récent)
-            const primaryDestinyMembership = destinyMemberships.find((m: any) => m.crossSaveOverride) || destinyMemberships[0];
-
-            // Construit directement un Agent au lieu d'un BungieUserProfile
             const agent: IAgent = {
                 bungieId: bungieNetUser.membershipId,
                 destinyMemberships: destinyMemberships,
@@ -128,9 +122,9 @@ class BungieService {
                 },
                 protocol: {
                     agentName: bungieNetUser.displayName,
-                    species: 'HUMAN', // Valeur par défaut, à personnaliser plus tard
-                    role: 'AGENT', // Valeur par défaut
-                    clearanceLevel: 1, // Niveau par défaut
+                    species: 'HUMAN',
+                    role: 'AGENT',
+                    clearanceLevel: 1,
                     hasSeenRecruitment: false,
                     settings: {
                         notifications: true,
@@ -195,7 +189,6 @@ class BungieService {
         try {
             console.log(`📊 Fetching Destiny2 profile for membershipType: ${membershipType}, membershipId: ${membershipId}`);
 
-            // Construire la requête avec les composants
             let url = `/Destiny2/${membershipType}/Profile/${membershipId}/`;
             if (components) {
                 url += `?components=${components}`;
