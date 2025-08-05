@@ -1,34 +1,16 @@
 import { Router } from 'express';
-import testRoutes from './test';
 import authRoutes from './auth';
-import userRoutes from './user';
 import destiny2Routes from './destiny2';
 import protocolRoutes from './protocol';
 import { authMiddleware } from '../middlewares/auth';
 
 const router = Router();
 
-/**
- * Configuration des routes API
- * La structure suit trois modèles principaux:
- * 
- * 1. Routes standard: 
- *    /api/{service}/{resource}
- * 
- * 2. Routes style Bungie pour Destiny2: 
- *    /api/destiny2/{membershipType}/Profile/{membershipId}/...
- * 
- * 3. Routes de Protocol avec identifiants Bungie:
- *    /api/protocol/{membershipType}/{membershipId}/...
- */
-
 // Routes publiques
-router.use('/test', testRoutes);
 router.use('/auth', authRoutes);
 
 // Routes protégées par authentification
-router.use('/user', authMiddleware, userRoutes);
-router.use('/destiny2', destiny2Routes);
+router.use('/destiny2', authMiddleware, destiny2Routes);
 router.use('/protocol', protocolRoutes);
 
 // Route de statut API
