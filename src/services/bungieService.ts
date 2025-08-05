@@ -93,8 +93,8 @@ class BungieService {
                 throw new Error(`Bungie API Error: ${response.data.ErrorStatus} - ${response.data.Message}`);
             }
 
-            
-            
+
+
             // 🆕 EXTRACTION DES DONNÉES SELON LA VRAIE STRUCTURE
             const rawData = response.data.Response;
             const bungieNetUser = rawData.bungieNetUser;
@@ -106,17 +106,25 @@ class BungieService {
             // Construit directement un Agent au lieu d'un BungieUserProfile
             const agent: IAgent = {
                 bungieId: bungieNetUser.membershipId,
-                // Garder seulement les informations importantes pour éviter des objets trop volumineux
-                rawdata: {
-                    bungieNetUser: bungieNetUser,
-                    destinyMemberships: destinyMemberships,
-                },
                 destinyMemberships: destinyMemberships,
                 bungieUser: {
                     membershipId: parseInt(bungieNetUser.membershipId),
                     uniqueName: bungieNetUser.uniqueName || bungieNetUser.displayName,
                     displayName: bungieNetUser.displayName,
-                    profilePicture: bungieNetUser.profilePicture || 0
+                    profilePicture: bungieNetUser.profilePicture || 0,
+                    about: bungieNetUser.about || '',
+                    firstAccess: bungieNetUser.firstAccess || '',
+                    lastAccess: bungieNetUser.lastAccess || '',
+                    psnDisplayName: bungieNetUser.psnDisplayName || '',
+                    showActivity: bungieNetUser.showActivity || false,
+                    locale: bungieNetUser.locale || '',
+                    localeInheritDefault: bungieNetUser.localeInheritDefault || false,
+                    profilePicturePath: bungieNetUser.profilePicturePath || '',
+                    profileThemeName: bungieNetUser.profileThemeName || '',
+                    steamDisplayName: bungieNetUser.steamDisplayName || '',
+                    twitchDisplayName: bungieNetUser.twitchDisplayName || '',
+                    cachedBungieGlobalDisplayName: bungieNetUser.cachedBungieGlobalDisplayName || '',
+                    cachedBungieGlobalDisplayNameCode: bungieNetUser.cachedBungieGlobalDisplayNameCode || 0
                 },
                 protocol: {
                     agentName: bungieNetUser.displayName,
