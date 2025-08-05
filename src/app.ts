@@ -32,7 +32,7 @@ const createApp = (): express.Application => {
             'http://localhost:3001',
             'https://ladybird-helping-blindly.ngrok-free.app',
         ],
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         credentials: true
     }));
     // app.use(cors({
