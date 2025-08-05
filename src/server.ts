@@ -28,7 +28,8 @@ const startServer = async () => {
 ║  🔐 Environment: ${env.getEnvironment().padEnd(11)} ║
 ║                                      ║
 ║  🔗 Health: /health                  ║
-║  📡 Auth: /api/identity/bungie/login     ║
+║  � API Docs: /docs              ║
+║  �📡 Auth: /api/identity/bungie/login ║
 ╚══════════════════════════════════════╝
       `);
         });

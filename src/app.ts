@@ -1,9 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { getServerConfig, isDev } from './utils/environment';
+import swaggerUi from 'swagger-ui-express';
+import { getMongoConfig, getServerConfig, isDev } from './utils/environment';
 import { routes } from './routes';
-// Import temporaire pour le debug
+import { swaggerSpec } from './config/swagger';
+// Import de la documentation
+import './docs';
+import { MongoClient } from 'mongodb';
 
 const createApp = (): express.Application => {
     const app = express();
@@ -57,23 +61,13 @@ const createApp = (): express.Application => {
         next();
     });
 
-    app.get('/health', (req, res) => {
-        const mongoConfig = require('./utils/environment').getMongoConfig();
-
-        res.json({
-            status: 'OK',
-            timestamp: new Date().toISOString(),
-            service: 'AN0M ARCHIVE API',
-            version: '1.0.0',
-            environment: process.env.NODE_ENV || 'development',
-            database: {
-                name: mongoConfig.dbName,
-                connected: true
-            }
-        });
-    });
-
     app.use('/api', routes);
+
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        explorer: true,
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'Protocol API Documentation',
+    }));
 
     app.use('/api/*', (req, res) => {
         res.status(404).json({

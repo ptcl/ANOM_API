@@ -1,19 +1,18 @@
 import { Request, Response } from 'express';
 import { AgentModel } from '../models/Agent';
 import { AnnouncementModel } from '../models/Announcement';
-import { IAnnouncement } from '../types/announcement';
 import { agentService } from '../services/agentService';
 import { IAgent } from '../types/agent';
+import { ApiResponseBuilder } from '../utils/apiResponse';
+import { AppInfoService } from '../services/appInfoService';
+import { getMongoConfig } from '../utils/environment';
+import { MongoClient } from 'mongodb';
 
-/**
- * Obtient des statistiques détaillées sur tous les agents
- */
+
 export const getAgentStats = async (req: Request, res: Response) => {
     try {
-        // Récupération de tous les agents
         const agents = await AgentModel.find().lean();
 
-        // Statistiques par groupe
         const groupStats = {
             PROTOCOL: 0,
             AURORA: 0,
@@ -21,27 +20,23 @@ export const getAgentStats = async (req: Request, res: Response) => {
             NONE: 0
         };
 
-        // Statistiques par espèce
         const speciesStats = {
             HUMAN: 0,
             EXO: 0,
             AWOKEN: 0
         };
 
-        // Statistiques par rôle
         const roleStats = {
             AGENT: 0,
             SPECIALIST: 0,
             FOUNDER: 0
         };
 
-        // Dates pour les statistiques d'activité
         const now = new Date();
         const oneDay = 24 * 60 * 60 * 1000;
         const oneWeek = 7 * oneDay;
         const oneMonth = 30 * oneDay;
 
-        // Statistiques d'activité
         const activityStats = {
             activeToday: 0,
             activeThisWeek: 0,
@@ -49,9 +44,7 @@ export const getAgentStats = async (req: Request, res: Response) => {
             inactive: 0
         };
 
-        // Calcul des statistiques
         agents.forEach(agent => {
-            // Groupe
             if (agent.protocol.group) {
                 const group = agent.protocol.group as 'PROTOCOL' | 'AURORA' | 'ZENITH';
                 groupStats[group]++;
@@ -59,19 +52,16 @@ export const getAgentStats = async (req: Request, res: Response) => {
                 groupStats.NONE++;
             }
 
-            // Espèce
             if (agent.protocol.species) {
                 const species = agent.protocol.species as 'HUMAN' | 'EXO' | 'AWOKEN';
                 speciesStats[species]++;
             }
 
-            // Rôle
             if (agent.protocol.role) {
                 const role = agent.protocol.role as 'AGENT' | 'SPECIALIST' | 'FOUNDER';
                 roleStats[role]++;
             }
 
-            // Activité
             if (agent.lastActivity) {
                 const lastActivity = new Date(agent.lastActivity);
                 const timeDiff = now.getTime() - lastActivity.getTime();
@@ -90,7 +80,6 @@ export const getAgentStats = async (req: Request, res: Response) => {
             }
         });
 
-        // Construction de la réponse
         const stats = {
             totalAgents: agents.length,
             groups: groupStats,
@@ -115,14 +104,10 @@ export const getAgentStats = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * Crée une annonce globale pour tous les agents
- */
 export const createAnnouncement = async (req: Request, res: Response) => {
     try {
         const { title, content, priority, expiresAt, status, tags, visibility, targetGroup } = req.body;
 
-        // Validation des données
         if (!title || !content) {
             return res.status(400).json({
                 success: false,
@@ -131,7 +116,6 @@ export const createAnnouncement = async (req: Request, res: Response) => {
             });
         }
 
-        // Validation de la visibilité GROUP et du groupe cible
         if (visibility === 'GROUP' && !targetGroup) {
             return res.status(400).json({
                 success: false,
@@ -140,7 +124,6 @@ export const createAnnouncement = async (req: Request, res: Response) => {
             });
         }
 
-        // Création de la nouvelle annonce
         const announcement = new AnnouncementModel({
             title,
             content,
@@ -152,12 +135,10 @@ export const createAnnouncement = async (req: Request, res: Response) => {
             targetGroup: targetGroup
         });
 
-        // Configurer la date d'expiration si fournie
         if (expiresAt) {
             announcement.expiresAt = new Date(expiresAt);
         }
 
-        // Sauvegarder l'annonce
         await announcement.save();
 
         return res.status(201).json({
@@ -187,9 +168,7 @@ export const createAnnouncement = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * Récupère les journaux d'activité des agents
- */
+
 export const getActivityLogs = async (req: Request, res: Response) => {
     try {
         // Paramètres de pagination
@@ -221,9 +200,7 @@ export const getActivityLogs = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * Récupère les journaux d'authentification
- */
+
 export const getAuthLogs = async (req: Request, res: Response) => {
     try {
         // Paramètres de pagination
@@ -255,89 +232,175 @@ export const getAuthLogs = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * Récupère l'état actuel du système Protocol
- */
 export const getSystemStatus = async (req: Request, res: Response) => {
     try {
-        // Récupérer diverses métriques du système
-        const agentsCount = await AgentModel.countDocuments();
+        const appInfoService = AppInfoService.getInstance();
+        const appInfo = appInfoService.getAppInfo();
 
-        // Exemple d'informations système
-        const systemInfo = {
-            version: '1.0.0',
-            status: 'operational',
-            maintenance: false,
-            databaseStatus: 'connected',
-            apiStatus: 'healthy',
-            metrics: {
-                totalAgents: agentsCount,
-                activeConnections: 0, // À implémenter
-                averageResponseTime: '120ms', // À implémenter
-                cpuUsage: '23%', // À implémenter
-                memoryUsage: '512MB' // À implémenter
-            },
-            lastRestart: new Date(Date.now() - 3600000 * 24 * 3), // Exemple: redémarré il y a 3 jours
-            uptime: '3 days, 2 hours, 15 minutes'
+        const [agentsCount, announcementsCount] = await Promise.all([
+            AgentModel.countDocuments(),
+            AnnouncementModel.countDocuments()
+        ]);
+
+        const { uri, dbName } = getMongoConfig();
+        let dbStatus = {
+            connected: false,
+            name: dbName,
+            responseTime: 0,
+            error: undefined
         };
 
-        return res.json({
-            success: true,
-            data: systemInfo,
-            message: "État du système récupéré avec succès"
+        let client: MongoClient | null = null;
+        try {
+            const dbStartTime = Date.now();
+            client = new MongoClient(uri);
+            await client.connect();
+            await client.db(dbName).command({ ping: 1 });
+            const dbResponseTime = Date.now() - dbStartTime;
+
+            dbStatus = {
+                connected: true,
+                name: dbName,
+                responseTime: dbResponseTime,
+                error: undefined
+            };
+        } catch (error: any) {
+            dbStatus = {
+                connected: false,
+                name: dbName,
+                responseTime: 0,
+                error: error.message
+            };
+        } finally {
+            if (client) await client.close();
+        }
+
+        const memoryUsage = process.memoryUsage();
+        const formatMemory = (bytes: number) => `${Math.round(bytes / 1024 / 1024)} MB`;
+
+        const cpuStartUsage = process.cpuUsage();
+        const startTime = Date.now();
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const cpuEndUsage = process.cpuUsage(cpuStartUsage);
+        const endTime = Date.now();
+        const elapsedTime = endTime - startTime;
+
+        const cpuPercent = (100 * (cpuEndUsage.user + cpuEndUsage.system) / 1000 / elapsedTime).toFixed(1);
+
+        const systemInfo = {
+            service: {
+                name: appInfo.name,
+                version: appInfo.version,
+                description: appInfo.description,
+                environment: appInfo.environment,
+                uptime: appInfo.uptime
+            },
+            status: {
+                overall: dbStatus.connected ? 'operational' : 'degraded',
+                maintenance: false,
+                components: {
+                    api: 'healthy',
+                    database: dbStatus.connected ? 'connected' : 'error',
+                    cache: 'operational'
+                }
+            },
+            performance: {
+                cpu: {
+                    usage: `${cpuPercent}%`,
+                    cores: require('os').cpus().length
+                },
+                memory: {
+                    total: formatMemory(require('os').totalmem()),
+                    free: formatMemory(require('os').freemem()),
+                    used: {
+                        rss: formatMemory(memoryUsage.rss),
+                        heapTotal: formatMemory(memoryUsage.heapTotal),
+                        heapUsed: formatMemory(memoryUsage.heapUsed),
+                        external: formatMemory(memoryUsage.external || 0)
+                    }
+                },
+                database: {
+                    responseTime: `${dbStatus.responseTime}ms`,
+                    connected: dbStatus.connected
+                }
+            },
+            metrics: {
+                totalAgents: agentsCount,
+                totalAnnouncements: announcementsCount,
+                activeAgentsToday: await AgentModel.countDocuments({
+                    lastActivity: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                }),
+                activeAgentsWeek: await AgentModel.countDocuments({
+                    lastActivity: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+                })
+            }
+        };
+
+        return ApiResponseBuilder.success(res, {
+            message: "État du système récupéré avec succès",
+            data: systemInfo
         });
     } catch (error: any) {
         console.error('❌ Error fetching system status:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to fetch system status',
-            message: error.message
+        return ApiResponseBuilder.error(res, 500, {
+            message: "Échec de récupération de l'état du système",
+            error: 'system_status_error',
+            details: error.message
         });
     }
 };
 
-/**
- * Met le système en mode maintenance ou effectue d'autres opérations d'administration
- */
 export const updateSystemMaintenance = async (req: Request, res: Response) => {
     try {
         const { maintenance, message, estimatedDuration } = req.body;
 
         if (maintenance === undefined) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields',
-                message: 'Maintenance status is required'
+            return ApiResponseBuilder.badRequest(res, {
+                message: 'Paramètres requis manquants',
+                error: 'missing_required_fields',
+                details: 'Le statut de maintenance est requis'
             });
         }
 
-        // Logique de mise en maintenance à implémenter
-        // (Nécessiterait probablement une collection de configuration système)
+        // NOTE: Ceci est un emplacement où vous implémenteriez la logique réelle
+        // de mise en maintenance. Comme elle n'est pas encore implémentée,
+        // nous retournons une réponse plus informative.
 
-        return res.status(501).json({
-            success: false,
-            error: 'Not implemented',
-            message: 'This feature is coming soon'
+        // Une approche possible serait de créer une collection "SystemSettings"
+        // dans la base de données pour stocker ces paramètres.
+
+        const maintenanceInfo = {
+            status: maintenance,
+            message: message || 'Maintenance planifiée du système',
+            estimatedDuration: estimatedDuration || '1 heure',
+            startedAt: new Date(),
+            estimatedEndAt: new Date(Date.now() + (parseInt(estimatedDuration) || 60) * 60 * 1000)
+        };
+
+        return ApiResponseBuilder.success(res, {
+            message: 'Cette fonctionnalité sera bientôt disponible',
+            data: {
+                maintenanceInfo,
+                implementation: 'Cette fonctionnalité n\'est pas encore implémentée. Voici les données qui seraient traitées.'
+            }
         });
     } catch (error: any) {
         console.error('❌ Error updating system maintenance:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to update system maintenance',
-            message: error.message
+        return ApiResponseBuilder.error(res, 500, {
+            message: 'Échec de la mise à jour du statut de maintenance',
+            error: 'maintenance_update_error',
+            details: error.message
         });
     }
 };
 
-/**
- * Promeut un agent (augmente son rôle ou son niveau d'autorisation)
- */
 export const promoteAgent = async (req: Request, res: Response) => {
     try {
         const { agentId } = req.params;
         const { newRole, newClearanceLevel } = req.body;
 
-        // Validation des données
         if (!newRole && !newClearanceLevel) {
             return res.status(400).json({
                 success: false,
@@ -346,7 +409,6 @@ export const promoteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérification que l'agent existe
         const existingAgent = await agentService.getAgentById(agentId);
         if (!existingAgent) {
             return res.status(404).json({
@@ -356,10 +418,8 @@ export const promoteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Création des données de mise à jour
         const updateData: Partial<IAgent> = {};
 
-        // Initialisation de l'objet protocol avec les valeurs existantes
         updateData.protocol = {
             agentName: existingAgent.protocol.agentName,
             species: existingAgent.protocol.species,
@@ -369,17 +429,14 @@ export const promoteAgent = async (req: Request, res: Response) => {
             settings: { ...existingAgent.protocol.settings }
         };
 
-        // Mise à jour du rôle si fourni
         if (newRole && ['AGENT', 'SPECIALIST', 'FOUNDER'].includes(newRole)) {
             updateData.protocol.role = newRole as 'AGENT' | 'SPECIALIST' | 'FOUNDER';
         }
 
-        // Mise à jour du niveau d'autorisation si fourni
         if (newClearanceLevel && [1, 2, 3].includes(newClearanceLevel)) {
             updateData.protocol.clearanceLevel = newClearanceLevel;
         }
 
-        // Effectue la mise à jour
         const updatedAgent = await agentService.updateAgentProfile(agentId, updateData);
 
         if (!updatedAgent) {
@@ -413,10 +470,7 @@ export const promoteAgent = async (req: Request, res: Response) => {
         });
     }
 };
-/**
- * Permet à un administrateur de mettre à jour n'importe quel champ d'un agent
- * Cette route devrait être protégée par un middleware d'authentification admin
- */
+
 export const adminUpdateAgent = async (req: Request, res: Response) => {
     try {
         const { agentId } = req.params;
@@ -430,7 +484,6 @@ export const adminUpdateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérification que l'agent existe
         const existingAgent = await agentService.getAgentById(agentId);
         if (!existingAgent) {
             return res.status(404).json({
@@ -440,12 +493,9 @@ export const adminUpdateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Les administrateurs peuvent uniquement mettre à jour l'objet protocol
         const sanitizedData: Partial<IAgent> = {};
 
-        // On ne permet que la modification de l'objet protocol
         if (updateData.protocol) {
-            // Initialiser sanitizedData.protocol avec les valeurs existantes
             sanitizedData.protocol = {
                 agentName: existingAgent.protocol.agentName,
                 customName: existingAgent.protocol.customName,
@@ -458,7 +508,6 @@ export const adminUpdateAgent = async (req: Request, res: Response) => {
                 settings: { ...existingAgent.protocol.settings }
             };
 
-            // Mettre à jour avec les nouvelles valeurs
             if (updateData.protocol.agentName !== undefined) {
                 sanitizedData.protocol.agentName = updateData.protocol.agentName;
             }
@@ -484,7 +533,6 @@ export const adminUpdateAgent = async (req: Request, res: Response) => {
                 sanitizedData.protocol.group = updateData.protocol.group;
             }
 
-            // Mettre à jour les paramètres
             if (updateData.protocol.settings) {
                 if (updateData.protocol.settings.notifications !== undefined) {
                     sanitizedData.protocol.settings.notifications = updateData.protocol.settings.notifications;
@@ -501,7 +549,6 @@ export const adminUpdateAgent = async (req: Request, res: Response) => {
             }
         }
 
-        // Mise à jour de l'agent
         const updatedAgent = await agentService.updateAgentProfile(agentId, sanitizedData);
 
         if (!updatedAgent) {

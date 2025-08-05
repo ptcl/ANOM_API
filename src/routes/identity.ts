@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { initiateLogin, handleCallback, verifyToken, refreshToken } from '../controllers';
+import { ApiResponseBuilder } from '../utils/apiResponse';
+import { AppInfoService } from '../services/appInfoService';
 
 const router = Router();
 
@@ -11,13 +13,16 @@ router.post('/verify', verifyToken);
 router.post('/refresh', refreshToken);
 
 router.get('/status', (req, res) => {
-    res.json({
-        success: true,
+    const appInfoService = AppInfoService.getInstance();
+
+    return ApiResponseBuilder.success(res, {
+        message: 'Service d\'authentification opérationnel',
         data: {
             status: 'online',
+            service: 'Authentication',
+            version: appInfoService.getVersion(),
             timestamp: new Date().toISOString()
-        },
-        message: 'Authentication service is operational'
+        }
     });
 });
 

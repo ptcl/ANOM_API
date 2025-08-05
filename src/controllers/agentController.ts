@@ -15,7 +15,6 @@ export const getAgentByMembership = async (req: Request, res: Response) => {
             });
         }
 
-        // Recherche l'agent dont l'un des destinyMemberships correspond aux paramètres
         const agent = await agentService.getAgentByDestinyMembership(
             parseInt(membershipType),
             membershipId
@@ -29,7 +28,6 @@ export const getAgentByMembership = async (req: Request, res: Response) => {
             });
         }
 
-        // Format de réponse pour l'API
         const formattedAgent = {
             _id: agent._id,
             bungieId: agent.bungieId,
@@ -71,7 +69,6 @@ export const getAgentByMembership = async (req: Request, res: Response) => {
 export const updateAgentByMembership = async (req: Request, res: Response) => {
     try {
         const { membershipType, membershipId } = req.params;
-        const updateData = req.body;
 
         if (!membershipType || !membershipId) {
             return res.status(400).json({
@@ -81,7 +78,6 @@ export const updateAgentByMembership = async (req: Request, res: Response) => {
             });
         }
 
-        // Recherche l'agent dont l'un des destinyMemberships correspond aux paramètres
         const agent = await agentService.getAgentByDestinyMembership(
             parseInt(membershipType),
             membershipId
@@ -111,12 +107,8 @@ export const updateAgentByMembership = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * Récupère le profil de l'agent authentifié
- */
 export const getMyProfile = async (req: Request, res: Response) => {
     try {
-        // Récupération de l'agent à partir de l'ID dans le token JWT
         const agentId = req.user?.agentId;
 
         if (!agentId) {
@@ -127,7 +119,6 @@ export const getMyProfile = async (req: Request, res: Response) => {
             });
         }
 
-        // Récupération de l'agent depuis la base de données
         const agent = await agentService.getAgentById(agentId);
 
         if (!agent) {
@@ -138,7 +129,6 @@ export const getMyProfile = async (req: Request, res: Response) => {
             });
         }
 
-        // Format de réponse pour l'API
         const formattedAgent = {
             _id: agent._id,
             bungieId: agent.bungieId,
@@ -177,12 +167,8 @@ export const getMyProfile = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * Met à jour le profil de l'agent authentifié
- */
 export const updateMyProfile = async (req: Request, res: Response) => {
     try {
-        // Récupération de l'agent à partir de l'ID dans le token JWT
         const agentId = req.user?.agentId;
         const updateData = req.body;
 
@@ -194,7 +180,6 @@ export const updateMyProfile = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérification que l'agent existe
         const existingAgent = await agentService.getAgentById(agentId);
         if (!existingAgent) {
             return res.status(404).json({
@@ -204,10 +189,8 @@ export const updateMyProfile = async (req: Request, res: Response) => {
             });
         }
 
-        // Assainit les données avant la mise à jour
         const sanitizedData: Partial<IAgent> = {};
 
-        // N'autorise que les mises à jour de certains champs du protocol
         if (updateData.protocol) {
             sanitizedData.protocol = {
                 agentName: existingAgent.protocol.agentName,
@@ -223,7 +206,6 @@ export const updateMyProfile = async (req: Request, res: Response) => {
                 }
             };
 
-            // Liste des champs autorisés à la mise à jour
             if (updateData.protocol.customName !== undefined) {
                 sanitizedData.protocol.customName = updateData.protocol.customName;
             }
@@ -233,9 +215,7 @@ export const updateMyProfile = async (req: Request, res: Response) => {
                 sanitizedData.protocol.species = updateData.protocol.species as 'HUMAN' | 'EXO' | 'AWOKEN';
             }
 
-            // Traitement spécial pour les paramètres
             if (updateData.protocol.settings) {
-                // Copie des paramètres autorisés
                 if (updateData.protocol.settings.notifications !== undefined) {
                     sanitizedData.protocol.settings.notifications = !!updateData.protocol.settings.notifications;
                 }
@@ -255,7 +235,6 @@ export const updateMyProfile = async (req: Request, res: Response) => {
             }
         }
 
-        // Effectue la mise à jour
         const updatedAgent = await agentService.updateAgentProfile(agentId, sanitizedData);
 
         if (!updatedAgent) {
@@ -294,7 +273,6 @@ export const updateMyProfile = async (req: Request, res: Response) => {
 
 export const getAllAgents = async (req: Request, res: Response) => {
     try {
-        // Récupération de tous les agents
         const agents = await AgentModel.find().lean();
         const formattedAgents = agents.map(agent => ({
             _id: agent._id,

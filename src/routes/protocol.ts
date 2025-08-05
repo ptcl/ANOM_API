@@ -6,6 +6,7 @@ import { authMiddleware, adminMiddleware } from '../middlewares/auth';
 
 const router = Router();
 
+
 router.get('/status', getProtocolStatus);
 router.get('/agents', getAllAgents);
 
