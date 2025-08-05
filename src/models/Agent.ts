@@ -6,6 +6,23 @@ const agentSchema = new mongoose.Schema({
         accessToken: { type: String, required: true },
         refreshToken: { type: String, required: true },
         expiresAt: { type: Date, required: true },
+    },
+    destinyMemberships: [{
+        crossSaveOverride: { type: Number },
+        applicableMembershipTypes: [{ type: Number }],
+        isPublic: { type: Boolean },
+        membershipType: { type: Number },
+        membershipId: { type: String },
+        displayName: { type: String },
+        bungieGlobalDisplayName: { type: String },
+        bungieGlobalDisplayNameCode: { type: Number }
+
+    }],
+    bungieUser: {
+        membershipId: { type: Number },
+        uniqueName: { type: String },
+        displayName: { type: String },
+        profilePicture: { type: Number },
         about: { type: String },
         firstAccess: { type: Date },
         lastAccess: { type: Date },
@@ -19,22 +36,6 @@ const agentSchema = new mongoose.Schema({
         twitchDisplayName: { type: String },
         cachedBungieGlobalDisplayName: { type: String },
         cachedBungieGlobalDisplayNameCode: { type: Number }
-    },
-    destinyMemberships: [{
-        crossSaveOverride: { type: Number },
-        applicableMembershipTypes: [{ type: Number }],
-        isPublic: { type: Boolean },
-        membershipType: { type: Number },
-        membershipId: { type: String },
-        displayName: { type: String },
-        bungieGlobalDisplayName: { type: String },
-        bungieGlobalDisplayNameCode: { type: Number }
-    }],
-    bungieUser: {
-        membershipId: { type: Number },
-        uniqueName: { type: String },
-        displayName: { type: String },
-        profilePicture: { type: Number }
     },
     protocol: {
         agentName: { type: String, required: true },
