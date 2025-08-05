@@ -54,7 +54,7 @@ const agentSchema = new mongoose.Schema({
         }
     },
     lastActivity: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 agentSchema.index({ 'protocol.agentName': 1 });
 agentSchema.index({ lastActivity: 1 });
