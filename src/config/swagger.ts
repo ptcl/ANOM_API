@@ -2,7 +2,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 
 const swaggerOptions = {
   definition: {
-    openapi: '1.0.0',
+    openapi: '3.0.0',
     info: {
       title: 'AN0M Protocol API',
       version: '2.0.0',
