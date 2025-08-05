@@ -206,6 +206,9 @@ export const updateMyProfile = async (req: Request, res: Response) => {
                 }
             };
 
+            if (updateData.protocol.hasSeenRecruitment !== undefined) {
+                sanitizedData.protocol.hasSeenRecruitment = !!updateData.protocol.hasSeenRecruitment;
+            }
             if (updateData.protocol.customName !== undefined) {
                 sanitizedData.protocol.customName = updateData.protocol.customName;
             }
@@ -254,6 +257,7 @@ export const updateMyProfile = async (req: Request, res: Response) => {
                         agentName: updatedAgent.protocol.agentName,
                         customName: updatedAgent.protocol.customName,
                         species: updatedAgent.protocol.species,
+                        hasSeenRecruitment: updatedAgent.protocol.hasSeenRecruitment,
                         settings: updatedAgent.protocol.settings
                     },
                     updatedAt: updatedAgent.updatedAt
