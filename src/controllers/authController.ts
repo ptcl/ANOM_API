@@ -111,7 +111,7 @@ export const handleCallback = async (req: Request, res: Response) => {
     else {
       const serverConfig = getServerConfig();
       const frontendUrl = serverConfig.frontendUrl;
-      return res.redirect(`${frontendUrl}/auth/callback?token=${jwtToken}`);
+      return res.redirect(`${frontendUrl}/identity/bungie/callback?token=${jwtToken}`);
     }  } catch (error: any) {
     console.error('❌ Bungie callback failed:', error);
 
