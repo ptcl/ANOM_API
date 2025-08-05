@@ -218,6 +218,24 @@ class AgentService {
             throw new Error(`Failed to update agent profile: ${error}`);
         }
     }
+
+    async getActiveAgentsCount(): Promise<number> {
+        try {
+            // Considère un agent comme actif s'il s'est connecté dans les derniers 30 jours
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const count = await AgentModel.countDocuments({
+                lastActivity: { $gte: thirtyDaysAgo }
+            });
+            
+            console.log(`📊 Active agents count (last 30 days): ${count}`);
+            return count;
+        } catch (error) {
+            console.error('❌ Error counting active agents:', error);
+            return 0;
+        }
+    }
 }
 
 export const agentService = new AgentService();
