@@ -41,7 +41,7 @@ const agentSchema = new mongoose.Schema({
         agentName: { type: String, required: true },
         customName: { type: String },
         species: { type: String, enum: ['HUMAN', 'EXO', 'AWOKEN'], required: true },
-        role: { type: String, enum: ['AGENT', 'SPECIALIST', 'FOUNDER', ''], default: 'AGENT' },
+        role: { type: String, enum: ['AGENT', 'SPECIALIST', 'FOUNDER'], default: 'AGENT' },
         clearanceLevel: { type: Number, enum: [1, 2, 3], required: true },
         hasSeenRecruitment: { type: Boolean, default: false },
         protocolJoinedAt: { type: Date },
