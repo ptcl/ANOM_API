@@ -136,6 +136,34 @@ class AgentService {
         }
     }
 
+    /**
+     * Récupère un agent par son membershipType et membershipId
+     * Ces identifiants sont recherchés dans le tableau destinyMemberships
+     */
+    async getAgentByDestinyMembership(membershipType: number, membershipId: string): Promise<IAgentDocument | null> {
+        try {
+            const agent = await AgentModel.findOne({
+                'destinyMemberships': {
+                    $elemMatch: {
+                        membershipType: membershipType,
+                        membershipId: membershipId
+                    }
+                }
+            });
+
+            if (agent) {
+                console.log(`🔍 Found agent by Destiny membership: ${agent.protocol.agentName}`);
+            } else {
+                console.log(`❓ No agent found with membershipType ${membershipType} and membershipId ${membershipId}`);
+            }
+
+            return agent as IAgentDocument;
+        } catch (error) {
+            console.error('❌ Error getting agent by Destiny membership:', error);
+            return null;
+        }
+    }
+
     async updateLastActivity(agentId: string): Promise<void> {
         try {
             const now = new Date();
