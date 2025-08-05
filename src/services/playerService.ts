@@ -127,7 +127,6 @@ class PlayerService {
             delete sanitizedUpdateData._id;
             delete sanitizedUpdateData.bungieId;
             delete sanitizedUpdateData.bungieTokens;
-            delete sanitizedUpdateData.joinedAt;
             delete sanitizedUpdateData.createdAt;
 
             const now = new Date();
