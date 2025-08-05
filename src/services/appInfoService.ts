@@ -16,7 +16,7 @@ export class AppInfoService {
             console.warn('Impossible de lire le fichier package.json', error);
             this.packageInfo = {
                 name: 'AN0M ARCHIVE API',
-                version: process.env.npm_package_version || '1.0.0',
+                version: process.env.npm_package_version,
                 description: 'API pour l\'application AN0M ARCHIVE'
             };
         }
@@ -32,7 +32,7 @@ export class AppInfoService {
     public getAppInfo() {
         return {
             name: this.packageInfo.name || 'AN0M ARCHIVE API',
-            version: this.packageInfo.version || process.env.npm_package_version || '1.0.0',
+            version: this.packageInfo.version || process.env.npm_package_version,
             description: this.packageInfo.description || 'API pour l\'application AN0M ARCHIVE',
             environment: process.env.NODE_ENV || 'development',
             uptime: this.getUptime()
@@ -50,7 +50,7 @@ export class AppInfoService {
     }
 
     public getVersion(): string {
-        return this.packageInfo.version || process.env.npm_package_version || '1.0.0';
+        return this.packageInfo.version || process.env.npm_package_version;
     }
 
     public getName(): string {
