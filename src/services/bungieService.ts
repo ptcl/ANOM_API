@@ -93,13 +93,10 @@ class BungieService {
                 throw new Error(`Bungie API Error: ${response.data.ErrorStatus} - ${response.data.Message}`);
             }
 
-            const rawData = response.data.Response;
-
-            // Log pour déboguer rawData
-            console.log('📊 rawData récupéré:', rawData ? 'OUI' : 'NON');
-            console.log('📊 Taille rawData:', rawData ? Object.keys(rawData).length : 0);
+            
             
             // 🆕 EXTRACTION DES DONNÉES SELON LA VRAIE STRUCTURE
+            const rawData = response.data.Response;
             const bungieNetUser = rawData.bungieNetUser;
             const destinyMemberships = rawData.destinyMemberships || [];
 
@@ -113,7 +110,13 @@ class BungieService {
                 rawdata: {
                     bungieNetUser: bungieNetUser,
                     destinyMemberships: destinyMemberships,
-                    // Ajouter d'autres champs essentiels au besoin
+                },
+                destinyMemberships: destinyMemberships,
+                bungieUser: {
+                    membershipId: parseInt(bungieNetUser.membershipId),
+                    uniqueName: bungieNetUser.uniqueName || bungieNetUser.displayName,
+                    displayName: bungieNetUser.displayName,
+                    profilePicture: bungieNetUser.profilePicture || 0
                 },
                 protocol: {
                     agentName: bungieNetUser.displayName,

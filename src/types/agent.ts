@@ -5,8 +5,37 @@ export interface IAgent {
         accessToken: string;
         refreshToken: string;
         expiresAt: Date;
+        about: string;
+        firstAccess: Date;
+        lastAccess: Date;
+        psnDisplayName?: string;
+        showActivity: boolean;
+        locale: string;
+        localeInheritDefault: boolean;
+        profilePicturePath?: string;
+        profileThemeName: string;
+        steamDisplayName?: string;
+        twitchDisplayName?: string;
+        cachedBungieGlobalDisplayName?: string;
+        cachedBungieGlobalDisplayNameCode?: number;
     };
+    destinyMemberships?: Array<{
+        crossSaveOverride?: number;
+        applicableMembershipTypes?: number[];
+        isPublic?: boolean;
+        membershipType: number;
+        membershipId: string;
+        displayName: string;
+        bungieGlobalDisplayName?: string;
+        bungieGlobalDisplayNameCode?: number;
+    }>;
     rawdata?: any;
+    bungieUser: {
+        membershipId: number;
+        uniqueName: string;
+        displayName: string;
+        profilePicture: number;
+    }
     protocol: {
         agentName: string;
         customName?: string;

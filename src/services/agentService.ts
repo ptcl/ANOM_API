@@ -5,11 +5,7 @@ import { IAgent } from '../types/agent';
 
 interface IAgentDocument extends IAgent {
     bungieId: string;
-    bungieTokens: {
-        accessToken: string;
-        refreshToken: string;
-        expiresAt: Date;
-    };
+    bungieTokens: IAgent['bungieTokens'];
     joinedAt: Date;
 }
 
@@ -23,8 +19,6 @@ class AgentService {
             console.log('🔍 Agent Profile received:');
             console.log('   bungieId:', agent.bungieId);
             console.log('   agentName:', agent.protocol.agentName);
-            console.log('   rawdata présent:', agent.rawdata ? 'OUI' : 'NON');
-            console.log('   taille rawdata:', agent.rawdata ? Object.keys(agent.rawdata).length : 0);
 
             if (!agent.bungieId) {
                 console.error('❌ ERREUR: bungieId manquant dans le profil Agent');
@@ -44,7 +38,8 @@ class AgentService {
 
                 // Met à jour le joueur existant
                 existingPlayer.protocol.agentName = agent.protocol.agentName;
-                existingPlayer.rawdata = agent.rawdata; // Ajout des données brutes
+                existingPlayer.destinyMemberships = agent.destinyMemberships; // Ajout des membres Destiny
+                existingPlayer.bungieUser = agent.bungieUser; // Ajout de l'utilisateur Bungie
                 existingPlayer.bungieTokens = {
                     accessToken: tokens.access_token,
                     refreshToken: tokens.refresh_token,
@@ -61,7 +56,8 @@ class AgentService {
                 // Crée un nouveau joueur
                 const newAgent = new AgentModel({
                     bungieId: agent.bungieId,
-                    rawdata: agent.rawdata, // Ajout des données brutes
+                    destinyMemberships: agent.destinyMemberships, // Ajout des membres Destiny
+                    bungieUser: agent.bungieUser, // Ajout de l'utilisateur Bungie
                     bungieTokens: {
                         accessToken: tokens.access_token,
                         refreshToken: tokens.refresh_token,

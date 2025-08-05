@@ -78,10 +78,6 @@ export const handleCallback = async (req: Request, res: Response) => {
     // Sauvegarde en base
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
-    // Log pour déboguer rawdata
-    console.log('👁️ Agent rawdata présent:', agent.rawdata ? 'OUI' : 'NON');
-    console.log('👁️ Taille rawdata:', agent.rawdata ? Object.keys(agent.rawdata).length : 0);
-    
     // Génère JWT
     const jwtPayload = {
       agentId: agent._id!.toString(),
@@ -101,7 +97,13 @@ export const handleCallback = async (req: Request, res: Response) => {
         token: jwtToken,
         agent: {
           _id: agent._id,
-          rawdata: agent.rawdata,
+          destinyMemberships: agent.destinyMemberships || [],
+          bungieUser: agent.bungieUser || {
+            membershipId: parseInt(agent.bungieId),
+            uniqueName: agent.protocol.agentName,
+            displayName: agent.protocol.agentName,
+            profilePicture: 0
+          },
           protocol: {
             agentName: agent.protocol.agentName,
             customName: agent.protocol?.customName,
@@ -171,7 +173,6 @@ export const verifyToken = async (req: Request, res: Response) => {
         valid: true,
         agent: {
           _id: agent._id,
-          rawdata: null, // On n'a pas les données Bungie ici
           protocol: {
             agentName: agent.protocol.agentName,
             customName: agent.protocol?.customName || undefined,
@@ -254,7 +255,6 @@ export const refreshToken = async (req: Request, res: Response) => {
         token: newToken,
         agent: {
           _id: agent._id,
-          rawdata: null, // On n'a pas les données Bungie ici
           protocol: {
             agentName: agent.protocol.agentName,
             customName: agent.protocol?.customName || undefined,
@@ -378,7 +378,13 @@ export const getProfile = async (req: Request, res: Response) => {
       data: {
         agent: {
           _id: agent._id,
-          rawdata: updatedAgent?.rawdata || agent.rawdata || null,
+          destinyMemberships: updatedAgent?.destinyMemberships || agent.destinyMemberships || [],
+          bungieUser: updatedAgent?.bungieUser || agent.bungieUser || {
+            membershipId: parseInt(agent.bungieId),
+            uniqueName: agent.protocol.agentName,
+            displayName: agent.protocol.agentName,
+            profilePicture: 0
+          },
           protocol: {
             agentName: agent.protocol.agentName,
             customName: agent.protocol?.customName || undefined,
@@ -464,7 +470,6 @@ export const updateProfile = async (req: Request, res: Response) => {
       data: {
         agent: {
           _id: updatedAgent._id,
-          rawdata: null, // On n'a pas les données Bungie ici
           protocol: {
             agentName: updatedAgent.protocol.agentName,
             customName: updatedAgent.protocol?.customName || undefined,

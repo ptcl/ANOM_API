@@ -12,7 +12,7 @@ export const getDestinyProfile = async (req: Request, res: Response) => {
     try {
         const { membershipType, membershipId } = req.params;
         const components = req.query.components as string | undefined;
-        
+
         // Récupérer le token depuis le header d'autorisation
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,9 +21,9 @@ export const getDestinyProfile = async (req: Request, res: Response) => {
                 message: 'Token d\'authentification non fourni ou invalide'
             });
         }
-        
+
         const accessToken = authHeader.split(' ')[1];
-        
+
         // Appel au service Bungie pour récupérer les données du profil
         const profileData = await bungieService.getDestinyProfile(
             accessToken,
@@ -31,12 +31,17 @@ export const getDestinyProfile = async (req: Request, res: Response) => {
             membershipId,
             components
         );
-        
+
         // Construire la réponse en utilisant l'interface Agent
         const agentResponse: IAgent = {
             _id: undefined,
             bungieId: membershipId,
-            rawdata: profileData,
+            bungieUser: {
+                membershipId: parseInt(membershipId),
+                uniqueName: "Manifest Agent",
+                displayName: "Manifest Agent",
+                profilePicture: 0
+            },
             protocol: {
                 agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
                 customName: undefined,
@@ -56,7 +61,7 @@ export const getDestinyProfile = async (req: Request, res: Response) => {
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        
+
         return res.json({
             success: true,
             message: 'Profil Destiny2 récupéré avec succès',
@@ -84,7 +89,7 @@ export const getCharacters = async (req: Request, res: Response) => {
     try {
         const { membershipType, membershipId } = req.params;
         const components = req.query.components as string || '200'; // Composant par défaut pour les personnages
-        
+
         // Récupérer le token depuis le header d'autorisation
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -93,9 +98,9 @@ export const getCharacters = async (req: Request, res: Response) => {
                 message: 'Token d\'authentification non fourni ou invalide'
             });
         }
-        
+
         const accessToken = authHeader.split(' ')[1];
-        
+
         // Appel au service Bungie pour récupérer les données des personnages
         const profileData = await bungieService.getDestinyProfile(
             accessToken,
@@ -103,12 +108,17 @@ export const getCharacters = async (req: Request, res: Response) => {
             membershipId,
             components
         );
-        
+
         // Construire la réponse au format Agent
         const agentResponse: IAgent = {
             _id: undefined,
             bungieId: membershipId,
-            rawdata: profileData,
+            bungieUser: {
+                membershipId: parseInt(membershipId),
+                uniqueName: "Manifest Agent",
+                displayName: "Manifest Agent",
+                profilePicture: 0
+            },
             protocol: {
                 agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
                 customName: undefined,
@@ -128,7 +138,7 @@ export const getCharacters = async (req: Request, res: Response) => {
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        
+
         return res.json({
             success: true,
             message: 'Personnages Destiny2 récupérés avec succès',
@@ -156,7 +166,7 @@ export const getItems = async (req: Request, res: Response) => {
     try {
         const { membershipType, membershipId } = req.params;
         const components = req.query.components as string || '102,201,300'; // Composants par défaut pour les items
-        
+
         // Récupérer le token depuis le header d'autorisation
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -165,9 +175,9 @@ export const getItems = async (req: Request, res: Response) => {
                 message: 'Token d\'authentification non fourni ou invalide'
             });
         }
-        
+
         const accessToken = authHeader.split(' ')[1];
-        
+
         // Appel au service Bungie pour récupérer les données des items
         const profileData = await bungieService.getDestinyProfile(
             accessToken,
@@ -175,12 +185,17 @@ export const getItems = async (req: Request, res: Response) => {
             membershipId,
             components
         );
-        
+
         // Construire la réponse au format Agent
         const agentResponse: IAgent = {
             _id: undefined,
             bungieId: membershipId,
-            rawdata: profileData,
+            bungieUser: {
+                membershipId: parseInt(membershipId),
+                uniqueName: "Manifest Agent",
+                displayName: "Manifest Agent",
+                profilePicture: 0
+            },
             protocol: {
                 agentName: profileData.profile?.userInfo?.displayName || 'Unknown Agent',
                 customName: undefined,
@@ -200,7 +215,7 @@ export const getItems = async (req: Request, res: Response) => {
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        
+
         return res.json({
             success: true,
             message: 'Items Destiny2 récupérés avec succès',
@@ -227,19 +242,20 @@ export const getItems = async (req: Request, res: Response) => {
 export const getManifestDefinition = async (req: Request, res: Response) => {
     try {
         const { definition, hash } = req.params;
-        
+
         // À implémenter - Accès au manifeste Destiny2
         // Cela nécessiterait un autre service ou une autre méthode dans bungieService
-        
+
         // Construire une réponse au format Agent même si les données ne sont pas encore disponibles
         const agentResponse: IAgent = {
             _id: undefined,
             bungieId: hash, // Utilisation du hash comme identifiant Bungie temporaire
-            rawdata: {
-                definition,
-                hash
+            bungieUser: {
+                membershipId: parseInt(hash),
+                uniqueName: "Manifest Agent",
+                displayName: "Manifest Agent",
+                profilePicture: 0
             },
-            
             protocol: {
                 agentName: "Manifest Agent",
                 customName: undefined,
@@ -258,7 +274,7 @@ export const getManifestDefinition = async (req: Request, res: Response) => {
             },
             createdAt: new Date(),
             updatedAt: new Date()
-        };        return res.json({
+        }; return res.json({
             success: true,
             message: 'Définition du manifeste récupérée avec succès',
             data: {

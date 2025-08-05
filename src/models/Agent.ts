@@ -5,9 +5,37 @@ const agentSchema = new mongoose.Schema({
     bungieTokens: {
         accessToken: { type: String, required: true },
         refreshToken: { type: String, required: true },
-        expiresAt: { type: Date, required: true }
+        expiresAt: { type: Date, required: true },
+        about: { type: String },
+        firstAccess: { type: Date },
+        lastAccess: { type: Date },
+        psnDisplayName: { type: String },
+        showActivity: { type: Boolean },
+        locale: { type: String },
+        localeInheritDefault: { type: Boolean },
+        profilePicturePath: { type: String },
+        profileThemeName: { type: String },
+        steamDisplayName: { type: String },
+        twitchDisplayName: { type: String },
+        cachedBungieGlobalDisplayName: { type: String },
+        cachedBungieGlobalDisplayNameCode: { type: Number }
     },
-    rawdata: { type: mongoose.Schema.Types.Mixed },
+    destinyMemberships: [{
+        crossSaveOverride: { type: Number },
+        applicableMembershipTypes: [{ type: Number }],
+        isPublic: { type: Boolean },
+        membershipType: { type: Number },
+        membershipId: { type: String },
+        displayName: { type: String },
+        bungieGlobalDisplayName: { type: String },
+        bungieGlobalDisplayNameCode: { type: Number }
+    }],
+    bungieUser: {
+        membershipId: { type: Number },
+        uniqueName: { type: String },
+        displayName: { type: String },
+        profilePicture: { type: Number }
+    },
     protocol: {
         agentName: { type: String, required: true },
         customName: { type: String },
@@ -25,23 +53,7 @@ const agentSchema = new mongoose.Schema({
         }
     },
     lastActivity: { type: Date, default: Date.now },
-},
-    {
-        timestamps: true,
-        toJSON: {
-            virtuals: true,
-            transform: function(doc, ret) {
-                // Assurez-vous que rawdata est inclus, même s'il est null
-                if (ret.rawdata === undefined) {
-                    ret.rawdata = null;
-                }
-                return ret;
-            }
-        },
-        toObject: {
-            virtuals: true
-        }
-    });
+});
 
 // Ajout d'index pour améliorer les performances
 agentSchema.index({ bungieId: 1 }, { unique: true });

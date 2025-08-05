@@ -5,11 +5,6 @@ import { IAgent } from '../types/agent';
 
 interface IPlayerDocument extends IAgent {
     bungieId: string;
-    bungieTokens: {
-        accessToken: string;
-        refreshToken: string;
-        expiresAt: Date;
-    };
     joinedAt: Date;
 }
 
