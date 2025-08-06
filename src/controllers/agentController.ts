@@ -253,6 +253,8 @@ export const updateMyProfile = async (req: Request, res: Response) => {
             data: {
                 agent: {
                     _id: updatedAgent._id,
+                    bungieUser: updatedAgent.bungieUser,
+                    destinyMemberships: updatedAgent.destinyMemberships,
                     protocol: {
                         agentName: updatedAgent.protocol.agentName,
                         customName: updatedAgent.protocol.customName,
@@ -260,6 +262,7 @@ export const updateMyProfile = async (req: Request, res: Response) => {
                         hasSeenRecruitment: updatedAgent.protocol.hasSeenRecruitment,
                         settings: updatedAgent.protocol.settings
                     },
+                    createdAt: updatedAgent.createdAt,
                     updatedAt: updatedAgent.updatedAt
                 }
             },
@@ -281,7 +284,6 @@ export const getAllAgents = async (req: Request, res: Response) => {
         const formattedAgents = agents.map(agent => ({
             _id: agent._id,
             bungieId: agent.bungieId,
-
             protocol: {
                 agentName: agent.protocol.agentName,
                 species: agent.protocol.species,
