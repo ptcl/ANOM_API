@@ -3,6 +3,7 @@ import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfi
 import { getProtocolStatus } from '../controllers/protocolController';
 import { getAgentStats, createAnnouncement, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance, promoteAgent, adminUpdateAgent } from '../controllers/founderController';
 import { authMiddleware, adminMiddleware } from '../middlewares/auth';
+import { createContract } from '../controllers/ContractController';
 
 const router = Router();
 
@@ -15,6 +16,12 @@ router.patch('/agents/:membershipType/:membershipId', authMiddleware, updateAgen
 
 router.get('/agent/profile', authMiddleware, getMyProfile);
 router.patch('/agent/profile', authMiddleware, updateMyProfile);
+
+router.get('/agent/contracts', authMiddleware)
+router.get('/agent/contract/:id', authMiddleware)
+router.post('/agent/contract', authMiddleware, createContract);
+
+
 
 // ============== ROUTES D'ADMINISTRATION ==============
 router.patch('/founder/agents/:agentId', authMiddleware, adminMiddleware, adminUpdateAgent);
