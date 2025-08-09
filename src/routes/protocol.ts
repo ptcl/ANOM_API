@@ -19,7 +19,7 @@ router.patch('/agent/profile', authMiddleware, updateMyProfile);
 
 router.get('/agent/contracts', authMiddleware)
 router.get('/agent/contract/:id', authMiddleware)
-router.post('/agent/contract', authMiddleware, createContract);
+router.post('/agent/contract', createContract);
 
 
 
