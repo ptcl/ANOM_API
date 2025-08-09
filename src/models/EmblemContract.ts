@@ -64,4 +64,4 @@ EmblemContractSchema.index({ validationDeadline: 1 });
 EmblemContractSchema.index({ "emblems.status": 1 });
 EmblemContractSchema.index({ "emblems.emblemId": 1 }, { unique: true });
 
-export default mongoose.model("EmblemContract", EmblemContractSchema);
+export default mongoose.model("Emblem-Contract", EmblemContractSchema);

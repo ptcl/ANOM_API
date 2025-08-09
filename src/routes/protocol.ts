@@ -3,7 +3,7 @@ import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfi
 import { getProtocolStatus } from '../controllers/protocolController';
 import { getAgentStats, createAnnouncement, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance, promoteAgent, adminUpdateAgent } from '../controllers/founderController';
 import { authMiddleware, adminMiddleware } from '../middlewares/auth';
-import { createContract } from '../controllers/ContractController';
+import { createContract, getAgentContracts, getAllContracts, getContractById } from '../controllers/ContractController';
 
 const router = Router();
 
@@ -17,13 +17,13 @@ router.patch('/agents/:membershipType/:membershipId', authMiddleware, updateAgen
 router.get('/agent/profile', authMiddleware, getMyProfile);
 router.patch('/agent/profile', authMiddleware, updateMyProfile);
 
-router.get('/agent/contracts', authMiddleware)
-router.get('/agent/contract/:id', authMiddleware)
-router.post('/agent/contract', createContract);
+router.get('/agent/contracts', authMiddleware, getAgentContracts);
+router.get('/agent/contract/:id', authMiddleware, getContractById);
+router.post('/agent/contract', authMiddleware, createContract);
 
 
 
-// ============== ROUTES D'ADMINISTRATION ==============
+// ============== ROUTES FONDEURS ==============
 router.patch('/founder/agents/:agentId', authMiddleware, adminMiddleware, adminUpdateAgent);
 
 router.get('/founder/stats/agents', authMiddleware, adminMiddleware, getAgentStats);
@@ -37,6 +37,12 @@ router.get('/founder/system/status', authMiddleware, adminMiddleware, getSystemS
 router.post('/founder/system/maintenance', authMiddleware, adminMiddleware, updateSystemMaintenance);
 
 router.post('/founder/agents/:agentId/promote', authMiddleware, adminMiddleware, promoteAgent);
+
+router.get('/founder/agents/:agentId/contracts', authMiddleware, adminMiddleware, getAgentContracts);
+router.get('/founder/contract/:id', authMiddleware, adminMiddleware, getContractById);
+router.get('/founder/contracts', authMiddleware, adminMiddleware, getAllContracts);
+
+
 
 
 export default router;
