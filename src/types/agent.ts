@@ -51,6 +51,7 @@ export interface IAgent {
             protocolSounds?: boolean;
         }
     }
+    contracts?: Array<string>;
     lastActivity?: Date;
     createdAt: Date;
     updatedAt: Date;

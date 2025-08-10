@@ -3,7 +3,7 @@ import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfi
 import { getProtocolStatus } from '../controllers/protocolController';
 import { getAgentStats, createAnnouncement, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance, promoteAgent, adminUpdateAgent } from '../controllers/founderController';
 import { authMiddleware, adminMiddleware } from '../middlewares/auth';
-import { createContract, getAgentContracts, getAllContracts, getContractById } from '../controllers/ContractController';
+import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/ContractController';
 
 const router = Router();
 
@@ -17,9 +17,11 @@ router.patch('/agents/:membershipType/:membershipId', authMiddleware, updateAgen
 router.get('/agent/profile', authMiddleware, getMyProfile);
 router.patch('/agent/profile', authMiddleware, updateMyProfile);
 
-router.get('/agent/contracts', authMiddleware, getAgentContracts);
+router.get('/agent/contracts', authMiddleware, getAgentAllContracts);
 router.get('/agent/contract/:id', authMiddleware, getContractById);
 router.post('/agent/contract', authMiddleware, createContract);
+router.delete('/agent/contract/:id', authMiddleware, deleteContract);
+router.patch('/agent/contract/:id', authMiddleware, updateContract);
 
 
 
@@ -38,7 +40,7 @@ router.post('/founder/system/maintenance', authMiddleware, adminMiddleware, upda
 
 router.post('/founder/agents/:agentId/promote', authMiddleware, adminMiddleware, promoteAgent);
 
-router.get('/founder/agents/:agentId/contracts', authMiddleware, adminMiddleware, getAgentContracts);
+router.get('/founder/agents/:agentId/contracts', authMiddleware, adminMiddleware, getAgentAllContracts);
 router.get('/founder/contract/:id', authMiddleware, adminMiddleware, getContractById);
 router.get('/founder/contracts', authMiddleware, adminMiddleware, getAllContracts);
 
