@@ -1,18 +1,17 @@
 import { Router } from 'express';
-
+import authRoutes from './identity';
+import destiny2Routes from './destiny';
+import protocolRoutes from './protocol';
+import healthRoutes from './health';
+import statusRoutes from './status';
 import { IdentityMiddleware } from '../middlewares/Identity.middleware';
-import destinyRoutes from './destiny.routes';
-import healthRoutes from './health.routes';
-import identityRoutes from './identity.routes';
-import protocolRoutes from './protocol.routes';
-import statusRoutes from './status.routes';
 
 const router = Router();
 
-router.use('/identity', identityRoutes);
+router.use('/identity', authRoutes);
 router.use('/health', healthRoutes);
 router.use('/status', statusRoutes);
-router.use('/destiny', IdentityMiddleware, destinyRoutes);
+router.use('/destiny2', IdentityMiddleware, destiny2Routes);
 router.use('/protocol', protocolRoutes);
 
 export { router as routes };
