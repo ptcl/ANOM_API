@@ -29,8 +29,8 @@ export const createContract = async (req: Request, res: Response) => {
 };
 export const deleteContract = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        const contract = await EmblemContract.findById(id);
+        const { contractId } = req.params;
+        const contract = await EmblemContract.findOne({ contractId });
         if (!contract) {
             return res.status(404).json({ message: "Contrat non trouvé" });
         }
@@ -38,8 +38,8 @@ export const deleteContract = async (req: Request, res: Response) => {
 
         // Retirer le contrat de l'agent
         await AgentModel.updateMany(
-            { contracts: id },
-            { $pull: { contracts: id } }
+            { contracts: contract._id },
+            { $pull: { contracts: contract._id } }
         );
 
         return res.json({ message: "Contrat supprimé avec succès" });
@@ -79,8 +79,8 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
 };
 export const getContractById = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        const contract = await EmblemContract.findById(id);
+        const { contractId } = req.params;
+        const contract = await EmblemContract.findOne({ contractId });
         if (!contract) {
             return res.status(404).json({ message: "Contrat non trouvé" });
         }
@@ -89,6 +89,7 @@ export const getContractById = async (req: Request, res: Response) => {
         return res.status(500).json({ message: "Erreur lors de la récupération du contrat", error });
     }
 };
+
 
 export const getAllContracts = async (_req: Request, res: Response) => {
     try {

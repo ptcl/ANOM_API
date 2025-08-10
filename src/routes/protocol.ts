@@ -18,10 +18,10 @@ router.get('/agent/profile', authMiddleware, getMyProfile);
 router.patch('/agent/profile', authMiddleware, updateMyProfile);
 
 router.get('/agent/contracts', authMiddleware, getAgentAllContracts);
-router.get('/agent/contract/:id', authMiddleware, getContractById);
+router.get('/agent/contract/:contractId', authMiddleware, getContractById);
 router.post('/agent/contract', authMiddleware, createContract);
-router.delete('/agent/contract/:id', authMiddleware, deleteContract);
-router.patch('/agent/contract/:id', authMiddleware, updateContract);
+router.delete('/agent/contract/:contractId', authMiddleware, deleteContract);
+router.patch('/agent/contract/:contractId', authMiddleware, updateContract);
 
 
 
@@ -41,7 +41,7 @@ router.post('/founder/system/maintenance', authMiddleware, adminMiddleware, upda
 router.post('/founder/agents/:agentId/promote', authMiddleware, adminMiddleware, promoteAgent);
 
 router.get('/founder/agents/:agentId/contracts', authMiddleware, adminMiddleware, getAgentAllContracts);
-router.get('/founder/contract/:id', authMiddleware, adminMiddleware, getContractById);
+router.get('/founder/contract/:contractId', authMiddleware, adminMiddleware, getContractById);
 router.get('/founder/contracts', authMiddleware, adminMiddleware, getAllContracts);
 
 
