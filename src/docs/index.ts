@@ -1,7 +1,7 @@
-import './agentSchema';
-import './announcementSchema';
-import './commonComponents';
+import './agent';
+import './announcement';
+import './common';
 import './parameters';
-import './identitySchema';
-import './protocolSchema';
+import './identity';
+import './protocol';
 import './tags';
