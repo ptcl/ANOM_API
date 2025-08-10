@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AgentModel } from '../models/agent.model';
-import EmblemContract from '../models/emblemContract.model';
 import { generateUniqueId } from '../utils/generate';
+import EmblemContract from '../models/contract.model';
 
 export const createContract = async (req: Request, res: Response) => {
     try {

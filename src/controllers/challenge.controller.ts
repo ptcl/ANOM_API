@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { IEmblemChallenge } from '../types/challenge';
 import { generateUniqueId } from '../utils/generate';
 import { determineFinalCode, splitTargetCodeToFinalCode, validateAndProcessChallenges, validateCodeFormat, validateTargetCode } from '../utils/codevalidation';
-import EmblemChallengeModel from '../models/emblemChallenge.model';
+import EmblemChallengeModel from '../models/challenge.model';
 
 export const createChallenge = async (req: Request, res: Response) => {
     try {
