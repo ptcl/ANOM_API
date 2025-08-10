@@ -67,7 +67,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
 export const adminMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    if (!req.user || !req.user.agentId) {
+    if (!req.user) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized',
@@ -75,16 +75,15 @@ export const adminMiddleware = async (req: Request, res: Response, next: NextFun
       });
     }
 
-    if (req.user.role !== 'FOUNDER') {
+    if (req.user.role?.toUpperCase() !== 'FOUNDER') {
       return res.status(403).json({
         success: false,
         error: 'Forbidden',
-        message: 'Admin privileges required'
+        message: 'Founder privileges required'
       });
     }
 
     return next();
-
   } catch (error: any) {
     console.error('❌ Admin middleware error:', error);
     return res.status(500).json({
