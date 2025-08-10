@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { AgentModel } from '../models/Agent';
-import EmblemContract from '../models/EmblemContract';
+import { AgentModel } from '../models/Agent.model';
+import EmblemContract from '../models/EmblemContract.model';
 import { generateUniqueId } from '../utils/generate';
 
 export const createContract = async (req: Request, res: Response) => {
@@ -16,17 +16,18 @@ export const createContract = async (req: Request, res: Response) => {
         };
         const agentId = req.user?.bungieId || req.body.agentId;
 
-        // Vérifier que l'agent existe (par bungieId)
         const agent = await AgentModel.findOne({ bungieId: agentId });
         if (!agent) {
             return res.status(404).json({ message: "Agent non trouvé" });
         }
 
-        // Créer le contrat
         const newContract = await EmblemContract.create(contractData);
 
         // Associer le contrat à l'agent
-        agent.contracts.push(newContract._id);
+        agent.contracts.push({
+            contractMongoId: newContract._id,
+            contractId: newContract.contractId
+        });
         await agent.save();
 
         return res.status(201).json(newContract);
@@ -43,10 +44,9 @@ export const deleteContract = async (req: Request, res: Response) => {
         }
         await contract.deleteOne();
 
-        // Retirer le contrat de l'agent
         await AgentModel.updateMany(
             { contracts: contract._id },
-            { $pull: { contracts: contract._id } }
+            { $pull: { contracts: { contractMongoId: contract._id } } }
         );
 
         return res.json({ message: "Contrat supprimé avec succès" });

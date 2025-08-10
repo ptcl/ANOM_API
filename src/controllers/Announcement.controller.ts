@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AnnouncementModel } from '../models/Announcement';
+import { AnnouncementModel } from '../models/Announcement.model';
 import { generateUniqueId } from '../utils/generate';
 
 export const createAnnouncement = async (req: Request, res: Response) => {
@@ -23,7 +23,7 @@ export const updateAnnouncement = async (req: Request, res: Response) => {
         const updatedAnnouncement = await AnnouncementModel.findOneAndUpdate(
             { announcementId: id },
             announcementData,
-            { new: true }
+            { new: true, version: true }
         );
 
         if (!updatedAnnouncement) {

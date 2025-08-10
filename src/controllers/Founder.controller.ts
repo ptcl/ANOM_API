@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { AgentModel } from '../models/Agent';
-import { AnnouncementModel } from '../models/Announcement';
+import { AgentModel } from '../models/Agent.model';
+import { AnnouncementModel } from '../models/Announcement.model';
 import { agentService } from '../services/agentService';
 import { IAgent } from '../types/agent';
 import { ApiResponseBuilder } from '../utils/apiResponse';

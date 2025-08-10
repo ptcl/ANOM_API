@@ -53,7 +53,19 @@ const agentSchema = new mongoose.Schema({
             protocolSounds: { type: Boolean, default: true }
         }
     },
-    contracts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Emblem-Contract" }],
+    contracts: [
+        {
+            contractMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "Emblem-Contract" },
+            contractId: { type: String }
+        }
+    ],
+    challenges: [
+        {
+            challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge" },
+            emblemId: { type: String },
+            title: { type: String }
+        }
+    ],
     lastActivity: { type: Date, default: Date.now },
 }, { timestamps: true });
 
