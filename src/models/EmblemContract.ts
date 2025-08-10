@@ -16,7 +16,7 @@ const EmblemContractSchema = new mongoose.Schema({
 
     emblems: [
         {
-            emblemId: { type: String, default: '', unique: true },
+            emblemId: { type: String, default: '' },
             name: String,
             code: String,
             status: { type: String, enum: ["available", "redeemed", "revoked"], default: "available" },
@@ -50,12 +50,5 @@ const EmblemContractSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
-
-EmblemContractSchema.index({ contractId: 1 }, { unique: true });
-EmblemContractSchema.index({ "contributor.bungieId": 1 });
-EmblemContractSchema.index({ status: 1 });
-EmblemContractSchema.index({ validationDeadline: 1 });
-EmblemContractSchema.index({ "emblems.status": 1 });
-EmblemContractSchema.index({ "emblems.emblemId": 1 }, { unique: true });
 
 export default mongoose.model("Emblem-Contract", EmblemContractSchema);

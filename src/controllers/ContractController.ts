@@ -1,10 +1,19 @@
 import { Request, Response } from 'express';
 import { AgentModel } from '../models/Agent';
 import EmblemContract from '../models/EmblemContract';
+import { generateUniqueId } from '../utils/generate';
 
 export const createContract = async (req: Request, res: Response) => {
     try {
-        const contractData = req.body;
+        const emblemsWithId = (req.body.emblems || []).map((emblem: any) => ({
+            ...emblem,
+            emblemId: emblem.emblemId || generateUniqueId('EMBLEM')
+        }));
+        const contractData = {
+            ...req.body,
+            contractId: generateUniqueId('CONT'),
+            emblems: emblemsWithId
+        };
         const agentId = req.user?.bungieId || req.body.agentId;
 
         // Vérifier que l'agent existe (par bungieId)

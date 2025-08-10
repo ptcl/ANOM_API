@@ -4,7 +4,7 @@ import { getProtocolStatus } from '../controllers/protocolController';
 import { getAgentStats, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance, promoteAgent, adminUpdateAgent } from '../controllers/founderController';
 import { authMiddleware, adminMiddleware } from '../middlewares/auth';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/ContractController';
-import { createAnnouncement } from '../controllers/AnnouncementController';
+import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnnouncement } from '../controllers/AnnouncementController';
 
 const router = Router();
 
@@ -31,7 +31,10 @@ router.patch('/founder/agents/:agentId', authMiddleware, adminMiddleware, adminU
 
 router.get('/founder/stats/agents', authMiddleware, adminMiddleware, getAgentStats);
 
-router.post('/founder/announcements', authMiddleware, adminMiddleware, createAnnouncement);
+router.get('/founder/announcements', authMiddleware, adminMiddleware, getAllAnnouncements);
+router.post('/founder/announcement', authMiddleware, adminMiddleware, createAnnouncement);
+router.patch('/founder/announcement/:id', authMiddleware, adminMiddleware, updateAnnouncement);
+router.delete('/founder/announcement/:id', authMiddleware, adminMiddleware, deleteAnnouncement);
 
 router.get('/founder/logs/activity', authMiddleware, adminMiddleware, getActivityLogs);
 router.get('/founder/logs/auth', authMiddleware, adminMiddleware, getAuthLogs);
