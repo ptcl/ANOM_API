@@ -5,7 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { getServerConfig, isDev } from './utils/environment';
 import { swaggerSpec } from './config/swagger';
 import './docs';
-import { routes } from './routes/index.routes';
+import { routes } from './routes/index';
 import rateLimit from 'express-rate-limit';
 
 
