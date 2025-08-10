@@ -1,4 +1,3 @@
-import { Document, Types } from 'mongoose';
 
 export interface ValidationResult {
     isValid: boolean;
@@ -48,7 +47,7 @@ export interface IChallenge {
 }
 
 export interface IAgentProgress {
-    agentId: Types.ObjectId;
+    agentId: string;
     bungieId?: string;
     displayName?: string;
     unlockedFragments: string[];
