@@ -37,8 +37,8 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         agentId: decoded.agentId,
         bungieId: decoded.bungieId,
         protocol: {
-          agentName: decoded.agentName,
-          role: decoded.role
+          agentName: decoded.protocol.agentName,
+          role: decoded.protocol.role
         }
       };
 
