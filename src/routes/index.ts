@@ -4,7 +4,7 @@ import destiny2Routes from './destiny';
 import protocolRoutes from './protocol';
 import healthRoutes from './health';
 import statusRoutes from './status';
-import { IdentityMiddleware } from '../middlewares/Identity.middleware';
+import { IdentityMiddleware } from '../middlewares/identity.middleware';
 
 const router = Router();
 

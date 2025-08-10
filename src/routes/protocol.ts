@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile } from '../controllers/Agent.controller';
-import { getProtocolStatus } from '../controllers/Protocol.controller';
-import { FounderUpdateAgent } from '../controllers/Founder.controller';
+import { getProtocolStatus } from '../controllers/protocol.controller';
+import { FounderUpdateAgent } from '../controllers/founder.controller';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/Contract.controller';
 import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnnouncement } from '../controllers/Announcement.controller';
 import { AccessMiddleware } from '../middlewares/Access.middleware';
-import { IdentityMiddleware } from '../middlewares/Identity.middleware';
+import { IdentityMiddleware } from '../middlewares/identity.middleware';
 import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/Emblem.controller';
 import { createChallenge } from '../controllers/Challenge.controller';
 

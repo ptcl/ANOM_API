@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AnnouncementModel } from '../models/Announcement.model';
+import { AnnouncementModel } from '../models/announcement.model';
 import { generateUniqueId } from '../utils/generate';
 
 export const createAnnouncement = async (req: Request, res: Response) => {

@@ -1,4 +1,4 @@
-import { AgentModel } from '../models/Agent.model';
+import { AgentModel } from '../models/agent.model';
 import { BungieTokenResponse } from '../types/bungie';
 import { IAgent, IPlayerDocument } from '../types/agent';
 

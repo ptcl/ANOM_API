@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { agentService } from '../services/agentService';
-import { AgentModel } from '../models/Agent.model';
+import { AgentModel } from '../models/agent.model';
 import { IAgent } from '../types/agent';
 
 export const getAgentByMembership = async (req: Request, res: Response) => {

@@ -1,6 +1,6 @@
-import { AgentModel } from '../models/Agent.model';
 import { BungieTokenResponse } from '../types/bungie';
 import { IAgent, IAgentDocument } from '../types/agent';
+import { AgentModel } from '../models/agent.model';
 class AgentService {
     async createOrUpdateAgent(
         agent: IAgent,
