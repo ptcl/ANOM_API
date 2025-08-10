@@ -7,7 +7,7 @@ export const createContract = async (req: Request, res: Response) => {
     try {
         const emblemsWithId = (req.body.emblems || []).map((emblem: any) => ({
             ...emblem,
-            emblemId: emblem.emblemId || generateUniqueId('EMBLEM')
+            emblemId: generateUniqueId('EMBLEM')
         }));
         const contractData = {
             ...req.body,

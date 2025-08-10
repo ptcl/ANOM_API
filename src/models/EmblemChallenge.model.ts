@@ -4,6 +4,7 @@ const EmblemChallengeSchema = new mongoose.Schema({
     emblemId: { type: String, required: true, unique: true },
     title: { type: String, required: true },
     description: { type: String },
+    targetCode: { type: String, required: true },
     codeFormat: { type: String, default: "AAA-BBB-CCC" },
     isSharedChallenge: { type: Boolean, default: false },
     finalCode: {

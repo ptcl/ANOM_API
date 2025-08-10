@@ -7,6 +7,7 @@ import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnno
 import { AccessMiddleware } from '../middlewares/Access.middleware';
 import { IdentityMiddleware } from '../middlewares/Identity.middleware';
 import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/Emblem.controller';
+import { createChallenge } from '../controllers/Challenge.controller';
 
 const router = Router();
 
@@ -49,5 +50,13 @@ router.patch('/founder/emblem/:emblemId', IdentityMiddleware, AccessMiddleware, 
 router.delete('/founder/emblem/:emblemId', IdentityMiddleware, AccessMiddleware, deleteEmblem);
 router.get('/founder/emblems', IdentityMiddleware, AccessMiddleware, getAllEmblems);
 router.get('/founder/emblem/:emblemId', IdentityMiddleware, AccessMiddleware, getEmblemById);
+
+// ============== ROUTES FONDEURS CHALLENGE ==============
+
+router.post('/founder/challenge', IdentityMiddleware, AccessMiddleware, createChallenge);
+// router.patch('/founder/challenge/:challengeId', IdentityMiddleware, AccessMiddleware, updateChallenge);
+// router.delete('/founder/challenge/:challengeId', IdentityMiddleware, AccessMiddleware, deleteChallenge);
+// router.get('/founder/challenges', IdentityMiddleware, AccessMiddleware, getAllChallenges);
+// router.get('/founder/challenge/:challengeId', IdentityMiddleware, AccessMiddleware, getChallengeById);
 
 export default router;
