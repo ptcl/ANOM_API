@@ -8,8 +8,10 @@ declare global {
       user?: {
         agentId: string;
         bungieId: string;
-        agentName: string;
-        role: string;
+        protocol?: {
+          agentName: string;
+          role: string;
+        };
       };
     }
   }
@@ -34,8 +36,10 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       req.user = {
         agentId: decoded.agentId,
         bungieId: decoded.bungieId,
-        agentName: decoded.agentName,
-        role: decoded.role
+        protocol: {
+          agentName: decoded.agentName,
+          role: decoded.role
+        }
       };
 
       const agent = await agentService.getAgentById(decoded.agentId);
@@ -75,7 +79,7 @@ export const adminMiddleware = async (req: Request, res: Response, next: NextFun
       });
     }
 
-    if (req.user.role?.toUpperCase() !== 'FOUNDER') {
+    if (req.user.protocol?.role?.toUpperCase() !== 'FOUNDER') {
       return res.status(403).json({
         success: false,
         error: 'Forbidden',
