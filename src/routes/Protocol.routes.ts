@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile } from '../controllers/Agent.controller';
 import { getProtocolStatus } from '../controllers/Protocol.controller';
-import { adminUpdateAgent, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance } from '../controllers/Founder.controller';
+import { FounderUpdateAgent } from '../controllers/Founder.controller';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/Contract.controller';
 import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnnouncement } from '../controllers/Announcement.controller';
 import { AccessMiddleware } from '../middlewares/Access.middleware';
@@ -29,7 +29,7 @@ router.patch('/agent/contract/:contractId', IdentityMiddleware, updateContract);
 
 
 // ============== ROUTES FONDEURS ==============
-router.patch('/founder/agents/:agentId', IdentityMiddleware, AccessMiddleware, adminUpdateAgent);
+router.patch('/founder/agents/:agentId', IdentityMiddleware, AccessMiddleware, FounderUpdateAgent);
 router.get('/founder/agents/:agentId/contracts', IdentityMiddleware, AccessMiddleware, getAgentAllContracts);
 
 router.patch('/founder/contract/:contractId', IdentityMiddleware, AccessMiddleware, updateContract);
@@ -41,11 +41,6 @@ router.patch('/founder/announcement/:id', IdentityMiddleware, AccessMiddleware, 
 router.delete('/founder/announcement/:id', IdentityMiddleware, AccessMiddleware, deleteAnnouncement);
 router.get('/founder/announcements', IdentityMiddleware, AccessMiddleware, getAllAnnouncements);
 
-router.get('/founder/logs/activity', IdentityMiddleware, AccessMiddleware, getActivityLogs);
-router.get('/founder/logs/auth', IdentityMiddleware, AccessMiddleware, getAuthLogs);
-
-router.get('/founder/system/status', IdentityMiddleware, AccessMiddleware, getSystemStatus);
-router.post('/founder/system/maintenance', IdentityMiddleware, AccessMiddleware, updateSystemMaintenance);
 
 // ============== ROUTES FONDEURS EMBLEM ==============
 

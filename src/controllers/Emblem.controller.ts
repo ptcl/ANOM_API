@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { AgentModel } from '../models/Agent.model';
 import { generateUniqueId } from '../utils/generate';
 import EmblemModel from '../models/Emblem.model';
 
@@ -15,7 +14,7 @@ export const createEmblem = async (req: Request, res: Response) => {
             emblemId: generateUniqueId('EMBLEM')
         };
         const newEmblem = await EmblemModel.create(emblemData);
-        return res.status(201).json(newEmblem);
+        return res.status(201).json({ message: "Emblème créé avec succès", data: newEmblem });
     } catch (error) {
         return res.status(500).json({ message: "Erreur lors de la création de l'emblème", error });
     }
@@ -37,7 +36,7 @@ export const updateEmblem = async (req: Request, res: Response) => {
         if (!updatedEmblem) {
             return res.status(404).json({ message: "Emblème non trouvé" });
         }
-        return res.status(200).json(updatedEmblem);
+        return res.status(200).json({ message: "Emblème mis à jour avec succès", data: updatedEmblem });
     } catch (error) {
         return res.status(500).json({ message: "Erreur lors de la mise à jour de l'emblème", error });
     }
@@ -50,7 +49,7 @@ export const deleteEmblem = async (req: Request, res: Response) => {
         if (!deletedEmblem) {
             return res.status(404).json({ message: "Emblème non trouvé" });
         }
-        return res.status(204).send();
+        return res.status(200).json({ message: "Emblème supprimé avec succès" });
     } catch (error) {
         return res.status(500).json({ message: "Erreur lors de la suppression de l'emblème", error });
     }
@@ -59,7 +58,7 @@ export const deleteEmblem = async (req: Request, res: Response) => {
 export const getAllEmblems = async (req: Request, res: Response) => {
     try {
         const emblems = await EmblemModel.find();
-        return res.status(200).json(emblems);
+        return res.status(200).json({ message: "Emblèmes récupérés avec succès", data: emblems });
     } catch (error) {
         return res.status(500).json({ message: "Erreur lors de la récupération des emblèmes", error });
     }
@@ -72,7 +71,7 @@ export const getEmblemById = async (req: Request, res: Response) => {
         if (!emblem) {
             return res.status(404).json({ message: "Emblème non trouvé" });
         }
-        return res.status(200).json(emblem);
+        return res.status(200).json({ message: "Emblème récupéré avec succès", data: emblem });
     } catch (error) {
         return res.status(500).json({ message: "Erreur lors de la récupération de l'emblème", error });
     }

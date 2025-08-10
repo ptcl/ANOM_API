@@ -76,7 +76,6 @@ export const handleCallback = async (req: Request, res: Response) => {
 
     console.log(`✅ Authentication successful for: ${agent.protocol.agentName} (ID: ${agent._id})`);
 
-    // Si en mode développement, on renvoie directement le JSON
     if (isDev()) {
       return res.json({
         success: true,

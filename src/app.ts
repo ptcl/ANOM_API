@@ -2,16 +2,27 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
-import { getMongoConfig, getServerConfig, isDev } from './utils/environment';
-import { routes } from './routes';
+import { getServerConfig, isDev } from './utils/environment';
 import { swaggerSpec } from './config/swagger';
-// Import de la documentation
 import './docs';
-import { MongoClient } from 'mongodb';
+import { routes } from './routes/index.routes';
+import rateLimit from 'express-rate-limit';
+
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limite chaque IP à 100 requêtes par fenêtre
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: 'Too many requests',
+        message: 'Vous avez dépassé la limite de requêtes, réessayez plus tard.'
+    }
+});
 
 const createApp = (): express.Application => {
     const app = express();
-    const serverConfig = getServerConfig();
 
     app.use(helmet({
         contentSecurityPolicy: {
@@ -60,7 +71,7 @@ const createApp = (): express.Application => {
         }
         next();
     });
-
+    app.use(limiter);
     app.use('/api', routes);
 
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
