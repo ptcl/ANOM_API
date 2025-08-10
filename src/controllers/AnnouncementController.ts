@@ -20,7 +20,11 @@ export const updateAnnouncement = async (req: Request, res: Response) => {
         const { id } = req.params;
         const announcementData = req.body;
 
-        const updatedAnnouncement = await AnnouncementModel.findByIdAndUpdate(id, announcementData, { new: true });
+        const updatedAnnouncement = await AnnouncementModel.findOneAndUpdate(
+            { announcementId: id },
+            announcementData,
+            { new: true }
+        );
 
         if (!updatedAnnouncement) {
             return res.status(404).json({ message: "Annonce non trouvée" });
@@ -35,7 +39,7 @@ export const updateAnnouncement = async (req: Request, res: Response) => {
 export const deleteAnnouncement = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const announcement = await AnnouncementModel.findByIdAndDelete(id);
+        const announcement = await AnnouncementModel.findOneAndDelete({ announcementId: id });
         if (!announcement) {
             return res.status(404).json({ message: "Annonce non trouvée" });
         }

@@ -28,27 +28,22 @@ router.patch('/agent/contract/:contractId', authMiddleware, updateContract);
 
 // ============== ROUTES FONDEURS ==============
 router.patch('/founder/agents/:agentId', authMiddleware, adminMiddleware, adminUpdateAgent);
+router.get('/founder/agents/:agentId/contracts', authMiddleware, adminMiddleware, getAgentAllContracts);
 
-router.get('/founder/stats/agents', authMiddleware, adminMiddleware, getAgentStats);
+router.patch('/founder/contract/:contractId', authMiddleware, adminMiddleware, updateContract);
+router.get('/founder/contract/:contractId', authMiddleware, adminMiddleware, getContractById);
+router.get('/founder/contracts', authMiddleware, adminMiddleware, getAllContracts);
 
-router.get('/founder/announcements', authMiddleware, adminMiddleware, getAllAnnouncements);
 router.post('/founder/announcement', authMiddleware, adminMiddleware, createAnnouncement);
 router.patch('/founder/announcement/:id', authMiddleware, adminMiddleware, updateAnnouncement);
 router.delete('/founder/announcement/:id', authMiddleware, adminMiddleware, deleteAnnouncement);
+router.get('/founder/announcements', authMiddleware, adminMiddleware, getAllAnnouncements);
 
 router.get('/founder/logs/activity', authMiddleware, adminMiddleware, getActivityLogs);
 router.get('/founder/logs/auth', authMiddleware, adminMiddleware, getAuthLogs);
 
 router.get('/founder/system/status', authMiddleware, adminMiddleware, getSystemStatus);
 router.post('/founder/system/maintenance', authMiddleware, adminMiddleware, updateSystemMaintenance);
-
-router.post('/founder/agents/:agentId/promote', authMiddleware, adminMiddleware, promoteAgent);
-
-router.get('/founder/agents/:agentId/contracts', authMiddleware, adminMiddleware, getAgentAllContracts);
-router.get('/founder/contract/:contractId', authMiddleware, adminMiddleware, getContractById);
-router.get('/founder/contracts', authMiddleware, adminMiddleware, getAllContracts);
-
-
 
 
 export default router;
