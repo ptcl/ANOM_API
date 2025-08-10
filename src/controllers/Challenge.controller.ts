@@ -9,9 +9,9 @@ export const createChallenge = async (req: Request, res: Response) => {
         const challengeData: IEmblemChallenge = req.body;
 
         // Validation des champs obligatoires
-        if (!challengeData.emblemId || !challengeData.title) {
+        if (!challengeData.title) {
             return res.status(400).json({
-                message: "Les champs emblemId et title sont requis."
+                message: "Le champ title est requis."
             });
         }
 
