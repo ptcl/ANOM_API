@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { agentService } from '../services/agentService';
+import { agentService } from '../services/agentservice';
 import { AgentModel } from '../models/agent.model';
 import { IAgent } from '../types/agent';
 

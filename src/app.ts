@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
-import { getServerConfig, isDev } from './utils/environment';
+import { isDev } from './utils/environment';
 import { swaggerSpec } from './config/swagger';
 import './docs';
 import { routes } from './routes/index';

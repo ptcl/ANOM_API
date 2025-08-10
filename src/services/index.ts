@@ -1,3 +1,3 @@
-export * from './bungieService';
-export * from './agentService';
-export * from './appInfoService';
+export * from './bungieservice';
+export * from './agentservice';
+export * from './appinfoservice';

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { generateUniqueId } from '../utils/generate';
-import EmblemModel from '../models/Emblem.model';
+import EmblemModel from '../models/emblem.model';
 
 export const createEmblem = async (req: Request, res: Response) => {
     try {

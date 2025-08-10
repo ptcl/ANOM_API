@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import { generateState, generateJWT, verifyJWT } from '../utils/auth';
 import { bungieService } from '../services';
 import { IAgent } from '../types/agent';
-import { agentService } from '../services/agentService';
-import { ApiResponseBuilder } from '../utils/apiResponse';
+import { agentService } from '../services/agentservice';
+import { ApiResponseBuilder } from '../utils/apiresponse';
 import { isDev, getServerConfig } from '../utils/environment';
 
 export const initiateLogin = async (req: Request, res: Response) => {

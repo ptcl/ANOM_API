@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDestinyProfile, getCharacters } from '../controllers/Destiny.controller';
+import { getDestinyProfile, getCharacters } from '../controllers/destiny.controller';
 
 const router = Router();
 

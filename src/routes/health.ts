@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { MongoClient } from 'mongodb';
 import { getMongoConfig, getServerConfig, isDev } from '../utils/environment';
-import { ApiResponseBuilder } from '../utils/apiResponse';
-import { AppInfoService } from '../services/appInfoService';
+import { ApiResponseBuilder } from '../utils/apiresponse';
+import { AppInfoService } from '../services/appinfoservice';
 import { IServicesStatus } from '../types/health';
 
 const router = Router();

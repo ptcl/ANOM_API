@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { ApiResponseBuilder } from '../utils/apiResponse';
-import { AppInfoService } from '../services/appInfoService';
-import { handleCallback, initiateLogin, refreshToken, verifyToken } from '../controllers/Identity.controller';
+import { ApiResponseBuilder } from '../utils/apiresponse';
+import { AppInfoService } from '../services/appinfoservice';
+import { handleCallback, initiateLogin, refreshToken, verifyToken } from '../controllers/identity.controller';
 
 const router = Router();
 

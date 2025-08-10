@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJWT } from '../utils/auth';
-import { agentService } from '../services/agentService';
+import { agentService } from '../services/agentservice';
 
 declare global {
   namespace Express {

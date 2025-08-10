@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile } from '../controllers/Agent.controller';
+import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile } from '../controllers/agent.controller';
 import { getProtocolStatus } from '../controllers/protocol.controller';
 import { FounderUpdateAgent } from '../controllers/founder.controller';
-import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/Contract.controller';
-import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnnouncement } from '../controllers/Announcement.controller';
-import { AccessMiddleware } from '../middlewares/Access.middleware';
+import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/contract.controller';
+import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnnouncement } from '../controllers/announcement.controller';
+import { AccessMiddleware } from '../middlewares/access.middleware';
 import { IdentityMiddleware } from '../middlewares/identity.middleware';
-import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/Emblem.controller';
-import { createChallenge } from '../controllers/Challenge.controller';
+import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/emblem.controller';
+import { createChallenge } from '../controllers/challenge.controller';
 
 const router = Router();
 

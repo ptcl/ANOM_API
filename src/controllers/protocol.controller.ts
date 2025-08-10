@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { agentService } from '../services/agentService';
-import { ApiResponseBuilder } from '../utils/apiResponse';
+import { agentService } from '../services/agentservice';
+import { ApiResponseBuilder } from '../utils/apiresponse';
 import { env } from '../utils/environment';
 
 export const getProtocolStatus = async (req: Request, res: Response) => {
