@@ -66,8 +66,10 @@ export const handleCallback = async (req: Request, res: Response) => {
     const jwtPayload = {
       agentId: agent._id!.toString(),
       bungieId: agent.bungieId,
-      agentName: agent.protocol.agentName,
-      role: agent.protocol.role
+      protocol: {
+        agentName: agent.protocol.agentName,
+        role: agent.protocol.role
+      }
     };
 
     const jwtToken = generateJWT(jwtPayload);
@@ -106,13 +108,14 @@ export const handleCallback = async (req: Request, res: Response) => {
         },
         message: 'Authentication successful'
       });
-    } 
+    }
     // Sinon, on redirige vers le frontend avec le token
     else {
       const serverConfig = getServerConfig();
       const frontendUrl = serverConfig.frontendUrl;
       return res.redirect(`${frontendUrl}/auth/callback?token=${jwtToken}`);
-    }  } catch (error: any) {
+    }
+  } catch (error: any) {
     console.error('❌ Bungie callback failed:', error);
 
     if (error.response) {
@@ -219,8 +222,10 @@ export const refreshToken = async (req: Request, res: Response) => {
     const jwtPayload = {
       agentId: agent._id!.toString(),
       bungieId: agent.bungieId,
-      agentName: agent.protocol.agentName,
-      role: agent.protocol.role
+      protocol: {
+        agentName: agent.protocol.agentName,
+        role: agent.protocol.role
+      }
     };
 
     const newToken = generateJWT(jwtPayload);
