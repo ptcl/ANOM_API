@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile } from '../controllers/Agent.controller';
 import { getProtocolStatus } from '../controllers/Protocol.controller';
-import { getAgentStats, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance, promoteAgent, adminUpdateAgent } from '../controllers/Founder.controller';
+import { adminUpdateAgent, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance } from '../controllers/Founder.controller';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/Contract.controller';
 import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnnouncement } from '../controllers/Announcement.controller';
 import { AccessMiddleware } from '../middlewares/Access.middleware';
 import { IdentityMiddleware } from '../middlewares/Identity.middleware';
+import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/Emblem.controller';
 
 const router = Router();
 
@@ -46,5 +47,12 @@ router.get('/founder/logs/auth', IdentityMiddleware, AccessMiddleware, getAuthLo
 router.get('/founder/system/status', IdentityMiddleware, AccessMiddleware, getSystemStatus);
 router.post('/founder/system/maintenance', IdentityMiddleware, AccessMiddleware, updateSystemMaintenance);
 
+// ============== ROUTES FONDEURS EMBLEM ==============
+
+router.post('/founder/emblem', IdentityMiddleware, AccessMiddleware, createEmblem);
+router.patch('/founder/emblem/:emblemId', IdentityMiddleware, AccessMiddleware, updateEmblem);
+router.delete('/founder/emblem/:emblemId', IdentityMiddleware, AccessMiddleware, deleteEmblem);
+router.get('/founder/emblems', IdentityMiddleware, AccessMiddleware, getAllEmblems);
+router.get('/founder/emblem/:emblemId', IdentityMiddleware, AccessMiddleware, getEmblemById);
 
 export default router;
