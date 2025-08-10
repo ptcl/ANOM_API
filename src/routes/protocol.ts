@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile } from '../controllers/agentController';
 import { getProtocolStatus } from '../controllers/protocolController';
-import { getAgentStats, createAnnouncement, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance, promoteAgent, adminUpdateAgent } from '../controllers/founderController';
+import { getAgentStats, getActivityLogs, getAuthLogs, getSystemStatus, updateSystemMaintenance, promoteAgent, adminUpdateAgent } from '../controllers/founderController';
 import { authMiddleware, adminMiddleware } from '../middlewares/auth';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/ContractController';
+import { createAnnouncement } from '../controllers/AnnouncementController';
 
 const router = Router();
 
