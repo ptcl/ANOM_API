@@ -9,8 +9,8 @@ export const createContract = async (req: Request, res: Response) => {
         const contractData = req.body;
         const agentId = req.user?.bungieId || req.body.agentId;
 
-        // Vérifier que l'agent existe
-        const agent = await AgentModel.findById(agentId);
+        // Vérifier que l'agent existe (par bungieId)
+        const agent = await AgentModel.findOne({ bungieId: agentId });
         if (!agent) {
             return res.status(404).json({ message: "Agent non trouvé" });
         }
