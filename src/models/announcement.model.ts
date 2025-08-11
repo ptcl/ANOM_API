@@ -10,4 +10,4 @@ const announcementSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
-export const AnnouncementModel = mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);
+export default mongoose.model('Announcement', announcementSchema);

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const EmblemChallengeSchema = new mongoose.Schema({
+const ChallengeSchema = new mongoose.Schema({
     emblemId: { type: String, required: true, unique: true },
     title: { type: String, required: true },
     description: { type: String },
@@ -49,6 +49,5 @@ const EmblemChallengeSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-const EmblemChallengeModel = mongoose.model("EmblemChallenge", EmblemChallengeSchema);
+export default mongoose.model("Challenge", ChallengeSchema);
 
-export default EmblemChallengeModel;

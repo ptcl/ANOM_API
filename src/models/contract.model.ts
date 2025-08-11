@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const EmblemContractSchema = new mongoose.Schema({
+const ContractSchema = new mongoose.Schema({
     contractId: { type: String, unique: true, required: true },
     contractDate: { type: Date, default: Date.now },
     status: { type: String, enum: ["pending", "validated", "cancelled", "revoked"], default: "pending" },
@@ -48,4 +48,4 @@ const EmblemContractSchema = new mongoose.Schema({
     isSigned: { type: Boolean, default: false },
 }, { timestamps: true });
 
-export default mongoose.model("Emblem-Contract", EmblemContractSchema);
+export default mongoose.model("Contracts", ContractSchema);
