@@ -9,5 +9,4 @@ const announcementSchema = new mongoose.Schema({
     visibility: { type: String, enum: ['ALL', 'FOUNDERS', 'SPECIALISTS'], default: 'ALL' }
 }, { timestamps: true });
 
-
-export default mongoose.model('Announcement', announcementSchema);
+export const AnnouncementModel = mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);

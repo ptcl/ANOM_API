@@ -72,4 +72,4 @@ const agentSchema = new mongoose.Schema({
 agentSchema.index({ 'protocol.agentName': 1 });
 agentSchema.index({ lastActivity: 1 });
 
-export default mongoose.model('Agent', agentSchema);
+export const AgentModel = mongoose.models.Agent || mongoose.model('Agent', agentSchema);

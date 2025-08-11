@@ -48,4 +48,4 @@ const ContractSchema = new mongoose.Schema({
     isSigned: { type: Boolean, default: false },
 }, { timestamps: true });
 
-export default mongoose.model("Contracts", ContractSchema);
+export const ContractModel = mongoose.models.Contracts || mongoose.model("Contracts", ContractSchema);

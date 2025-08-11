@@ -9,4 +9,4 @@ const EmblemSchema = new mongoose.Schema({
     status: { type: String, enum: ["available", "unavailable"], default: "available" }
 }, { timestamps: true });
 
-export default mongoose.model("Emblem", EmblemSchema);
+export const EmblemModel = mongoose.models.Emblem || mongoose.model("Emblem", EmblemSchema);

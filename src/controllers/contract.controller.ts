@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AgentModel } from '../models/agent.model';
 import { generateUniqueId } from '../utils/generate';
-import EmblemContract from '../models/contract.model';
+import { ContractModel } from '../models/contract.model';
 
 export const createContract = async (req: Request, res: Response) => {
     try {
@@ -21,7 +21,7 @@ export const createContract = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Agent non trouvé" });
         }
 
-        const newContract = await EmblemContract.create(contractData);
+        const newContract = await ContractModel.create(contractData);
 
         // Associer le contrat à l'agent
         agent.contracts.push({
@@ -38,7 +38,7 @@ export const createContract = async (req: Request, res: Response) => {
 export const deleteContract = async (req: Request, res: Response) => {
     try {
         const { contractId } = req.params;
-        const contract = await EmblemContract.findOne({ contractId });
+        const contract = await ContractModel.findOne({ contractId });
         if (!contract) {
             return res.status(404).json({ message: "Contrat non trouvé" });
         }
@@ -60,7 +60,7 @@ export const updateContract = async (req: Request, res: Response) => {
         const { id } = req.params;
         const contractData = req.body;
 
-        const updatedContract = await EmblemContract.findByIdAndUpdate(id, contractData, { new: true });
+        const updatedContract = await ContractModel.findByIdAndUpdate(id, contractData, { new: true });
 
         if (!updatedContract) {
             return res.status(404).json({ message: "Contrat non trouvé" });
@@ -87,7 +87,7 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
 export const getContractById = async (req: Request, res: Response) => {
     try {
         const { contractId } = req.params;
-        const contract = await EmblemContract.findOne({ contractId });
+        const contract = await ContractModel.findOne({ contractId });
         if (!contract) {
             return res.status(404).json({ message: "Contrat non trouvé" });
         }
@@ -100,7 +100,7 @@ export const getContractById = async (req: Request, res: Response) => {
 
 export const getAllContracts = async (_req: Request, res: Response) => {
     try {
-        const contracts = await EmblemContract.find();
+        const contracts = await ContractModel.find();
         return res.json(contracts);
     } catch (error) {
         return res.status(500).json({ message: "Erreur lors de la récupération des contrats", error });

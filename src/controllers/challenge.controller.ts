@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { IEmblemChallenge } from '../types/challenge';
 import { generateUniqueId } from '../utils/generate';
 import { determineFinalCode, splitTargetCodeToFinalCode, validateAndProcessChallenges, validateCodeFormat, validateTargetCode } from '../utils/codevalidation';
-import EmblemChallengeModel from '../models/challenge.model';
+import { ChallengeModel } from '../models/challenge.model';
 
 export const createChallenge = async (req: Request, res: Response) => {
     try {
@@ -47,13 +47,13 @@ export const createChallenge = async (req: Request, res: Response) => {
 
         // ✅ Vérification d'unicité de l'emblemId
         if (challengeData.emblemId) {
-            const existingChallenge = await EmblemChallengeModel.findOne({ emblemId: challengeData.emblemId });
+            const existingChallenge = await ChallengeModel.findOne({ emblemId: challengeData.emblemId });
             if (existingChallenge) {
                 return res.status(409).json({ message: "Un challenge avec cet emblemId existe déjà." });
             }
         }
 
-        const newChallenge = await EmblemChallengeModel.create({
+        const newChallenge = await ChallengeModel.create({
             ...challengeData,
             emblemId: challengeData.emblemId || generateUniqueId('CHALL'),
             codeFormat: challengeData.codeFormat || "AAA-BBB-CCC",
