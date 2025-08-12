@@ -230,9 +230,13 @@ export const accessChallenge = async (req: Request, res: Response) => {
                 if (group) {
                     currentChallengeData = challengeItem;
                     currentGroup = group;
+                    // Met à jour le currentProgress avec le nouvel accessCode
+                    existingAgentProgress.currentProgress = accessCode;
                     break;
                 }
             }
+
+            await challenge.save();
 
             return res.status(200).json({
                 success: true,
