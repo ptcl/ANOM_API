@@ -150,13 +150,25 @@ export function validateAndProcessChallenges(challenges: any[]): string | null {
 }
 
 
-export function getFragmentsData(fragmentIds: string[], finalCode: any): string[] {
-    const result: string[] = [];
-    for (const frag of fragmentIds) {
-        if (finalCode.AAA && finalCode.AAA[frag]) result.push(finalCode.AAA[frag]);
-        else if (finalCode.BBB && finalCode.BBB[frag]) result.push(finalCode.BBB[frag]);
-        else if (finalCode.CCC && finalCode.CCC[frag]) result.push(finalCode.CCC[frag]);
-        else result.push("");
-    }
-    return result;
+// export function getFragmentsData(fragmentIds: string[], finalCode: any): string[] {
+//     const result: string[] = [];
+//     for (const frag of fragmentIds) {
+//         if (finalCode.AAA && finalCode.AAA[frag]) result.push(finalCode.AAA[frag]);
+//         else if (finalCode.BBB && finalCode.BBB[frag]) result.push(finalCode.BBB[frag]);
+//         else if (finalCode.CCC && finalCode.CCC[frag]) result.push(finalCode.CCC[frag]);
+//         else result.push("");
+//     }
+//     return result;
+// }
+
+export function getFragmentData(fragmentId: string, finalCode: any): string | null {
+    if (finalCode.AAA && finalCode.AAA[fragmentId]) return finalCode.AAA[fragmentId];
+    if (finalCode.BBB && finalCode.BBB[fragmentId]) return finalCode.BBB[fragmentId];
+    if (finalCode.CCC && finalCode.CCC[fragmentId]) return finalCode.CCC[fragmentId];
+    return null;
+}
+
+
+export function getFragmentsData(fragmentIds: string[], finalCode: any): (string | null)[] {
+    return fragmentIds.map(frag => getFragmentData(frag, finalCode));
 }

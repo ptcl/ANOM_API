@@ -63,7 +63,13 @@ const agentSchema = new mongoose.Schema({
         {
             challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge" },
             challengeId: { type: String },
-            title: { type: String }
+            title: { type: String },
+            complete: { type: Boolean, default: false },
+            accessedAt: { type: Date, default: Date.now },
+            completedAt: { type: Date },
+            partialCode: { type: String },
+            unlockedFragments: [{ type: String }],
+            progress: { type: mongoose.Schema.Types.Mixed }
         }
     ],
     lastActivity: { type: Date, default: Date.now },
