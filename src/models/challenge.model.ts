@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const ChallengeSchema = new mongoose.Schema({
-    emblemId: { type: String, required: true, unique: true },
+    challengeId: { type: String, required: true, unique: true },
     title: { type: String, required: true },
     description: { type: String },
     targetCode: { type: String, required: true },

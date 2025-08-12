@@ -102,19 +102,6 @@ export const validateAccessCode = (accessCode: string): ValidationResult => {
     };
 };
 
-export const generateRandomCode = (): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const getRandomChars = (length: number): string => {
-        let result = '';
-        for (let i = 0; i < length; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    };
-
-    return `${getRandomChars(3)}-${getRandomChars(3)}-${getRandomChars(3)}`;
-};
-
 export const codeMatchesFormat = (code: string, format: string): boolean => {
     if (!code || !format) return false;
     return code.length === format.length &&

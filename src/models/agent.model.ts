@@ -62,7 +62,7 @@ const agentSchema = new mongoose.Schema({
     challenges: [
         {
             challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge" },
-            emblemId: { type: String },
+            challengeId: { type: String },
             title: { type: String }
         }
     ],

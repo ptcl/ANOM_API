@@ -57,7 +57,7 @@ export interface IAgentProgress {
 }
 
 export interface IEmblemChallenge {
-    emblemId: string;
+    challengeId: string;
     title: string;
     description?: string | null;
     targetCode: string;

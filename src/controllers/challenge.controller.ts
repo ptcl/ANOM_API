@@ -3,6 +3,7 @@ import { IEmblemChallenge } from '../types/challenge';
 import { generateUniqueId } from '../utils/generate';
 import { determineFinalCode, splitTargetCodeToFinalCode, validateAndProcessChallenges, validateCodeFormat, validateTargetCode } from '../utils/codevalidation';
 import { ChallengeModel } from '../models/challenge.model';
+import { AgentModel } from '../models/agent.model';
 
 export const createChallenge = async (req: Request, res: Response) => {
     try {
@@ -45,17 +46,17 @@ export const createChallenge = async (req: Request, res: Response) => {
             return res.status(400).json({ message: validationError });
         }
 
-        // ✅ Vérification d'unicité de l'emblemId
-        if (challengeData.emblemId) {
-            const existingChallenge = await ChallengeModel.findOne({ emblemId: challengeData.emblemId });
+        // ✅ Vérification d'unicité de l'challengeId
+        if (challengeData.challengeId) {
+            const existingChallenge = await ChallengeModel.findOne({ challengeId: challengeData.challengeId });
             if (existingChallenge) {
-                return res.status(409).json({ message: "Un challenge avec cet emblemId existe déjà." });
+                return res.status(409).json({ message: "Un challenge avec cet challengeId existe déjà." });
             }
         }
 
         const newChallenge = await ChallengeModel.create({
             ...challengeData,
-            emblemId: challengeData.emblemId || generateUniqueId('CHALL'),
+            challengeId: challengeData.challengeId || generateUniqueId('CHALL'),
             codeFormat: challengeData.codeFormat || "AAA-BBB-CCC",
             isSharedChallenge: challengeData.isSharedChallenge ?? false,
             isComplete: false,
@@ -74,6 +75,367 @@ export const createChallenge = async (req: Request, res: Response) => {
         return res.status(500).json({
             message: "Erreur lors de la création du challenge",
             error: error.message || "Une erreur inconnue est survenue"
+        });
+    }
+};
+
+export const getChallengeById = async (req: Request, res: Response) => {
+    try {
+        const { challengeId } = req.params;
+        if (!challengeId) {
+            return res.status(400).json({ message: "challengeId requis" });
+        }
+        const challenge = await ChallengeModel.findOne({ challengeId });
+        if (!challenge) {
+            return res.status(404).json({ message: "Challenge non trouvé" });
+        }
+        return res.json({ success: true, challenge });
+    } catch (error: any) {
+        return res.status(500).json({ message: "Erreur lors de la récupération", error: error.message });
+    }
+};
+export const getAllChallenges = async (req: Request, res: Response) => {
+    try {
+        const challenges = await ChallengeModel.find().lean();
+        return res.json({
+            success: true,
+            challenges,
+            count: challenges.length
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: "Erreur lors de la récupération des challenges",
+            error: error.message
+        });
+    }
+};
+export const updateChallenge = async (req: Request, res: Response) => {
+    try {
+        const { challengeId } = req.params;
+        if (!challengeId) {
+            return res.status(400).json({ message: "challengeId requis" });
+        }
+        const updateData = req.body;
+        const updated = await ChallengeModel.findOneAndUpdate(
+            { challengeId },
+            updateData,
+            { new: true }
+        );
+        if (!updated) {
+            return res.status(404).json({ message: "Challenge non trouvé" });
+        }
+        return res.json({ success: true, challenge: updated });
+    } catch (error: any) {
+        return res.status(500).json({ message: "Erreur lors de la mise à jour", error: error.message });
+    }
+};
+
+export const deleteChallenge = async (req: Request, res: Response) => {
+    try {
+        const { challengeId } = req.params;
+        if (!challengeId) {
+            return res.status(400).json({ message: "challengeId requis" });
+        }
+        const deleted = await ChallengeModel.findOneAndDelete({ challengeId });
+        if (!deleted) {
+            return res.status(404).json({ message: "Challenge non trouvé" });
+        }
+        return res.json({ success: true, message: "Challenge supprimé" });
+    } catch (error: any) {
+        return res.status(500).json({ message: "Erreur lors de la suppression", error: error.message });
+    }
+};
+
+export const accessChallenge = async (req: Request, res: Response) => {
+    try {
+        const { accessCode } = req.body;
+
+        const agentBungieId = req.user?.bungieId;
+
+        if (!accessCode) {
+            return res.status(400).json({
+                success: false,
+                message: "Code d'accès requis"
+            });
+        }
+
+        if (!agentBungieId) {
+            return res.status(401).json({
+                success: false,
+                message: "Agent non authentifié"
+            });
+        }
+
+        const agent = await AgentModel.findOne({ bungieId: agentBungieId });
+        if (!agent) {
+            return res.status(404).json({
+                success: false,
+                message: "Agent non trouvé"
+            });
+        }
+
+        const challenge = await ChallengeModel.findOne({
+            "challenges.groups.accessCode": accessCode
+        });
+
+        if (!challenge) {
+            return res.status(404).json({
+                success: false,
+                message: "Code d'accès invalide"
+            });
+        }
+
+        const existingAgentProgress = challenge.AgentProgress.find((agentProgress: any) =>
+            agentProgress.bungieId === agentBungieId
+        );
+
+        if (existingAgentProgress) {
+            let currentChallengeData = null;
+            let currentGroup = null;
+
+            for (const challengeItem of challenge.challenges) {
+                const group = challengeItem.groups.find((g: { accessCode: string }) => g.accessCode === accessCode);
+                if (group) {
+                    currentChallengeData = challengeItem;
+                    currentGroup = group;
+                    break;
+                }
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Agent déjà enregistré pour ce défi",
+                data: {
+                    challengeId: challenge.challengeId,
+                    title: challenge.title,
+                    description: challenge.description,
+                    currentChallenge: {
+                        challengeType: currentChallengeData?.challengeType,
+                        promptLines: currentGroup?.promptLines,
+                        hintLines: currentChallengeData?.hintLines
+                    },
+                    agentProgress: existingAgentProgress
+                }
+            });
+        }
+
+        let targetChallengeData = null;
+        let targetGroup = null;
+
+        for (const challengeItem of challenge.challenges) {
+            const group = challengeItem.groups.find((g: { accessCode: string }) => g.accessCode === accessCode);
+            if (group) {
+                targetChallengeData = challengeItem;
+                targetGroup = group;
+                break;
+            }
+        }
+
+        const newAgentProgress = {
+            agentId: agent._id,
+            bungieId: agentBungieId,
+            displayName: agent.protocol.agentName || agent.bungieUser.displayName || "Agent",
+            unlockedFragments: [],
+            currentProgress: accessCode,
+            complete: false,
+            lastUpdated: new Date()
+        };
+
+        challenge.AgentProgress.push(newAgentProgress);
+
+        const existingChallengeInAgent = agent.challenges.find((c: { challengeId: string }) => c.challengeId === challenge.challengeId);
+        if (!existingChallengeInAgent) {
+            agent.challenges.push({
+                challengeMongoId: challenge._id,
+                challengeId: challenge.challengeId,
+                title: challenge.title
+            });
+            agent.lastActivity = new Date();
+            await agent.save();
+        }
+
+        await challenge.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Accès au défi accordé avec succès",
+            data: {
+                challengeId: challenge.challengeId,
+                title: challenge.title,
+                description: challenge.description,
+                codeFormat: challenge.codeFormat,
+                currentChallenge: {
+                    challengeType: targetChallengeData?.challengeType,
+                    promptLines: targetGroup?.promptLines,
+                    hintLines: targetChallengeData?.hintLines
+                },
+                agentProgress: newAgentProgress
+            }
+        });
+
+    } catch (error: any) {
+        console.error("Erreur lors de l'accès au défi:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Erreur serveur lors de l'accès au défi",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+export const submitChallengeAnswer = async (req: Request, res: Response) => {
+    try {
+        const { challengeId, answer } = req.body;
+
+        const agentBungieId = req.user?.bungieId;
+
+        if (!challengeId || !answer) {
+            return res.status(400).json({
+                success: false,
+                message: "challengeId et answer sont requis"
+            });
+        }
+
+        if (!agentBungieId) {
+            return res.status(401).json({
+                success: false,
+                message: "Agent non authentifié"
+            });
+        }
+
+        const challenge = await ChallengeModel.findOne({ challengeId });
+        if (!challenge) {
+            return res.status(404).json({
+                success: false,
+                message: "Défi non trouvé"
+            });
+        }
+
+        const agentProgress = challenge.AgentProgress.find((agent: any) =>
+            agent.bungieId === agentBungieId
+        );
+
+        if (!agentProgress) {
+            return res.status(403).json({
+                success: false,
+                message: "Accès non autorisé - utilisez d'abord un code d'accès"
+            });
+        }
+
+        let currentChallenge = null;
+        for (const challengeItem of challenge.challenges) {
+            const hasAccess = challengeItem.groups.some((group: { accessCode: string }) =>
+                group.accessCode === agentProgress.currentProgress
+            );
+            if (hasAccess) {
+                currentChallenge = challengeItem;
+                break;
+            }
+        }
+
+        if (!currentChallenge) {
+            return res.status(400).json({
+                success: false,
+                message: "Aucune énigme active trouvée pour cet agent"
+            });
+        }
+
+        const normalizedAnswer = answer.toLowerCase().trim();
+        const normalizedExpected = currentChallenge.expectedOutput.toLowerCase().trim();
+        const isCorrect = normalizedAnswer === normalizedExpected;
+
+        if (isCorrect) {
+            if (!agentProgress.unlockedFragments.includes(currentChallenge.rewardId)) {
+                agentProgress.unlockedFragments.push(currentChallenge.rewardId);
+            }
+
+            agentProgress.lastUpdated = new Date();
+
+            const totalRewards = challenge.challenges.map((c: any) => c.rewardId);
+            const hasAllFragments = totalRewards.every((reward: string) =>
+                agentProgress.unlockedFragments.includes(reward)
+            );
+
+            if (hasAllFragments) {
+                agentProgress.complete = true;
+            }
+
+            await challenge.save();
+
+            await AgentModel.updateOne(
+                { bungieId: agentBungieId },
+                { lastActivity: new Date() }
+            );
+
+            return res.status(200).json({
+                success: true,
+                message: "Réponse correcte ! Fragment débloqué.",
+                data: {
+                    rewardId: currentChallenge.rewardId,
+                    unlockedFragments: agentProgress.unlockedFragments,
+                    isComplete: agentProgress.complete,
+                    totalFragments: agentProgress.unlockedFragments.length,
+                    maxFragments: totalRewards.length
+                }
+            });
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: "Réponse incorrecte",
+                hint: currentChallenge.hintLines?.length > 0 ? currentChallenge.hintLines[0] : "Aucun indice disponible"
+            });
+        }
+
+    } catch (error: any) {
+        console.error("Erreur lors de la soumission de la réponse:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Erreur serveur lors de la soumission",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+export const getAgentProgress = async (req: Request, res: Response) => {
+    try {
+        const agentBungieId = req.user?.bungieId;
+
+        if (!agentBungieId) {
+            return res.status(401).json({
+                success: false,
+                message: "Agent non authentifié"
+            });
+        }
+
+        const challenges = await ChallengeModel.find({
+            "AgentProgress.bungieId": agentBungieId
+        }).select('challengeId title description AgentProgress');
+
+        const agentChallenges = challenges.map(challenge => {
+            const agentProgress = challenge.AgentProgress.find((agent: any) =>
+                agent.bungieId === agentBungieId
+            );
+
+            return {
+                challengeId: challenge.challengeId,
+                title: challenge.title,
+                description: challenge.description,
+                progress: agentProgress
+            };
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: agentChallenges
+        });
+
+    } catch (error: any) {
+        console.error("Erreur lors de la récupération du progrès:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Erreur serveur lors de la récupération du progrès",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
