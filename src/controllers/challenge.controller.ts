@@ -209,11 +209,17 @@ export const accessChallenge = async (req: Request, res: Response) => {
         const challenge = await ChallengeModel.findOne({
             "challenges.groups.accessCode": accessCode
         });
-
         if (!challenge) {
             return res.status(404).json({
                 success: false,
                 message: "Code d'accès invalide"
+            });
+        }
+
+        if (challenge.isComplete) {
+            return res.status(403).json({
+                success: false,
+                message: "Ce challenge est déjà complété et n'est plus disponible pour aucun agent."
             });
         }
 
@@ -381,6 +387,21 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
             return res.status(403).json({
                 success: false,
                 message: "Accès non autorisé - utilisez d'abord un code d'accès"
+            });
+        }
+        const totalFragments = challenge.challenges.flatMap((c: any) => c.fragmentId);
+        const hasAllFragments = totalFragments.every((frag: string) =>
+            agentProgress.unlockedFragments.includes(frag)
+        );
+
+        if (hasAllFragments) {
+            agentProgress.complete = true;
+            challenge.isComplete = true;
+            await challenge.save();
+            return res.status(403).json({
+                success: false,
+                message: "Challenge déjà complété, il n'est plus disponible pour aucun agent.",
+                isComplete: true
             });
         }
 
