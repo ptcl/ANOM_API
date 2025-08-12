@@ -9,7 +9,6 @@ export const createChallenge = async (req: Request, res: Response) => {
     try {
         const challengeData: IEmblemChallenge = req.body;
 
-        // ✅ Validations de base
         if (!challengeData.title) {
             return res.status(400).json({ message: "Le champ title est requis." });
         }
@@ -46,7 +45,6 @@ export const createChallenge = async (req: Request, res: Response) => {
             return res.status(400).json({ message: validationError });
         }
 
-        // ✅ Vérification d'unicité de l'challengeId
         if (challengeData.challengeId) {
             const existingChallenge = await ChallengeModel.findOne({ challengeId: challengeData.challengeId });
             if (existingChallenge) {
@@ -63,7 +61,6 @@ export const createChallenge = async (req: Request, res: Response) => {
                     message: `Le champ fragmentId est requis et doit être un tableau non vide pour le challenge ${i + 1}. Indique la ou les récompenses à débloquer (ex: ["A1"], ["B2"], ["C3"]).`
                 });
             }
-            // Optionnel : vérifier que chaque fragmentId correspond bien à une clé du finalCode
             const validFragments = [
                 "A1", "A2", "A3",
                 "B1", "B2", "B3",
@@ -380,15 +377,17 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
         const isCorrect = normalizedAnswer === normalizedExpected;
 
         if (isCorrect) {
-            if (!agentProgress.unlockedFragments.includes(currentChallenge.rewardId)) {
-                agentProgress.unlockedFragments.push(currentChallenge.rewardId);
+            for (const frag of currentChallenge.fragmentId) {
+                if (!agentProgress.unlockedFragments.includes(frag)) {
+                    agentProgress.unlockedFragments.push(frag);
+                }
             }
 
             agentProgress.lastUpdated = new Date();
 
-            const totalRewards = challenge.challenges.map((c: any) => c.rewardId);
-            const hasAllFragments = totalRewards.every((reward: string) =>
-                agentProgress.unlockedFragments.includes(reward)
+            const totalFragments = challenge.challenges.flatMap((c: any) => c.fragmentId);
+            const hasAllFragments = totalFragments.every((frag: string) =>
+                agentProgress.unlockedFragments.includes(frag)
             );
 
             if (hasAllFragments) {
@@ -402,22 +401,29 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
                 { lastActivity: new Date() }
             );
 
+            const fragmentsData = currentChallenge.fragmentId.map((frag: string) => {
+                if (challenge.finalCode.AAA && challenge.finalCode.AAA[frag]) return challenge.finalCode.AAA[frag];
+                if (challenge.finalCode.BBB && challenge.finalCode.BBB[frag]) return challenge.finalCode.BBB[frag];
+                if (challenge.finalCode.CCC && challenge.finalCode.CCC[frag]) return challenge.finalCode.CCC[frag];
+                return null;
+            });
+
             return res.status(200).json({
                 success: true,
                 message: "Réponse correcte ! Fragment débloqué.",
                 data: {
-                    rewardId: currentChallenge.rewardId,
+                    fragments: currentChallenge.fragmentId,
+                    fragmentsData,
                     unlockedFragments: agentProgress.unlockedFragments,
                     isComplete: agentProgress.complete,
                     totalFragments: agentProgress.unlockedFragments.length,
-                    maxFragments: totalRewards.length
+                    maxFragments: totalFragments.length
                 }
             });
         } else {
             return res.status(400).json({
                 success: false,
                 message: "Réponse incorrecte",
-                hint: currentChallenge.hintLines?.length > 0 ? currentChallenge.hintLines[0] : "Aucun indice disponible"
             });
         }
 
