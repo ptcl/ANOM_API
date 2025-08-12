@@ -7,7 +7,7 @@ import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnno
 import { AccessMiddleware } from '../middlewares/access.middleware';
 import { IdentityMiddleware } from '../middlewares/identity.middleware';
 import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/emblem.controller';
-import { accessChallenge, createChallenge, deleteChallenge, getAgentProgress, getAllChallenges, getChallengeById, submitChallengeAnswer, updateChallenge } from '../controllers/challenge.controller';
+import { accessChallenge, createChallenge, deleteChallenge, getAgentChallengeFragments, getAgentProgress, getAllChallenges, getChallengeById, submitChallengeAnswer, updateChallenge } from '../controllers/challenge.controller';
 
 const router = Router();
 
@@ -34,6 +34,7 @@ router.post('/agent/challenge/access', IdentityMiddleware, accessChallenge);
 router.post('/agent/challenge/submit', IdentityMiddleware, submitChallengeAnswer);
 // router.post('/agent/challenge/hint', IdentityMiddleware, getChallengeHint);
 router.get('/agent/challenge/progress', IdentityMiddleware, getAgentProgress);
+router.get('/agent/challenge/:challengeId/progress', IdentityMiddleware, getAgentChallengeFragments);
 
 
 // ============== ROUTES FONDEURS ==============

@@ -148,3 +148,15 @@ export function validateAndProcessChallenges(challenges: any[]): string | null {
     }
     return null;
 }
+
+
+export function getFragmentsData(fragmentIds: string[], finalCode: any): string[] {
+    const result: string[] = [];
+    for (const frag of fragmentIds) {
+        if (finalCode.AAA && finalCode.AAA[frag]) result.push(finalCode.AAA[frag]);
+        else if (finalCode.BBB && finalCode.BBB[frag]) result.push(finalCode.BBB[frag]);
+        else if (finalCode.CCC && finalCode.CCC[frag]) result.push(finalCode.CCC[frag]);
+        else result.push("");
+    }
+    return result;
+}

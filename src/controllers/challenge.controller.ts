@@ -405,12 +405,7 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
                 { lastActivity: new Date() }
             );
 
-            const fragmentsData = currentChallenge.fragmentId.map((frag: string) => {
-                if (challenge.finalCode.AAA && challenge.finalCode.AAA[frag]) return challenge.finalCode.AAA[frag];
-                if (challenge.finalCode.BBB && challenge.finalCode.BBB[frag]) return challenge.finalCode.BBB[frag];
-                if (challenge.finalCode.CCC && challenge.finalCode.CCC[frag]) return challenge.finalCode.CCC[frag];
-                return null;
-            });
+            const fragmentsData = getFragmentsData(currentChallenge.fragmentId, challenge.finalCode);
 
             return res.status(200).json({
                 success: true,
@@ -454,18 +449,34 @@ export const getAgentProgress = async (req: Request, res: Response) => {
 
         const challenges = await ChallengeModel.find({
             "AgentProgress.bungieId": agentBungieId
-        }).select('challengeId title description AgentProgress');
+        }).select('challengeId title description AgentProgress finalCode');
 
         const agentChallenges = challenges.map(challenge => {
             const agentProgress = challenge.AgentProgress.find((agent: any) =>
                 agent.bungieId === agentBungieId
             );
 
+            const codeParts = [
+                ['A1', 'A2', 'A3'],
+                ['B1', 'B2', 'B3'],
+                ['C1', 'C2', 'C3']
+            ];
+            const sections = ['AAA', 'BBB', 'CCC'];
+            const partialCode = codeParts.map((fragments, i) => {
+                return fragments.map(frag => {
+                    if (agentProgress?.unlockedFragments?.includes(frag)) {
+                        return challenge.finalCode?.[sections[i]]?.[frag] || 'X';
+                    }
+                    return 'X';
+                }).join('');
+            }).join('-');
+
             return {
                 challengeId: challenge.challengeId,
                 title: challenge.title,
                 description: challenge.description,
-                progress: agentProgress
+                progress: agentProgress,
+                partialCode
             };
         });
 
@@ -483,3 +494,55 @@ export const getAgentProgress = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const getAgentChallengeFragments = async (req: Request, res: Response) => {
+    try {
+        const { challengeId } = req.params;
+        const agentBungieId = req.user?.bungieId;
+
+        if (!challengeId) {
+            return res.status(400).json({ message: "challengeId requis" });
+        }
+        if (!agentBungieId) {
+            return res.status(401).json({ message: "Agent non authentifié" });
+        }
+
+        const challenge = await ChallengeModel.findOne({ challengeId });
+        if (!challenge) {
+            return res.status(404).json({ message: "Challenge non trouvé" });
+        }
+
+        const agentProgress = challenge.AgentProgress.find((agent: any) =>
+            agent.bungieId === agentBungieId
+        );
+        if (!agentProgress) {
+            return res.status(404).json({ message: "Progression non trouvée pour cet agent" });
+        }
+
+        // Utilise ta fonction utilitaire pour récupérer les données des fragments débloqués
+        const fragmentsData = getFragmentsData(agentProgress.unlockedFragments, challenge.finalCode);
+
+        return res.status(200).json({
+            success: true,
+            challengeId,
+            unlockedFragments: agentProgress.unlockedFragments,
+            fragmentsData
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: "Erreur serveur lors de la récupération des fragments",
+            error: error.message
+        });
+    }
+};
+export function getFragmentData(fragmentId: string, finalCode: any): string | null {
+    if (finalCode.AAA && finalCode.AAA[fragmentId]) return finalCode.AAA[fragmentId];
+    if (finalCode.BBB && finalCode.BBB[fragmentId]) return finalCode.BBB[fragmentId];
+    if (finalCode.CCC && finalCode.CCC[fragmentId]) return finalCode.CCC[fragmentId];
+    return null;
+}
+
+export function getFragmentsData(fragmentIds: string[], finalCode: any): (string | null)[] {
+    return fragmentIds.map(frag => getFragmentData(frag, finalCode));
+}
