@@ -53,7 +53,41 @@ export const createChallenge = async (req: Request, res: Response) => {
                 return res.status(409).json({ message: "Un challenge avec cet challengeId existe déjà." });
             }
         }
-
+        for (const [i, challengeItem] of challengeData.challenges.entries()) {
+            if (
+                !challengeItem.fragmentId ||
+                !Array.isArray(challengeItem.fragmentId) ||
+                challengeItem.fragmentId.length === 0
+            ) {
+                return res.status(400).json({
+                    message: `Le champ fragmentId est requis et doit être un tableau non vide pour le challenge ${i + 1}. Indique la ou les récompenses à débloquer (ex: ["A1"], ["B2"], ["C3"]).`
+                });
+            }
+            // Optionnel : vérifier que chaque fragmentId correspond bien à une clé du finalCode
+            const validFragments = [
+                "A1", "A2", "A3",
+                "B1", "B2", "B3",
+                "C1", "C2", "C3"
+            ];
+            for (const frag of challengeItem.fragmentId) {
+                if (!validFragments.includes(frag)) {
+                    return res.status(400).json({
+                        message: `fragmentId "${frag}" invalide pour le challenge ${i + 1}. Utilise uniquement A1, A2, A3, B1, B2, B3, C1, C2, C3.`
+                    });
+                }
+            }
+        }
+        for (const [i, challengeItem] of challengeData.challenges.entries()) {
+            if (
+                !challengeItem.fragmentId ||
+                !Array.isArray(challengeItem.fragmentId) ||
+                challengeItem.fragmentId.length === 0
+            ) {
+                return res.status(400).json({
+                    message: `Le champ fragmentId est requis et doit être un tableau non vide pour le challenge ${i + 1}. Indique au moins une récompense à débloquer (ex: ["A1"], ["B2"], ["C3"]).`
+                });
+            }
+        }
         const newChallenge = await ChallengeModel.create({
             ...challengeData,
             challengeId: challengeData.challengeId || generateUniqueId('CHALL'),
