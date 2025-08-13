@@ -237,11 +237,13 @@ export const accessChallenge = async (req: Request, res: Response) => {
                     currentChallengeData = challengeItem;
                     currentGroup = group;
                     existingAgentProgress.currentProgress = accessCode;
+                    challenge.markModified('AgentProgress');
+                    await challenge.save();
                     break;
                 }
             }
-
             await challenge.save();
+
             const fragmentsData = getFragmentsData(existingAgentProgress.unlockedFragments, challenge.finalCode);
             return res.status(200).json({
                 success: true,
