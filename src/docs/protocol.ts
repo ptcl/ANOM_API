@@ -1613,9 +1613,6 @@
  *       500:
  *         $ref: '#/components/responses/StandardError'
  */
-
-// ============== SCHEMAS ==============
-
 /**
  * @swagger
  * components:
@@ -1795,6 +1792,48 @@
  *         content:
  *           type: string
  *           example: "Nouvelles fonctionnalités disponibles..."
+ *         type:
+ *           type: string
+ *           enum: [INFO, WARNING, CRITICAL, EVENT]
+ *           example: "INFO"
+ *         priority:
+ *           type: number
+ *           minimum: 1
+ *           maximum: 5
+ *           example: 3
+ *         active:
+ *           type: boolean
+ *           example: true
+ *         publishedAt:
+ *           type: string
+ *           format: date-time
+ *         expiresAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *         createdBy:
+ *           type: string
+ *           example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *         targetGroups:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [PROTOCOL, AURORA, ZENITH]
+ *           example: ["PROTOCOL", "AURORA"]
+ *
+ *     AnnouncementCreate:
+ *       type: object
+ *       required:
+ *         - title
+ *         - content
+ *         - type
+ *       properties:
+ *         title:
+ *           type: string
+ *           example: "Nouvelle mission disponible"
+ *         content:
+ *           type: string
+ *           example: "Une nouvelle série de défis Vex est maintenant disponible..."
  *         type:
  *           type: string
  *           enum: [INFO, WARNING, CRITICAL, EVENT]
@@ -2198,52 +2237,4 @@
  *         pages:
  *           type: number
  *           example: 8
- *
- * security:
- *   - bearerAuth: []
- *
- * paths:
- *   # Toutes les routes sont définies ci-dessus
-          minimum: 1
- *           maximum: 5
- *           example: 3
- *         active:
- *           type: boolean
- *           example: true
- *         publishedAt:
- *           type: string
- *           format: date-time
- *         expiresAt:
- *           type: string
- *           format: date-time
- *           nullable: true
- *         createdBy:
- *           type: string
- *           example: "64f5a7b2c8d4e1f2a3b4c5d6"
- *         targetGroups:
- *           type: array
- *           items:
- *             type: string
- *             enum: [PROTOCOL, AURORA, ZENITH]
- *           example: ["PROTOCOL", "AURORA"]
- *
- *     AnnouncementCreate:
- *       type: object
- *       required:
- *         - title
- *         - content
- *         - type
- *       properties:
- *         title:
- *           type: string
- *           example: "Nouvelle mission disponible"
- *         content:
- *           type: string
- *           example: "Une nouvelle série de défis Vex est maintenant disponible..."
- *         type:
- *           type: string
- *           enum: [INFO, WARNING, CRITICAL, EVENT]
- *           example: "INFO"
- *         priority:
- *           type: number
  */
