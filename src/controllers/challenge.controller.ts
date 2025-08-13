@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { IEmblemChallenge } from '../types/challenge';
 import { generateUniqueId } from '../utils/generate';
-import { determineFinalCode, getFragmentData, getFragmentsData, splitTargetCodeToFinalCode, validateAndProcessChallenges, validateCodeFormat, validateTargetCode } from '../utils/codevalidation';
+import { determineFinalCode, getFragmentsData, getPartialCode, splitTargetCodeToFinalCode, validateAndProcessChallenges, validateCodeFormat, validateTargetCode } from '../utils/codevalidation';
 import { ChallengeModel } from '../models/challenge.model';
 import { AgentModel } from '../models/agent.model';
 
@@ -236,7 +236,6 @@ export const accessChallenge = async (req: Request, res: Response) => {
                 if (group) {
                     currentChallengeData = challengeItem;
                     currentGroup = group;
-                    // Met à jour le currentProgress avec le nouvel accessCode
                     existingAgentProgress.currentProgress = accessCode;
                     break;
                 }
@@ -285,21 +284,7 @@ export const accessChallenge = async (req: Request, res: Response) => {
         };
 
         challenge.AgentProgress.push(newAgentProgress);
-        const fragmentsData = getFragmentsData(newAgentProgress.unlockedFragments as string[], challenge.finalCode);
-        const codeParts = [
-            ['A1', 'A2', 'A3'],
-            ['B1', 'B2', 'B3'],
-            ['C1', 'C2', 'C3']
-        ];
-        const sections = ['AAA', 'BBB', 'CCC'];
-        const partialCode = codeParts.map((fragments, i) => {
-            return fragments.map(frag => {
-                if ((newAgentProgress.unlockedFragments as string[]).includes(frag)) {
-                    return challenge.finalCode?.[sections[i]]?.[frag] || 'X';
-                }
-                return 'X';
-            }).join('');
-        }).join('-');
+        const partialCode = getPartialCode(newAgentProgress.unlockedFragments, challenge.finalCode);
 
         const existingChallengeInAgent = agent.challenges.find((c: { challengeId: string }) => c.challengeId === challenge.challengeId);
         if (!existingChallengeInAgent) {
@@ -451,20 +436,7 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
                 { bungieId: agentBungieId },
                 { lastActivity: new Date() }
             );
-            const codeParts = [
-                ['A1', 'A2', 'A3'],
-                ['B1', 'B2', 'B3'],
-                ['C1', 'C2', 'C3']
-            ];
-            const sections = ['AAA', 'BBB', 'CCC'];
-            const partialCode = codeParts.map((fragments, i) => {
-                return fragments.map(frag => {
-                    if ((agentProgress.unlockedFragments as string[]).includes(frag)) {
-                        return challenge.finalCode?.[sections[i]]?.[frag] || 'X';
-                    }
-                    return 'X';
-                }).join('');
-            }).join('-');
+            const partialCode = getPartialCode(agentProgress.unlockedFragments, challenge.finalCode);
 
             const agent = await AgentModel.findOne({ bungieId: agentBungieId });
             if (agent) {
@@ -529,20 +501,7 @@ export const getAgentProgress = async (req: Request, res: Response) => {
                 agent.bungieId === agentBungieId
             );
 
-            const codeParts = [
-                ['A1', 'A2', 'A3'],
-                ['B1', 'B2', 'B3'],
-                ['C1', 'C2', 'C3']
-            ];
-            const sections = ['AAA', 'BBB', 'CCC'];
-            const partialCode = codeParts.map((fragments, i) => {
-                return fragments.map(frag => {
-                    if ((agentProgress?.unlockedFragments as string[] | undefined)?.includes(frag)) {
-                        return challenge.finalCode?.[sections[i]]?.[frag] || 'X';
-                    }
-                    return 'X';
-                }).join('');
-            }).join('-');
+            const partialCode = getPartialCode(agentProgress.unlockedFragments, challenge.finalCode);
 
             return {
                 challengeId: challenge.challengeId,
@@ -592,7 +551,6 @@ export const getAgentChallengeFragments = async (req: Request, res: Response) =>
             return res.status(404).json({ message: "Progression non trouvée pour cet agent" });
         }
 
-        // Utilise ta fonction utilitaire pour récupérer les données des fragments débloqués
         const fragmentsData = getFragmentsData(agentProgress.unlockedFragments, challenge.finalCode);
 
         return res.status(200).json({

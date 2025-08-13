@@ -7,10 +7,6 @@ class AgentService {
         tokens: BungieTokenResponse
     ): Promise<IAgentDocument> {
         try {
-            console.log('🔍 Agent Profile received:');
-            console.log('   bungieId:', agent.bungieId);
-            console.log('   agentName:', agent.protocol.agentName);
-
             if (!agent.bungieId) {
                 console.error('❌ ERREUR: bungieId manquant dans le profil Agent');
                 throw new Error('Le bungieId est manquant dans le profil Agent. Impossible de créer ou mettre à jour l\'agent.');
@@ -24,7 +20,6 @@ class AgentService {
             });
 
             if (existingPlayer) {
-                console.log(`🔄 Updating existing player with ID: ${existingPlayer._id}`);
 
                 existingPlayer.protocol.agentName = agent.protocol.agentName;
                 existingPlayer.destinyMemberships = agent.destinyMemberships;
@@ -39,7 +34,6 @@ class AgentService {
 
                 await existingPlayer.save();
 
-                console.log(`✅ Updated existing agent: ${existingPlayer.protocol.agentName || 'UNDEFINED_NAME'}`);
                 return existingPlayer as IAgentDocument;
             } else {
                 const newAgent = new AgentModel({
@@ -74,7 +68,6 @@ class AgentService {
 
                 try {
                     await newAgent.save();
-                    console.log(`🎉 Created new agent: ${newAgent.protocol.agentName} (ID: ${newAgent._id})`);
                     return newAgent as IAgentDocument;
                 } catch (saveError: any) {
                     console.error('❌ Erreur lors de la sauvegarde du nouvel agent:', saveError);
@@ -96,13 +89,6 @@ class AgentService {
     async getAgentById(agentId: string): Promise<IAgentDocument | null> {
         try {
             const agent = await AgentModel.findById(agentId);
-
-            if (agent) {
-                console.log(`🔍 Found agent: ${agent.protocol.agentName} (ID: ${agentId})`);
-            } else {
-                console.log(`❌ Agent not found with ID: ${agentId}`);
-            }
-
             return agent as IAgentDocument;
         } catch (error) {
             console.error('❌ Error getting agent by ID:', error);
@@ -191,7 +177,6 @@ class AgentService {
             );
 
             if (result) {
-                console.log(`✅ Successfully updated profile for: ${result.protocol.agentName}`);
                 return result as IAgentDocument;
             } else {
                 console.error(`❌ Agent not found with ID: ${agentId}`);
@@ -211,8 +196,6 @@ class AgentService {
             const count = await AgentModel.countDocuments({
                 lastActivity: { $gte: thirtyDaysAgo }
             });
-
-            console.log(`📊 Active agents count (last 30 days): ${count}`);
             return count;
         } catch (error) {
             console.error('❌ Error counting active agents:', error);

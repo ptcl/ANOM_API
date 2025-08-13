@@ -149,7 +149,22 @@ export function validateAndProcessChallenges(challenges: any[]): string | null {
     return null;
 }
 
-
+export function getPartialCode(unlockedFragments: string[], finalCode: any): string {
+    const codeParts = [
+        ['A1', 'A2', 'A3'],
+        ['B1', 'B2', 'B3'],
+        ['C1', 'C2', 'C3']
+    ];
+    const sections = ['AAA', 'BBB', 'CCC'];
+    return codeParts.map((fragments, i) => {
+        return fragments.map(frag => {
+            if (unlockedFragments.includes(frag)) {
+                return finalCode?.[sections[i]]?.[frag] || 'X';
+            }
+            return 'X';
+        }).join('');
+    }).join('-');
+}
 // export function getFragmentsData(fragmentIds: string[], finalCode: any): string[] {
 //     const result: string[] = [];
 //     for (const frag of fragmentIds) {

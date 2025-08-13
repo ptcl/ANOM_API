@@ -1,6 +1,9 @@
 import './agent';
 import './announcement';
 import './common';
+import './challenge';
+import './emblem';
+import './contract';
 import './parameters';
 import './identity';
 import './protocol';

@@ -13,7 +13,6 @@ export const initiateLogin = async (req: Request, res: Response) => {
 
     const { direct } = req.query;
     if (direct === 'true') {
-      console.log('🔄 Redirecting directly to Bungie auth URL');
       return res.redirect(authUrl);
     }
 
@@ -42,10 +41,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       return res.redirect('http://localhost:3000/?error=missing_code');
     }
 
-    console.log('📝 Processing Bungie callback...');
-
     const tokens = await bungieService.exchangeCodeForTokens(code as string);
-
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
 
     if (!userProfile || !userProfile.bungieId) {
@@ -56,11 +52,6 @@ export const handleCallback = async (req: Request, res: Response) => {
         message: 'Les données du profil Bungie sont incomplètes ou invalides'
       });
     }
-
-    console.log('👤 Profil utilisateur récupéré:');
-    console.log('   bungieId:', userProfile.bungieId);
-    console.log('   agentName:', userProfile.protocol.agentName);
-
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
     const jwtPayload = {
@@ -71,10 +62,7 @@ export const handleCallback = async (req: Request, res: Response) => {
         role: agent.protocol.role
       }
     };
-
     const jwtToken = generateJWT(jwtPayload);
-
-    console.log(`✅ Authentication successful for: ${agent.protocol.agentName} (ID: ${agent._id})`);
 
     if (isDev()) {
       return res.json({
@@ -108,7 +96,6 @@ export const handleCallback = async (req: Request, res: Response) => {
         message: 'Authentication successful'
       });
     }
-    // Sinon, on redirige vers le frontend avec le token
     else {
       const serverConfig = getServerConfig();
       const frontendUrl = serverConfig.frontendUrl;
@@ -142,7 +129,6 @@ export const verifyToken = async (req: Request, res: Response) => {
     }
 
     const decoded = verifyJWT(token);
-
     const agent = await agentService.getAgentById(decoded.agentId);
 
     if (!agent) {
@@ -152,7 +138,6 @@ export const verifyToken = async (req: Request, res: Response) => {
         message: 'Agent not found'
       });
     }
-
     await agentService.updateLastActivity(agent._id!.toString());
 
     return res.json({
