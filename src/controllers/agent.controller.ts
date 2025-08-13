@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { agentService } from '../services/agentService';
-import { AgentModel } from '../models/Agent';
+import { agentService } from '../services/agentservice';
+import { AgentModel } from '../models/agent.model';
 import { IAgent } from '../types/agent';
 
 export const getAgentByMembership = async (req: Request, res: Response) => {
@@ -91,7 +91,6 @@ export const updateAgentByMembership = async (req: Request, res: Response) => {
             });
         }
 
-        // Logique de mise à jour à implémenter
         return res.status(501).json({
             success: false,
             error: 'Not implemented',

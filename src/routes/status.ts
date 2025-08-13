@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { ApiResponseBuilder } from '../utils/apiResponse';
-import { AppInfoService } from '../services/appInfoService';
+import { ApiResponseBuilder } from '../utils/apiresponse';
+import { AppInfoService } from '../services/appinfoservice';
 
 const router = Router();
 const appInfoService = AppInfoService.getInstance();

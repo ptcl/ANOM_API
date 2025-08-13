@@ -51,7 +51,19 @@ export interface IAgent {
             protocolSounds?: boolean;
         }
     }
+    contracts?: Array<string>;
     lastActivity?: Date;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface IAgentDocument extends IAgent {
+    bungieId: string;
+    bungieTokens: IAgent['bungieTokens'];
+    joinedAt: Date;
+}
+
+export interface IPlayerDocument extends IAgent {
+    bungieId: string;
+    joinedAt: Date;
 }

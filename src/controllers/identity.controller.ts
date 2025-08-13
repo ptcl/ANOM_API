@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import { generateState, generateJWT, verifyJWT } from '../utils/auth';
 import { bungieService } from '../services';
 import { IAgent } from '../types/agent';
-import { agentService } from '../services/agentService';
-import { ApiResponseBuilder } from '../utils/apiResponse';
+import { agentService } from '../services/agentservice';
+import { ApiResponseBuilder } from '../utils/apiresponse';
 import { isDev, getServerConfig } from '../utils/environment';
 
 export const initiateLogin = async (req: Request, res: Response) => {
@@ -13,7 +13,6 @@ export const initiateLogin = async (req: Request, res: Response) => {
 
     const { direct } = req.query;
     if (direct === 'true') {
-      console.log('🔄 Redirecting directly to Bungie auth URL');
       return res.redirect(authUrl);
     }
 
@@ -42,10 +41,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       return res.redirect('http://localhost:3000/?error=missing_code');
     }
 
-    console.log('📝 Processing Bungie callback...');
-
     const tokens = await bungieService.exchangeCodeForTokens(code as string);
-
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
 
     if (!userProfile || !userProfile.bungieId) {
@@ -56,25 +52,18 @@ export const handleCallback = async (req: Request, res: Response) => {
         message: 'Les données du profil Bungie sont incomplètes ou invalides'
       });
     }
-
-    console.log('👤 Profil utilisateur récupéré:');
-    console.log('   bungieId:', userProfile.bungieId);
-    console.log('   agentName:', userProfile.protocol.agentName);
-
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
     const jwtPayload = {
       agentId: agent._id!.toString(),
       bungieId: agent.bungieId,
-      agentName: agent.protocol.agentName,
-      role: agent.protocol.role
+      protocol: {
+        agentName: agent.protocol.agentName,
+        role: agent.protocol.role
+      }
     };
-
     const jwtToken = generateJWT(jwtPayload);
 
-    console.log(`✅ Authentication successful for: ${agent.protocol.agentName} (ID: ${agent._id})`);
-
-    // Si en mode développement, on renvoie directement le JSON
     if (isDev()) {
       return res.json({
         success: true,
@@ -106,13 +95,14 @@ export const handleCallback = async (req: Request, res: Response) => {
         },
         message: 'Authentication successful'
       });
-    } 
-    // Sinon, on redirige vers le frontend avec le token
+    }
     else {
       const serverConfig = getServerConfig();
       const frontendUrl = serverConfig.frontendUrl;
       return res.redirect(`${frontendUrl}/identity/bungie/callback?token=${jwtToken}`);
-    }  } catch (error: any) {
+    }
+  } catch (error: any) {
+
     console.error('❌ Bungie callback failed:', error);
 
     if (error.response) {
@@ -140,7 +130,6 @@ export const verifyToken = async (req: Request, res: Response) => {
     }
 
     const decoded = verifyJWT(token);
-
     const agent = await agentService.getAgentById(decoded.agentId);
 
     if (!agent) {
@@ -150,7 +139,6 @@ export const verifyToken = async (req: Request, res: Response) => {
         message: 'Agent not found'
       });
     }
-
     await agentService.updateLastActivity(agent._id!.toString());
 
     return res.json({
@@ -219,8 +207,10 @@ export const refreshToken = async (req: Request, res: Response) => {
     const jwtPayload = {
       agentId: agent._id!.toString(),
       bungieId: agent.bungieId,
-      agentName: agent.protocol.agentName,
-      role: agent.protocol.role
+      protocol: {
+        agentName: agent.protocol.agentName,
+        role: agent.protocol.role
+      }
     };
 
     const newToken = generateJWT(jwtPayload);

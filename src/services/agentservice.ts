@@ -1,23 +1,12 @@
-import { AgentModel } from '../models/Agent';
 import { BungieTokenResponse } from '../types/bungie';
-import { IAgent } from '../types/agent';
-
-interface IAgentDocument extends IAgent {
-    bungieId: string;
-    bungieTokens: IAgent['bungieTokens'];
-    joinedAt: Date;
-}
-
+import { IAgent, IAgentDocument } from '../types/agent';
+import { AgentModel } from '../models/agent.model';
 class AgentService {
     async createOrUpdateAgent(
         agent: IAgent,
         tokens: BungieTokenResponse
     ): Promise<IAgentDocument> {
         try {
-            console.log('🔍 Agent Profile received:');
-            console.log('   bungieId:', agent.bungieId);
-            console.log('   agentName:', agent.protocol.agentName);
-
             if (!agent.bungieId) {
                 console.error('❌ ERREUR: bungieId manquant dans le profil Agent');
                 throw new Error('Le bungieId est manquant dans le profil Agent. Impossible de créer ou mettre à jour l\'agent.');
@@ -26,15 +15,12 @@ class AgentService {
             const now = new Date();
             const expiresAt = new Date(now.getTime() + (tokens.expires_in * 1000));
 
-            // Cherche si le joueur existe déjà
             const existingPlayer = await AgentModel.findOne({
                 bungieId: agent.bungieId
             });
 
             if (existingPlayer) {
-                console.log(`🔄 Updating existing player with ID: ${existingPlayer._id}`);
 
-                // Met à jour le joueur existant
                 existingPlayer.protocol.agentName = agent.protocol.agentName;
                 existingPlayer.destinyMemberships = agent.destinyMemberships;
                 existingPlayer.bungieUser = agent.bungieUser;
@@ -48,7 +34,6 @@ class AgentService {
 
                 await existingPlayer.save();
 
-                console.log(`✅ Updated existing agent: ${existingPlayer.protocol.agentName || 'UNDEFINED_NAME'}`);
                 return existingPlayer as IAgentDocument;
             } else {
                 const newAgent = new AgentModel({
@@ -81,13 +66,8 @@ class AgentService {
                     updatedAt: now
                 });
 
-                console.log('🔍 Creating new agent with data:');
-                console.log('   bungieId:', newAgent.bungieId);
-                console.log('   agentName:', newAgent.protocol.agentName);
-
                 try {
                     await newAgent.save();
-                    console.log(`🎉 Created new agent: ${newAgent.protocol.agentName} (ID: ${newAgent._id})`);
                     return newAgent as IAgentDocument;
                 } catch (saveError: any) {
                     console.error('❌ Erreur lors de la sauvegarde du nouvel agent:', saveError);
@@ -109,13 +89,6 @@ class AgentService {
     async getAgentById(agentId: string): Promise<IAgentDocument | null> {
         try {
             const agent = await AgentModel.findById(agentId);
-
-            if (agent) {
-                console.log(`🔍 Found agent: ${agent.protocol.agentName} (ID: ${agentId})`);
-            } else {
-                console.log(`❌ Agent not found with ID: ${agentId}`);
-            }
-
             return agent as IAgentDocument;
         } catch (error) {
             console.error('❌ Error getting agent by ID:', error);
@@ -170,9 +143,6 @@ class AgentService {
 
     async updateAgentProfile(agentId: string, updateData: Partial<IAgentDocument>): Promise<IAgentDocument | null> {
         try {
-            console.log(`🔄 Updating profile for agent: ${agentId}`);
-            console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
-
             const currentAgent = await this.getAgentById(agentId);
             if (!currentAgent) {
                 console.error(`❌ Agent not found with ID: ${agentId}`);
@@ -207,7 +177,6 @@ class AgentService {
             );
 
             if (result) {
-                console.log(`✅ Successfully updated profile for: ${result.protocol.agentName}`);
                 return result as IAgentDocument;
             } else {
                 console.error(`❌ Agent not found with ID: ${agentId}`);
@@ -221,15 +190,12 @@ class AgentService {
 
     async getActiveAgentsCount(): Promise<number> {
         try {
-            // Considère un agent comme actif s'il s'est connecté dans les derniers 30 jours
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            
+
             const count = await AgentModel.countDocuments({
                 lastActivity: { $gte: thirtyDaysAgo }
             });
-            
-            console.log(`📊 Active agents count (last 30 days): ${count}`);
             return count;
         } catch (error) {
             console.error('❌ Error counting active agents:', error);

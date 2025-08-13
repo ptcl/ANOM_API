@@ -1,7 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-
 export class AppInfoService {
     private static instance: AppInfoService;
     private packageInfo: any;

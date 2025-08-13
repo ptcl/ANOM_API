@@ -1,17 +1,9 @@
-import { AgentModel } from '../models/Agent';
+import { AgentModel } from '../models/agent.model';
 import { BungieTokenResponse } from '../types/bungie';
-import { IAgent } from '../types/agent';
-
-interface IPlayerDocument extends IAgent {
-    bungieId: string;
-    joinedAt: Date;
-}
+import { IAgent, IPlayerDocument } from '../types/agent';
 
 class PlayerService {
-    async createOrUpdatePlayer(
-        agent: IAgent,
-        tokens: BungieTokenResponse
-    ): Promise<IPlayerDocument> {
+    async createOrUpdatePlayer(agent: IAgent, tokens: BungieTokenResponse): Promise<IPlayerDocument> {
         try {
 
             const now = new Date();
@@ -64,9 +56,9 @@ class PlayerService {
                     updatedAt: now
                 });
 
-                console.log('🔍 Creating new player with data:');
 
                 await newPlayer.save();
+                console.log('🔍 Creating new player with data:');
                 return newPlayer as IPlayerDocument;
             }
         } catch (error) {

@@ -1,7 +1,10 @@
-import './agentSchema';
-import './announcementSchema';
-import './commonComponents';
+import './agent';
+import './announcement';
+import './common';
+import './challenge';
+import './emblem';
+import './contract';
 import './parameters';
-import './identitySchema';
-import './protocolSchema';
+import './identity';
+import './protocol';
 import './tags';

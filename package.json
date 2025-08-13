@@ -1,7 +1,7 @@
 {
   "name": "anom_api",
-  "version": "2.0.0",
-  "description": "Backend optimisé",
+  "version": "2.5.0",
+  "description": "Api AN0M",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",

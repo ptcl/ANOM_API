@@ -1,31 +1,11 @@
 import { Router } from 'express';
 import { MongoClient } from 'mongodb';
 import { getMongoConfig, getServerConfig, isDev } from '../utils/environment';
-import { ApiResponseBuilder } from '../utils/apiResponse';
-import { AppInfoService } from '../services/appInfoService';
+import { ApiResponseBuilder } from '../utils/apiresponse';
+import { AppInfoService } from '../services/appinfoservice';
+import { IServicesStatus } from '../types/health';
 
 const router = Router();
-
-// Types pour les services
-type DatabaseStatus = {
-    connected: boolean;
-    name: string;
-    error?: string;
-    responseTime?: number;
-};
-
-type ApiStatus = {
-    status: string;
-    responseTime?: number;
-    error?: string;
-};
-
-type ServicesStatus = {
-    database: DatabaseStatus;
-    externalApis: {
-        [key: string]: ApiStatus;
-    };
-};
 
 router.get('/', async (req, res) => {
     const { uri, dbName } = getMongoConfig();
@@ -33,8 +13,8 @@ router.get('/', async (req, res) => {
     const appInfoService = AppInfoService.getInstance();
     const appInfo = appInfoService.getAppInfo();
 
-    const checkServices = async (): Promise<ServicesStatus> => {
-        const result: ServicesStatus = {
+    const checkServices = async (): Promise<IServicesStatus> => {
+        const result: IServicesStatus = {
             database: { connected: false, name: dbName },
             externalApis: {
                 bungie: { status: 'unknown' }

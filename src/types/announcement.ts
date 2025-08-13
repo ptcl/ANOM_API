@@ -1,6 +1,4 @@
 import { Types } from 'mongoose';
-
-
 export interface IAnnouncement {
     _id?: Types.ObjectId | string;
     title: string;
@@ -18,14 +16,4 @@ export interface IAnnouncement {
     }>;
     visibility: 'ALL' | 'FOUNDERS' | 'SPECIALISTS' | 'GROUP';
     targetGroup?: 'PROTOCOL' | 'AURORA' | 'ZENITH';
-}
-
-
-export interface IAnnouncementMethods {
-    markAsReadBy: (agentId: Types.ObjectId | string) => Promise<IAnnouncement>;
-}
-
-
-export interface IAnnouncementModel {
-    getUnreadByAgent: (agentId: Types.ObjectId | string) => Promise<IAnnouncement[]>;
 }

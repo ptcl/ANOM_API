@@ -1,16 +1,13 @@
 import { Request, Response } from 'express';
-import { agentService } from '../services/agentService';
-import { ApiResponseBuilder } from '../utils/apiResponse';
+import { agentService } from '../services/agentservice';
+import { ApiResponseBuilder } from '../utils/apiresponse';
 import { env } from '../utils/environment';
 
 export const getProtocolStatus = async (req: Request, res: Response) => {
     try {
         const activeAgents = await agentService.getActiveAgentsCount();
-
         const appVersion = process.env.npm_package_version || '1.0.0';
-
         const environment = env.getEnvironment();
-
         const uptime = process.uptime();
         const formattedUptime = formatUptime(uptime);
 

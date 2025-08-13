@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJWT } from '../utils/auth';
-import { agentService } from '../services/agentService';
+import { agentService } from '../services/agentservice';
 
 declare global {
   namespace Express {
@@ -8,14 +8,16 @@ declare global {
       user?: {
         agentId: string;
         bungieId: string;
-        agentName: string;
-        role: string;
+        protocol?: {
+          agentName: string;
+          role: string;
+        };
       };
     }
   }
 }
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+export const IdentityMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -34,8 +36,10 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       req.user = {
         agentId: decoded.agentId,
         bungieId: decoded.bungieId,
-        agentName: decoded.agentName,
-        role: decoded.role
+        protocol: {
+          agentName: decoded.protocol.agentName,
+          role: decoded.protocol.role
+        }
       };
 
       const agent = await agentService.getAgentById(decoded.agentId);
@@ -65,32 +69,3 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
   }
 };
 
-export const adminMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-  try {
-    if (!req.user || !req.user.agentId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
-    }
-
-    if (req.user.role !== 'FOUNDER') {
-      return res.status(403).json({
-        success: false,
-        error: 'Forbidden',
-        message: 'Admin privileges required'
-      });
-    }
-
-    return next();
-
-  } catch (error: any) {
-    console.error('❌ Admin middleware error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Authorization failed',
-      message: error.message
-    });
-  }
-};
