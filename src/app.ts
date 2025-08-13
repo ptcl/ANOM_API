@@ -71,7 +71,7 @@ const createApp = (): express.Application => {
         }
         next();
     });
-    app.use(limiter);
+    // app.use(limiter);
     app.use('/api', routes);
 
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
