@@ -7,7 +7,7 @@ import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnno
 import { AccessMiddleware } from '../middlewares/access.middleware';
 import { IdentityMiddleware } from '../middlewares/identity.middleware';
 import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/emblem.controller';
-import { accessChallenge, createChallenge, deleteChallenge, getAgentChallengeFragments, getAgentProgress, getAllChallenges, getChallengeById, submitChallengeAnswer, updateChallenge } from '../controllers/challenge.controller';
+import { accessChallenge, createChallenge, deleteChallenge, getAgentChallengeFragments, getAgentProgress, getAllChallenges, getAvailableChallenges, getChallengeById, submitChallengeAnswer, updateChallenge } from '../controllers/challenge.controller';
 
 const router = Router();
 
@@ -21,29 +21,51 @@ router.patch('/agents/:membershipType/:membershipId', IdentityMiddleware, update
 router.get('/agent/profile', IdentityMiddleware, getMyProfile);
 router.patch('/agent/profile', IdentityMiddleware, updateMyProfile);
 
+
+// ============== ROUTES CONCTRACTS AGENTS (JOUEURS) ==============
+
 router.get('/agent/contracts', IdentityMiddleware, getAgentAllContracts);
 router.get('/agent/contract/:contractId', IdentityMiddleware, getContractById);
 router.post('/agent/contract', IdentityMiddleware, createContract);
 router.delete('/agent/contract/:contractId', IdentityMiddleware, deleteContract);
 router.patch('/agent/contract/:contractId', IdentityMiddleware, updateContract);
 
-// ============== ROUTES CHALLENGES POUR AGENTS (JOUEURS) ==============
-// router.get('/challenges/available', getAvailableChallenges);
 
+// ============== ROUTES CHALLENGES AGENTS (JOUEURS) ==============
+
+router.get('/challenges/available', getAvailableChallenges);
+router.get('/agent/challenge/:challengeId', IdentityMiddleware, getChallengeById);
 router.post('/agent/challenge/access', IdentityMiddleware, accessChallenge);
 router.post('/agent/challenge/submit', IdentityMiddleware, submitChallengeAnswer);
-// router.post('/agent/challenge/hint', IdentityMiddleware, getChallengeHint);
 router.get('/agent/challenge/progress', IdentityMiddleware, getAgentProgress);
 router.get('/agent/challenge/:challengeId/progress', IdentityMiddleware, getAgentChallengeFragments);
 
 
+// ============== ROUTES ANNONCES AGENTS (JOUEURS) ==============
+
+router.get('/announcements', getAllAnnouncements);
+
+
+// ============== ROUTES EMBLEMS AGENTS (JOUEURS) ==============
+
+router.get('/emblems', getAllEmblems);
+router.get('/emblem/:emblemId', getEmblemById);
+
+
 // ============== ROUTES FONDEURS ==============
+
 router.patch('/founder/agents/:agentId', IdentityMiddleware, AccessMiddleware, FounderUpdateAgent);
 router.get('/founder/agents/:agentId/contracts', IdentityMiddleware, AccessMiddleware, getAgentAllContracts);
+
+
+// ============== ROUTES FONDEURS CONTRACTS ==============
 
 router.patch('/founder/contract/:contractId', IdentityMiddleware, AccessMiddleware, updateContract);
 router.get('/founder/contract/:contractId', IdentityMiddleware, AccessMiddleware, getContractById);
 router.get('/founder/contracts', IdentityMiddleware, AccessMiddleware, getAllContracts);
+
+
+// ============== ROUTES FONDEURS ANNOUNCEMENTS ==============
 
 router.post('/founder/announcement', IdentityMiddleware, AccessMiddleware, createAnnouncement);
 router.patch('/founder/announcement/:id', IdentityMiddleware, AccessMiddleware, updateAnnouncement);

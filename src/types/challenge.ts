@@ -66,6 +66,8 @@ export interface IEmblemChallenge {
     finalCode?: IFinalCode;
     challenges: IChallenge[];
     isComplete?: boolean;
+    isCompleteBy?: string | null;
+    isActive?: boolean;
     AgentProgress: IAgentProgress[];
     createdAt?: Date;
     updatedAt?: Date;

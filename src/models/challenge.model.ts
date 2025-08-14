@@ -35,6 +35,8 @@ const ChallengeSchema = new mongoose.Schema({
     ],
 
     isComplete: { type: Boolean, default: false },
+    isCompleteBy: { type: String, default: null },
+    isActive: { type: Boolean, default: true },
     AgentProgress: [
         {
             agentId: { type: mongoose.Schema.Types.ObjectId, ref: "Agent" },

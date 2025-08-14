@@ -18,3 +18,4 @@ export function verifyJWT(token: string) {
 
     return (jwt as any).verify(token, secret);
 }
+
