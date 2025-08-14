@@ -28,7 +28,7 @@ router.get('/agent/contracts', IdentityMiddleware, getAgentAllContracts);
 router.get('/agent/contract/:contractId', IdentityMiddleware, getContractById);
 router.post('/agent/contract', IdentityMiddleware, createContract);
 router.delete('/agent/contract/:contractId', IdentityMiddleware, deleteContract);
-router.patch('/agent/contract/:contractId', IdentityMiddleware, updateContract);
+router.patch('/agent/contract/:contractId', IdentityMiddleware, AccessMiddleware, updateContract);
 
 
 // ============== ROUTES CHALLENGES AGENTS (JOUEURS) ==============
@@ -63,6 +63,8 @@ router.get('/founder/agents/:agentId/contracts', IdentityMiddleware, AccessMiddl
 router.patch('/founder/contract/:contractId', IdentityMiddleware, AccessMiddleware, updateContract);
 router.get('/founder/contract/:contractId', IdentityMiddleware, AccessMiddleware, getContractById);
 router.get('/founder/contracts', IdentityMiddleware, AccessMiddleware, getAllContracts);
+router.delete('/founder/contract/:contractId', IdentityMiddleware, AccessMiddleware, deleteContract);
+
 
 
 // ============== ROUTES FONDEURS ANNOUNCEMENTS ==============
