@@ -49,6 +49,41 @@
  *           format: date-time
  *           description: Date de dernière mise à jour de l'annonce (mise à jour automatique)
  *           example: "2024-01-15T12:45:00Z"
+ *         createdBy:
+ *           type: string
+ *           description: Identifiant de l'agent qui a créé l'annonce
+ *           example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *         expiresAt:
+ *           type: string
+ *           format: date-time
+ *           description: Date d'expiration de l'annonce
+ *           example: "2024-02-15T10:30:00Z"
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Tags associés à l'annonce
+ *           example: ["maintenance", "système", "protocole"]
+ *         readBy:
+ *           type: array
+ *           description: Liste des agents ayant lu l'annonce
+ *           items:
+ *             type: object
+ *             properties:
+ *               agentId:
+ *                 type: string
+ *                 description: Identifiant de l'agent
+ *                 example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *               readAt:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date de lecture
+ *                 example: "2024-01-15T14:30:00Z"
+ *         targetGroup:
+ *           type: string
+ *           enum: [PROTOCOL, AURORA, ZENITH]
+ *           description: Groupe cible spécifique (optionnel)
+ *           example: "AURORA"
  *       required:
  *         - announcementId
  *         - title

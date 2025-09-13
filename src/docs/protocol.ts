@@ -244,8 +244,11 @@
  *       500:
  *         $ref: '#/components/responses/StandardError'
  *   patch:
- *     summary: Met à jour un agent par son type et ID de membership Bungie
- *     tags: [Agents]
+ *     summary: Met à jour le profil d'un agent (accès administrateur)
+ *     description: |
+ *       Permet aux fondateurs de modifier le profil d'un agent spécifique.
+ *       Nécessite les permissions de fondateur pour accéder à cet endpoint.
+ *     tags: [Administration, Agents]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -253,14 +256,18 @@
  *         name: membershipType
  *         required: true
  *         schema:
- *           type: string
- *         description: Type de membership Bungie
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *         description: Type de membership Bungie (1=Xbox, 2=PSN, 3=Steam, 4=Blizzard, 5=Stadia)
+ *         example: 3
  *       - in: path
  *         name: membershipId
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de membership Bungie
+ *         description: Identifiant unique du membership Destiny 2
+ *         example: "4611686018467322167"
  *     requestBody:
  *       required: true
  *       content:
@@ -273,11 +280,17 @@
  *                 properties:
  *                   customName:
  *                     type: string
- *                     example: "Gardien de la Lumière"
+ *                     maxLength: 50
+ *                   clearanceLevel:
+ *                     type: integer
+ *                     minimum: 0
+ *                     maximum: 10
+ *                   role:
+ *                     type: string
+ *                     enum: [AGENT, FOUNDER]
  *                   group:
  *                     type: string
  *                     enum: [PROTOCOL, AURORA, ZENITH]
- *                     example: "AURORA"
  *                   settings:
  *                     type: object
  *                     properties:
@@ -287,12 +300,18 @@
  *                         type: boolean
  *                       protocolOSTheme:
  *                         type: string
- *                         enum: [DEFAULT, DARKNESS]
+ *                         enum: [DEFAULT, DARK, LIGHT, AURORA, ZENITH]
  *                       protocolSounds:
  *                         type: boolean
+ *           example:
+ *             protocol:
+ *               customName: "Agent Spécial"
+ *               clearanceLevel: 3
+ *               role: "AGENT"
+ *               group: "AURORA"
  *     responses:
  *       200:
- *         description: Agent mis à jour avec succès
+ *         description: Profil de l'agent mis à jour avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -303,6 +322,11 @@
  *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/Agent'
+ *                 message:
+ *                   type: string
+ *                   example: "Agent profile updated successfully"
+ *       400:
+ *         description: Données de requête invalides
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -596,6 +620,108 @@
 
 /**
  * @swagger
+ * /protocol/challenges/available:
+ *   get:
+ *     summary: Liste publique des défis disponibles
+ *     description: |
+ *       Récupère la liste de tous les défis publiquement visibles sur le projet.
+ *       Cet endpoint ne nécessite pas d'authentification.
+ *     tags: [Challenges]
+ *     responses:
+ *       200:
+ *         description: Liste des défis récupérée avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     challenges:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *                           title:
+ *                             type: string
+ *                             example: "Décodage Temporal Vex"
+ *                           description:
+ *                             type: string
+ *                             example: "Décrypte les fragments temporels Vex"
+ *                           difficulty:
+ *                             type: string
+ *                             enum: [EASY, MEDIUM, HARD, EXTREME]
+ *                             example: "HARD"
+ *                           isPublic:
+ *                             type: boolean
+ *                             example: true
+ *                           totalFragments:
+ *                             type: number
+ *                             example: 9
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     count:
+ *                       type: number
+ *                       example: 12
+ *                 message:
+ *                   type: string
+ *                   example: "Available challenges retrieved successfully"
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
+ */
+/**
+ * @swagger
+ * /protocol/agent/challenge/{challengeId}:
+ *   get:
+ *     summary: Récupère les détails d'un défi spécifique
+ *     tags: [Challenges]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Identifiant unique du défi
+ *         example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *     responses:
+ *       200:
+ *         description: Détails du défi récupérés avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     challenge:
+ *                       $ref: '#/components/schemas/ChallengeProgress'
+ *                 message:
+ *                   type: string
+ *                   example: "Challenge details retrieved successfully"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Défi non trouvé ou non accessible
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
+ */
+
+/**
+ * @swagger
  * /protocol/agent/challenge/access:
  *   post:
  *     summary: Accède à un défi avec un code d'accès
@@ -817,6 +943,69 @@
 
 /**
  * @swagger
+ * /protocol/founder/agents/statistics:
+ *   get:
+ *     summary: Récupère les statistiques détaillées des agents
+ *     description: |
+ *       Endpoint réservé aux fondateurs pour obtenir des statistiques complètes sur tous les agents du système.
+ *       Fournit des métriques sur le nombre total d'agents, leur statut d'activité et les nouvelles recrues.
+ *     tags: [Administration, Agents]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistiques récupérées avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     statistics:
+ *                       $ref: '#/components/schemas/AgentServiceStats'
+ *                     generatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Timestamp de génération des statistiques
+ *                       example: "2025-09-13T10:30:00Z"
+ *                 message:
+ *                   type: string
+ *                   example: "Agent statistics retrieved successfully"
+ *             example:
+ *               success: true
+ *               data:
+ *                 statistics:
+ *                   totalAgents: 1247
+ *                   activeAgents: 892
+ *                   inactiveAgents: 355
+ *                   recentJoins: 47
+ *                 generatedAt: "2025-09-13T10:30:00Z"
+ *               message: "Agent statistics retrieved successfully"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         description: Accès interdit - Réservé aux fondateurs uniquement
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Access denied - Founders only"
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
+ */
+/**
+ * @swagger
  * /protocol/founder/agents/{agentId}:
  *   patch:
  *     summary: Met à jour un agent (accès administrateur)
@@ -1028,8 +1217,227 @@
  *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/StandardError'
+ *   delete:
+ *     summary: Supprime un contrat (admin)
+ *     tags: [Administration, Contracts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID du contrat à supprimer
+ *         example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *     responses:
+ *       200:
+ *         description: Contrat supprimé avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Contract deleted successfully"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
  */
 
+/**
+ * @swagger
+ * /protocol/announcements:
+ *   get:
+ *     summary: Récupère les annonces publiques
+ *     description: |
+ *       Récupère toutes les annonces publiques et publiées. 
+ *       Cet endpoint ne nécessite pas d'authentification et ne retourne que les annonces visibles par tous.
+ *     tags: [Announcements]
+ *     responses:
+ *       200:
+ *         description: Annonces publiques récupérées avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     announcements:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *                           title:
+ *                             type: string
+ *                             example: "Maintenance programmée"
+ *                           content:
+ *                             type: string
+ *                             example: "Le système sera en maintenance demain de 02h00 à 04h00 UTC"
+ *                           priority:
+ *                             type: string
+ *                             enum: [LOW, MEDIUM, HIGH, URGENT]
+ *                             example: "HIGH"
+ *                           status:
+ *                             type: string
+ *                             example: "PUBLISHED"
+ *                           tags:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: ["maintenance", "système"]
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                     count:
+ *                       type: number
+ *                       example: 5
+ *                 message:
+ *                   type: string
+ *                   example: "Public announcements retrieved successfully"
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
+ */
+
+/**
+ * @swagger
+ * /protocol/announcement/{id}/read:
+ *   post:
+ *     summary: Marque une annonce comme lue par l'agent
+ *     tags: [Announcements]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Identifiant unique de l'annonce
+ *         example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *     responses:
+ *       200:
+ *         description: Annonce marquée comme lue
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Announcement marked as read"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Annonce non trouvée
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
+ */
+/**
+ * @swagger
+ * /protocol/emblems:
+ *   get:
+ *     summary: Liste des emblèmes disponibles pour les agents
+ *     description: |
+ *       Récupère la liste de tous les emblèmes disponibles pour les agents authentifiés.
+ *       Nécessite une authentification pour accéder aux emblèmes du protocole.
+ *     tags: [Emblems]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des emblèmes récupérée avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     emblems:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Emblem'
+ *                     count:
+ *                       type: number
+ *                       example: 24
+ *                 message:
+ *                   type: string
+ *                   example: "Emblems retrieved successfully"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
+ */
+/**
+ * @swagger
+ * /protocol/emblem/{emblemId}:
+ *   get:
+ *     summary: Détails d'un emblème spécifique
+ *     tags: [Emblems]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: emblemId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Identifiant unique de l'emblème
+ *         example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *     responses:
+ *       200:
+ *         description: Détails de l'emblème récupérés avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     emblem:
+ *                       $ref: '#/components/schemas/Emblem'
+ *                 message:
+ *                   type: string
+ *                   example: "Emblem details retrieved successfully"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Emblème non trouvé
+ *       500:
+ *         $ref: '#/components/responses/StandardError'
+ */
 /**
  * @swagger
  * /protocol/founder/announcement:
@@ -2237,4 +2645,35 @@
  *         pages:
  *           type: number
  *           example: 8
+ *
+ *     AgentServiceStats:
+ *       type: object
+ *       description: Statistiques détaillées du service des agents
+ *       properties:
+ *         totalAgents:
+ *           type: number
+ *           description: Nombre total d'agents dans le système
+ *           example: 1247
+ *         activeAgents:
+ *           type: number
+ *           description: Nombre d'agents actuellement actifs
+ *           example: 892
+ *         inactiveAgents:
+ *           type: number
+ *           description: Nombre d'agents inactifs
+ *           example: 355
+ *         recentJoins:
+ *           type: number
+ *           description: Nombre d'agents ayant rejoint dans les 30 derniers jours
+ *           example: 47
+ *       required:
+ *         - totalAgents
+ *         - activeAgents
+ *         - inactiveAgents
+ *         - recentJoins
+ *       example:
+ *         totalAgents: 1247
+ *         activeAgents: 892
+ *         inactiveAgents: 355
+ *         recentJoins: 47
  */

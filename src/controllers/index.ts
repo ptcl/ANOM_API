@@ -2,5 +2,8 @@ export * from './identity.controller';
 export * from './destiny.controller';
 export * from './protocol.controller';
 export * from './founder.controller';
+export * from './agent.controller';
 export * from './contract.controller';
 export * from './announcement.controller';
+export * from './emblem.controller';
+export * from './challenge.controller';

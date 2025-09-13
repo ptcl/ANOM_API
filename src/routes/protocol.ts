@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile } from '../controllers/agent.controller';
+import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile, getAgentStatistics } from '../controllers/agent.controller';
 import { getProtocolStatus } from '../controllers/protocol.controller';
 import { FounderUpdateAgent } from '../controllers/founder.controller';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/contract.controller';
-import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, updateAnnouncement } from '../controllers/announcement.controller';
+import { createAnnouncement, deleteAnnouncement, getAllAnnouncements, getAllAnnouncementsForFounders, markAnnouncementAsRead, updateAnnouncement } from '../controllers/announcement.controller';
 import { AccessMiddleware } from '../middlewares/access.middleware';
 import { IdentityMiddleware } from '../middlewares/identity.middleware';
 import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById } from '../controllers/emblem.controller';
@@ -16,7 +16,7 @@ router.get('/status', getProtocolStatus);
 router.get('/agents', getAllAgents);
 
 router.get('/agents/:membershipType/:membershipId', IdentityMiddleware, getAgentByMembership);
-router.patch('/agents/:membershipType/:membershipId', IdentityMiddleware, updateAgentByMembership);
+router.patch('/agents/:membershipType/:membershipId', IdentityMiddleware, AccessMiddleware, updateAgentByMembership);
 
 router.get('/agent/profile', IdentityMiddleware, getMyProfile);
 router.patch('/agent/profile', IdentityMiddleware, updateMyProfile);
@@ -28,7 +28,7 @@ router.get('/agent/contracts', IdentityMiddleware, getAgentAllContracts);
 router.get('/agent/contract/:contractId', IdentityMiddleware, getContractById);
 router.post('/agent/contract', IdentityMiddleware, createContract);
 router.delete('/agent/contract/:contractId', IdentityMiddleware, deleteContract);
-router.patch('/agent/contract/:contractId', IdentityMiddleware, AccessMiddleware, updateContract);
+router.patch('/agent/contract/:contractId', IdentityMiddleware, updateContract);
 
 
 // ============== ROUTES CHALLENGES AGENTS (JOUEURS) ==============
@@ -44,15 +44,18 @@ router.get('/agent/challenge/:challengeId/progress', IdentityMiddleware, getAgen
 // ============== ROUTES ANNONCES AGENTS (JOUEURS) ==============
 
 router.get('/announcements', getAllAnnouncements);
+router.post('/announcement/:id/read', IdentityMiddleware, markAnnouncementAsRead);
 
 
 // ============== ROUTES EMBLEMS AGENTS (JOUEURS) ==============
 
-router.get('/emblems', getAllEmblems);
-router.get('/emblem/:emblemId', getEmblemById);
+router.get('/emblems', IdentityMiddleware, getAllEmblems);
+router.get('/emblem/:emblemId', IdentityMiddleware, getEmblemById);
 
 
 // ============== ROUTES FONDEURS ==============
+
+router.get('/founder/agents/statistics', IdentityMiddleware, AccessMiddleware, getAgentStatistics);
 
 router.patch('/founder/agents/:agentId', IdentityMiddleware, AccessMiddleware, FounderUpdateAgent);
 router.get('/founder/agents/:agentId/contracts', IdentityMiddleware, AccessMiddleware, getAgentAllContracts);
@@ -72,7 +75,7 @@ router.delete('/founder/contract/:contractId', IdentityMiddleware, AccessMiddlew
 router.post('/founder/announcement', IdentityMiddleware, AccessMiddleware, createAnnouncement);
 router.patch('/founder/announcement/:id', IdentityMiddleware, AccessMiddleware, updateAnnouncement);
 router.delete('/founder/announcement/:id', IdentityMiddleware, AccessMiddleware, deleteAnnouncement);
-router.get('/founder/announcements', IdentityMiddleware, AccessMiddleware, getAllAnnouncements);
+router.get('/founder/announcements', IdentityMiddleware, AccessMiddleware, getAllAnnouncementsForFounders);
 
 
 // ============== ROUTES FONDEURS EMBLEM ==============

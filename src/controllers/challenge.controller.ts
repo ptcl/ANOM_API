@@ -138,21 +138,46 @@ export const getAllChallenges = async (req: Request, res: Response) => {
 
 export const getAvailableChallenges = async (req: Request, res: Response) => {
     try {
+        // Récupérer uniquement les challenges publics et actifs
         const challenges = await ChallengeModel
-            .find({ isActive: true, isComplete: false })
-            .select('challengeId title description')
+            .find({ 
+                isActive: true, 
+                isComplete: false,
+                // Optionnel: ajouter un champ isPublic si nécessaire
+                // isPublic: { $ne: false }
+            })
+            .select('challengeId title description difficulty category createdAt')
             .lean();
+
+        // Formater les données pour l'affichage public
+        const formattedChallenges = challenges.map(challenge => ({
+            challengeId: challenge.challengeId,
+            title: challenge.title,
+            description: challenge.description,
+            difficulty: challenge.difficulty || 'UNKNOWN',
+            category: challenge.category || 'GENERAL',
+            createdAt: challenge.createdAt
+        }));
 
         return res.json({
             success: true,
-            challenges,
-            count: challenges.length
+            data: {
+                challenges: formattedChallenges,
+                count: formattedChallenges.length
+            },
+            message: 'Available challenges retrieved successfully'
         });
     } catch (error: any) {
+        // Log sécurisé sans exposer d'informations sensibles
+        console.error('Public challenges fetch error:', {
+            timestamp: new Date().toISOString(),
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
+        
         return res.status(500).json({
             success: false,
-            message: "Erreur lors de la récupération des challenges disponibles",
-            error: error.message
+            error: 'Internal server error'
         });
     }
 };

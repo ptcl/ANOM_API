@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 export interface IAnnouncement {
     _id?: Types.ObjectId | string;
+    announcementId?: string;
     title: string;
     content: string;
     createdBy: Types.ObjectId | string;

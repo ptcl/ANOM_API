@@ -2,66 +2,123 @@ import { Request, Response } from 'express';
 import { agentService } from '../services/agentservice';
 import { AgentModel } from '../models/agent.model';
 import { IAgent } from '../types/agent';
+import { AgentServiceStats } from '../types/services';
 
 export const getAgentByMembership = async (req: Request, res: Response) => {
     try {
         const { membershipType, membershipId } = req.params;
 
+        // Validation robuste des paramètres
         if (!membershipType || !membershipId) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing parameters',
-                message: 'membershipType and membershipId are required'
+                error: 'Invalid parameters'
+            });
+        }
+
+        // Validation du format membershipType (doit être un nombre entre 1-5 pour Bungie)
+        const parsedMembershipType = parseInt(membershipType);
+        if (isNaN(parsedMembershipType) || parsedMembershipType < 1 || parsedMembershipType > 5) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid parameters'
+            });
+        }
+
+        // Validation du format membershipId (doit être numérique pour Bungie)
+        if (!/^\d+$/.test(membershipId) || membershipId.length > 20) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid parameters'
             });
         }
 
         const agent = await agentService.getAgentByDestinyMembership(
-            parseInt(membershipType),
+            parsedMembershipType,
             membershipId
         );
 
         if (!agent) {
             return res.status(404).json({
                 success: false,
-                error: 'Agent not found',
-                message: `No agent found with membershipType ${membershipType} and membershipId ${membershipId}`
+                error: 'Agent not found'
             });
         }
 
-        const formattedAgent = {
-            _id: agent._id,
-            bungieId: agent.bungieId,
-            destinyMemberships: agent.destinyMemberships,
-            bungieUser: agent.bungieUser,
-            protocol: {
-                agentName: agent.protocol.agentName,
-                customName: agent.protocol.customName,
-                species: agent.protocol.species,
-                role: agent.protocol.role,
-                clearanceLevel: agent.protocol.clearanceLevel,
-                hasSeenRecruitment: agent.protocol.hasSeenRecruitment,
-                protocolJoinedAt: agent.protocol.protocolJoinedAt,
-                group: agent.protocol.group,
-                settings: agent.protocol.settings
-            },
-            lastActivity: agent.lastActivity,
-            createdAt: agent.createdAt,
-            updatedAt: agent.updatedAt
-        };
+        // Vérifier si l'agent cible a un profil public ou si le demandeur est fondateur
+        const isFounder = req.user?.protocol?.role?.toUpperCase() === 'FOUNDER';
+        const isPublicProfile = agent.protocol?.settings?.publicProfile !== false; // Par défaut public
+        
+        if (!isFounder && !isPublicProfile) {
+            return res.status(404).json({
+                success: false,
+                error: 'Agent not found' // Ne pas révéler que l'agent existe mais est privé
+            });
+        }
+
+        // Formater les données selon les permissions
+        let formattedAgent;
+        
+        if (isFounder) {
+            // Fondateurs voient toutes les informations
+            formattedAgent = {
+                _id: agent._id,
+                bungieId: agent.bungieId,
+                destinyMemberships: agent.destinyMemberships,
+                bungieUser: agent.bungieUser,
+                protocol: {
+                    agentName: agent.protocol.agentName,
+                    customName: agent.protocol.customName,
+                    species: agent.protocol.species,
+                    role: agent.protocol.role,
+                    clearanceLevel: agent.protocol.clearanceLevel,
+                    hasSeenRecruitment: agent.protocol.hasSeenRecruitment,
+                    protocolJoinedAt: agent.protocol.protocolJoinedAt,
+                    group: agent.protocol.group,
+                    settings: agent.protocol.settings
+                },
+                lastActivity: agent.lastActivity,
+                createdAt: agent.createdAt,
+                updatedAt: agent.updatedAt
+            };
+        } else {
+            // Agents normaux voient un profil public limité
+            formattedAgent = {
+                protocol: {
+                    agentName: agent.protocol.agentName,
+                    customName: agent.protocol.customName,
+                    species: agent.protocol.species,
+                    role: agent.protocol.role,
+                    group: agent.protocol.group,
+                    protocolJoinedAt: agent.protocol.protocolJoinedAt
+                },
+                bungieUser: agent.bungieUser ? {
+                    displayName: agent.bungieUser.displayName,
+                    profilePicturePath: agent.bungieUser.profilePicturePath
+                } : null,
+                // Pas d'informations sensibles pour les agents normaux
+                joinedAt: agent.createdAt
+            };
+        }
 
         return res.json({
             success: true,
             data: {
                 agent: formattedAgent
             },
-            message: `Retrieved agent profile for ${agent.protocol.agentName}`
+            message: 'Agent profile retrieved successfully'
         });
     } catch (error: any) {
-        console.error('❌ Error fetching agent by membership:', error);
+        // Log sécurisé sans exposer d'informations sensibles
+        console.error('Agent lookup error:', {
+            timestamp: new Date().toISOString(),
+            requesterId: req.user?.agentId,
+            ip: req.ip
+        });
+        
         return res.status(500).json({
             success: false,
-            error: 'Failed to fetch agent profile',
-            message: error.message
+            error: 'Internal server error'
         });
     }
 };
@@ -73,21 +130,44 @@ export const updateAgentByMembership = async (req: Request, res: Response) => {
         if (!membershipType || !membershipId) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing parameters',
-                message: 'membershipType and membershipId are required'
+                error: 'Invalid parameters'
+            });
+        }
+
+        // Validation du format membershipType
+        const parsedMembershipType = parseInt(membershipType);
+        if (isNaN(parsedMembershipType) || parsedMembershipType < 1 || parsedMembershipType > 5) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid parameters'
+            });
+        }
+
+        // Validation du format membershipId
+        if (!/^\d+$/.test(membershipId) || membershipId.length > 20) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid parameters'
+            });
+        }
+
+        // Vérification des permissions - seuls les fondateurs peuvent modifier les profils d'autres agents
+        if (req.user?.protocol?.role?.toUpperCase() !== 'FOUNDER') {
+            return res.status(403).json({
+                success: false,
+                error: 'Forbidden'
             });
         }
 
         const agent = await agentService.getAgentByDestinyMembership(
-            parseInt(membershipType),
+            parsedMembershipType,
             membershipId
         );
 
         if (!agent) {
             return res.status(404).json({
                 success: false,
-                error: 'Agent not found',
-                message: `No agent found with membershipType ${membershipType} and membershipId ${membershipId}`
+                error: 'Agent not found'
             });
         }
 
@@ -97,11 +177,15 @@ export const updateAgentByMembership = async (req: Request, res: Response) => {
             message: 'This endpoint is not yet implemented'
         });
     } catch (error: any) {
-        console.error('❌ Error updating agent by membership:', error);
+        console.error('Agent update error:', {
+            timestamp: new Date().toISOString(),
+            requesterId: req.user?.agentId,
+            ip: req.ip
+        });
+        
         return res.status(500).json({
             success: false,
-            error: 'Failed to update agent',
-            message: error.message
+            error: 'Internal server error'
         });
     }
 };
@@ -113,8 +197,7 @@ export const getMyProfile = async (req: Request, res: Response) => {
         if (!agentId) {
             return res.status(401).json({
                 success: false,
-                error: 'Authentication required',
-                message: 'You must be logged in to view your profile'
+                error: 'Unauthorized'
             });
         }
 
@@ -123,8 +206,7 @@ export const getMyProfile = async (req: Request, res: Response) => {
         if (!agent) {
             return res.status(404).json({
                 success: false,
-                error: 'Profile not found',
-                message: 'Your agent profile could not be found'
+                error: 'Profile not found'
             });
         }
 
@@ -154,14 +236,18 @@ export const getMyProfile = async (req: Request, res: Response) => {
             data: {
                 agent: formattedAgent
             },
-            message: `Retrieved your agent profile, ${agent.protocol.agentName}`
+            message: 'Profile retrieved successfully'
         });
     } catch (error: any) {
-        console.error('❌ Error fetching agent profile:', error);
+        console.error('Profile fetch error:', {
+            timestamp: new Date().toISOString(),
+            agentId: req.user?.agentId,
+            ip: req.ip
+        });
+        
         return res.status(500).json({
             success: false,
-            error: 'Failed to fetch profile',
-            message: error.message
+            error: 'Internal server error'
         });
     }
 };
@@ -174,8 +260,15 @@ export const updateMyProfile = async (req: Request, res: Response) => {
         if (!agentId) {
             return res.status(401).json({
                 success: false,
-                error: 'Authentication required',
-                message: 'You must be logged in to update your profile'
+                error: 'Unauthorized'
+            });
+        }
+
+        // Validation de base du payload
+        if (!updateData || typeof updateData !== 'object') {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid payload'
             });
         }
 
@@ -183,8 +276,7 @@ export const updateMyProfile = async (req: Request, res: Response) => {
         if (!existingAgent) {
             return res.status(404).json({
                 success: false,
-                error: 'Profile not found',
-                message: 'Your agent profile could not be found'
+                error: 'Profile not found'
             });
         }
 
@@ -209,7 +301,15 @@ export const updateMyProfile = async (req: Request, res: Response) => {
                 sanitizedData.protocol.hasSeenRecruitment = !!updateData.protocol.hasSeenRecruitment;
             }
             if (updateData.protocol.customName !== undefined) {
-                sanitizedData.protocol.customName = updateData.protocol.customName;
+                // Validation du customName
+                if (typeof updateData.protocol.customName === 'string' && 
+                    updateData.protocol.customName.length <= 50 && 
+                    updateData.protocol.customName.trim().length > 0) {
+                    sanitizedData.protocol.customName = updateData.protocol.customName.trim();
+                } else if (updateData.protocol.customName === null || updateData.protocol.customName === '') {
+                    sanitizedData.protocol.customName = undefined; // Permet de supprimer le custom name
+                }
+                // Ignore les valeurs invalides (pas d'erreur, juste pas de mise à jour)
             }
 
             if (updateData.protocol.species !== undefined &&
@@ -242,8 +342,7 @@ export const updateMyProfile = async (req: Request, res: Response) => {
         if (!updatedAgent) {
             return res.status(500).json({
                 success: false,
-                error: 'Update failed',
-                message: 'Failed to update agent profile'
+                error: 'Internal server error'
             });
         }
 
@@ -265,32 +364,43 @@ export const updateMyProfile = async (req: Request, res: Response) => {
                     updatedAt: updatedAgent.updatedAt
                 }
             },
-            message: `Profile updated successfully, ${updatedAgent.protocol.agentName}`
+            message: 'Profile updated successfully'
         });
     } catch (error: any) {
-        console.error('❌ Error updating agent profile:', error);
+        console.error('Profile update error:', {
+            timestamp: new Date().toISOString(),
+            agentId: req.user?.agentId,
+            ip: req.ip
+        });
+        
         return res.status(500).json({
             success: false,
-            error: 'Failed to update profile',
-            message: error.message
+            error: 'Internal server error'
         });
     }
 };
 
 export const getAllAgents = async (req: Request, res: Response) => {
     try {
-        const agents = await AgentModel.find().lean();
+        // Récupérer uniquement les agents avec profil public ou sans restriction de confidentialité
+        const agents = await AgentModel.find({
+            $or: [
+                { 'protocol.settings.publicProfile': true },
+                { 'protocol.settings.publicProfile': { $exists: false } } // Par défaut public si non défini
+            ]
+        }).lean();
+
+        // Formater les données pour l'affichage public (informations limitées et sécurisées)
         const formattedAgents = agents.map(agent => ({
-            _id: agent._id,
-            bungieId: agent.bungieId,
             protocol: {
-                agentName: agent.protocol.agentName,
-                species: agent.protocol.species,
-                role: agent.protocol.role,
-                group: agent.protocol.group
+                agentName: agent.protocol.agentName || 'Agent Inconnu',
+                customName: agent.protocol.customName || null,
+                species: agent.protocol.species || 'UNKNOWN',
+                role: agent.protocol.role || 'AGENT',
+                group: agent.protocol.group || null
             },
-            createdAt: agent.createdAt,
-            updatedAt: agent.updatedAt || agent.lastActivity
+            // Pas d'ID, bungieId ou dates sensibles pour la liste publique
+            joinedAt: agent.protocol.protocolJoinedAt || agent.createdAt
         }));
 
         return res.json({
@@ -299,14 +409,68 @@ export const getAllAgents = async (req: Request, res: Response) => {
                 agents: formattedAgents,
                 count: formattedAgents.length
             },
-            message: `Retrieved ${formattedAgents.length} agents`
+            message: 'Protocol agents retrieved successfully'
         });
     } catch (error: any) {
-        console.error('❌ Error fetching all agents:', error);
+        console.error('Public agents fetch error:', {
+            timestamp: new Date().toISOString(),
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
+        
         return res.status(500).json({
             success: false,
-            error: 'Failed to fetch agents',
-            message: error.message
+            error: 'Internal server error'
+        });
+    }
+};
+
+/**
+ * Récupère les statistiques des agents (réservé aux fondateurs)
+ */
+export const getAgentStatistics = async (req: Request, res: Response) => {
+    try {
+        // Vérification des permissions (seuls les fondateurs peuvent voir les stats)
+        if (req.user?.protocol?.role !== 'FOUNDER') {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied - Founders only'
+            });
+        }
+
+        const now = new Date();
+        
+        // Utilisation du service pour récupérer les statistiques
+        const stats = await agentService.getAgentStatistics();
+
+        // Log de l'accès aux statistiques pour audit
+        console.log('Agent statistics accessed:', {
+            timestamp: new Date().toISOString(),
+            founderId: req.user?.agentId,
+            ip: req.ip,
+            stats
+        });
+
+        return res.json({
+            success: true,
+            data: {
+                statistics: stats,
+                generatedAt: now.toISOString()
+            },
+            message: 'Agent statistics retrieved successfully'
+        });
+
+    } catch (error: any) {
+        console.error('Agent statistics error:', {
+            timestamp: new Date().toISOString(),
+            founderId: req.user?.agentId,
+            error: error.message,
+            ip: req.ip
+        });
+
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error'
         });
     }
 };
