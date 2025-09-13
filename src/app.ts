@@ -42,6 +42,8 @@ const createApp = (): express.Application => {
             'http://localhost:3000',
             'http://localhost:3001',
             'https://ladybird-helping-blindly.ngrok-free.app',
+            'https://anom-archives.net',
+            'https://www.anom-archives.net'
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         credentials: true
