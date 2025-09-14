@@ -104,10 +104,10 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
 
             // Validation des espèces
             if (updateData.protocol.species !== undefined) {
-                const allowedSpecies = ['Human', 'Exo', 'Awoken'];
+                const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
                 if (!allowedSpecies.includes(updateData.protocol.species)) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Espèce invalide. Doit être Human, Exo ou Awoken',
+                        message: 'Espèce invalide. Doit être HUMAN, EXO ou AWOKEN',
                         error: 'validation_error'
                     });
                 }
@@ -116,10 +116,10 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
 
             // Validation des rôles
             if (updateData.protocol.role !== undefined) {
-                const allowedRoles = ['HUNTER', 'TITAN', 'WARLOCK'];
+                const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
                 if (!allowedRoles.includes(updateData.protocol.role)) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Rôle invalide. Doit être HUNTER, TITAN ou WARLOCK',
+                        message: 'Rôle invalide. Doit être AGENT, SPECIALIST ou FOUNDER',
                         error: 'validation_error'
                     });
                 }

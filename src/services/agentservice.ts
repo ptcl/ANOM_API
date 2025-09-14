@@ -126,11 +126,11 @@ class AgentService implements IAgentService {
                     timestamp: new Date().toISOString()
                 });
 
-                const allowedSpecies = ['Human', 'Exo', 'Awoken'];
-                const species = allowedSpecies.includes(agent.protocol.species || '') ? agent.protocol.species : 'Human';
+                const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
+                const species = allowedSpecies.includes(agent.protocol.species || '') ? agent.protocol.species : 'HUMAN';
 
-                const allowedRoles = ['HUNTER', 'TITAN', 'WARLOCK'];
-                const role = allowedRoles.includes(agent.protocol.role || '') ? agent.protocol.role : 'HUNTER';
+                const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
+                const role = allowedRoles.includes(agent.protocol.role || '') ? agent.protocol.role : 'AGENT';
 
                 let clearanceLevel = agent.protocol.clearanceLevel || 1;
                 if (typeof clearanceLevel !== 'number' || clearanceLevel < MIN_CLEARANCE_LEVEL || clearanceLevel > MAX_CLEARANCE_LEVEL) {
@@ -501,7 +501,7 @@ class AgentService implements IAgentService {
                 }
 
                 if (protocolUpdate.role) {
-                    const allowedRoles = ['HUNTER', 'TITAN', 'WARLOCK'];
+                    const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
                     if (!allowedRoles.includes(protocolUpdate.role)) {
                         throw new Error('Rôle invalide');
                     }
