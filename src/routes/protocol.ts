@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAgentByMembership, updateAgentByMembership, getAllAgents, getMyProfile, updateMyProfile, getAgentStatistics, repairProfile } from '../controllers/agent.controller';
+import { getAgentByMembership, updateAgentByMembership, getAllAgents, getAgentStatistics, repairProfile,getProfilAgent,updateProfilAgent } from '../controllers/agent.controller';
 import { getProtocolStatus } from '../controllers/protocol.controller';
 import { FounderUpdateAgent } from '../controllers/founder.controller';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/contract.controller';
@@ -18,8 +18,8 @@ router.get('/agents', getAllAgents);
 router.get('/agents/:membershipType/:membershipId', IdentityMiddleware, getAgentByMembership);
 router.patch('/agents/:membershipType/:membershipId', IdentityMiddleware, AccessMiddleware, updateAgentByMembership);
 
-router.get('/agent/profile', IdentityMiddleware, getMyProfile);
-router.patch('/agent/profile', IdentityMiddleware, updateMyProfile);
+router.get('/agent/profile', IdentityMiddleware, getProfilAgent);
+router.patch('/agent/profile', IdentityMiddleware, updateProfilAgent);
 
 
 // ============== ROUTES CONCTRACTS AGENTS (JOUEURS) ==============
@@ -60,7 +60,7 @@ router.get('/founder/agents/statistics', IdentityMiddleware, AccessMiddleware, g
 router.patch('/founder/agents/:agentId', IdentityMiddleware, AccessMiddleware, FounderUpdateAgent);
 router.post('/founder/agents/:agentId/repair', IdentityMiddleware, AccessMiddleware, repairProfile);
 router.get('/founder/agents/:agentId/contracts', IdentityMiddleware, AccessMiddleware, getAgentAllContracts);
-router.post('/agent/profile/repair', IdentityMiddleware, AccessMiddleware, repairProfile);
+router.post('/agent/profile/repair', IdentityMiddleware, repairProfile);
 
 
 // ============== ROUTES FONDEURS CONTRACTS ==============

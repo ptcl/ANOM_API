@@ -190,7 +190,7 @@ export const updateAgentByMembership = async (req: Request, res: Response) => {
     }
 };
 
-export const getMyProfile = async (req: Request, res: Response) => {
+export const getProfilAgent = async (req: Request, res: Response) => {
     try {
         const agentId = req.user?.agentId;
 
@@ -252,7 +252,7 @@ export const getMyProfile = async (req: Request, res: Response) => {
     }
 };
 
-export const updateMyProfile = async (req: Request, res: Response) => {
+export const updateProfilAgent = async (req: Request, res: Response) => {
     try {
         const agentId = req.user?.agentId;
         const updateData = req.body;
@@ -543,6 +543,4 @@ export const repairProfile = async (req: Request, res: Response) => {
         });
     }
 };
-
-
 
