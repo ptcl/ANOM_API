@@ -475,5 +475,74 @@ export const getAgentStatistics = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * Répare un profil agent incomplet (réservé aux fondateurs ou profil personnel)
+ */
+export const repairProfile = async (req: Request, res: Response) => {
+    try {
+        const requesterId = req.user?.agentId;
+        const targetAgentId = req.params.agentId || requesterId;
+        const isFounder = req.user?.protocol?.role === 'FOUNDER';
+
+        if (!requesterId) {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized'
+            });
+        }
+
+        if (!targetAgentId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Agent ID required'
+            });
+        }
+
+        // Vérifier les permissions : propre profil ou fondateur
+        if (targetAgentId !== requesterId && !isFounder) {
+            return res.status(403).json({
+                success: false,
+                error: 'Forbidden - Can only repair own profile'
+            });
+        }
+
+        console.log('Profile repair requested:', {
+            requesterId,
+            targetAgentId,
+            isFounder,
+            ip: req.ip,
+            timestamp: new Date().toISOString()
+        });
+
+        const success = await agentService.repairIncompleteProfile(targetAgentId);
+
+        if (success) {
+            return res.json({
+                success: true,
+                message: 'Profile repair completed successfully'
+            });
+        } else {
+            return res.status(500).json({
+                success: false,
+                error: 'Profile repair failed'
+            });
+        }
+
+    } catch (error: any) {
+        console.error('Profile repair error:', {
+            timestamp: new Date().toISOString(),
+            requesterId: req.user?.agentId,
+            targetAgentId: req.params.agentId,
+            error: error.message,
+            ip: req.ip
+        });
+
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+};
+
 
 

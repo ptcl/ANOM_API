@@ -21,6 +21,7 @@ export interface IAgentService {
     validateAgentData(agentData: Partial<IAgent>): ValidationResult;
     agentExistsByBungieId(bungieId: string): Promise<boolean>;
     getAgentStatistics(): Promise<AgentServiceStats>;
+    repairIncompleteProfile(agentId: string): Promise<boolean>;
 }
 class AgentService implements IAgentService {
     async createOrUpdateAgent(
@@ -115,10 +116,16 @@ class AgentService implements IAgentService {
                 if (agent.bungieUser) {
                     const existingBungieUser = existingPlayer.bungieUser || {};
                     
+                    // Détecter si le profil existant est incomplet (manque des champs essentiels)
+                    const isIncompleteProfile = !existingBungieUser.profilePicturePath || 
+                                               existingBungieUser.about === undefined ||
+                                               !existingBungieUser.locale;
+                    
                     // Log de débogage pour profilePicture et profilePicturePath
                     console.log('🖼️ ProfilePicture Update Debug:', {
                         agentId: existingPlayer._id?.toString(),
                         bungieId: agent.bungieId,
+                        isIncompleteProfile,
                         newData: {
                             profilePicture: agent.bungieUser.profilePicture,
                             profilePictureType: typeof agent.bungieUser.profilePicture,
@@ -134,34 +141,65 @@ class AgentService implements IAgentService {
                         timestamp: new Date().toISOString()
                     });
                     
-                    existingPlayer.bungieUser = {
-                        membershipId: agent.bungieUser.membershipId || existingBungieUser.membershipId,
-                        uniqueName: (agent.bungieUser.uniqueName?.trim() && agent.bungieUser.uniqueName.trim().length > 0) 
-                            ? agent.bungieUser.uniqueName.slice(0, 100) 
-                            : existingBungieUser.uniqueName || '',
-                        displayName: (agent.bungieUser.displayName?.trim() && agent.bungieUser.displayName.trim().length > 0)
-                            ? agent.bungieUser.displayName.slice(0, 100)
-                            : existingBungieUser.displayName || '',
-                        profilePicture: typeof agent.bungieUser.profilePicture === 'number' 
-                            ? agent.bungieUser.profilePicture 
-                            : (typeof existingBungieUser.profilePicture === 'number' ? existingBungieUser.profilePicture : 0),
-                        // Préserver les autres champs existants
-                        about: agent.bungieUser.about || existingBungieUser.about || '',
-                        firstAccess: agent.bungieUser.firstAccess || existingBungieUser.firstAccess,
-                        lastAccess: agent.bungieUser.lastAccess || existingBungieUser.lastAccess,
-                        psnDisplayName: agent.bungieUser.psnDisplayName || existingBungieUser.psnDisplayName || '',
-                        showActivity: agent.bungieUser.showActivity !== undefined ? agent.bungieUser.showActivity : existingBungieUser.showActivity || false,
-                        locale: agent.bungieUser.locale || existingBungieUser.locale || '',
-                        localeInheritDefault: agent.bungieUser.localeInheritDefault !== undefined ? agent.bungieUser.localeInheritDefault : existingBungieUser.localeInheritDefault || false,
-                        profilePicturePath: (agent.bungieUser.profilePicturePath?.trim() && agent.bungieUser.profilePicturePath.trim().length > 0)
-                            ? agent.bungieUser.profilePicturePath.trim()
-                            : existingBungieUser.profilePicturePath || '',
-                        profileThemeName: agent.bungieUser.profileThemeName || existingBungieUser.profileThemeName || '',
-                        steamDisplayName: agent.bungieUser.steamDisplayName || existingBungieUser.steamDisplayName || '',
-                        twitchDisplayName: agent.bungieUser.twitchDisplayName || existingBungieUser.twitchDisplayName || '',
-                        cachedBungieGlobalDisplayName: agent.bungieUser.cachedBungieGlobalDisplayName || existingBungieUser.cachedBungieGlobalDisplayName || '',
-                        cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || existingBungieUser.cachedBungieGlobalDisplayNameCode || 0
-                    };
+                    if (isIncompleteProfile) {
+                        console.log('🔄 Detected incomplete profile, performing full update:', {
+                            agentId: existingPlayer._id?.toString(),
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    
+                    // Si le profil existant est incomplet, faire une mise à jour complète avec les nouvelles données
+                    if (isIncompleteProfile) {
+                        existingPlayer.bungieUser = {
+                            membershipId: agent.bungieUser.membershipId || existingBungieUser.membershipId,
+                            uniqueName: agent.bungieUser.uniqueName?.slice(0, 100) || existingBungieUser.uniqueName || '',
+                            displayName: agent.bungieUser.displayName?.slice(0, 100) || existingBungieUser.displayName || '',
+                            profilePicture: typeof agent.bungieUser.profilePicture === 'number' ? agent.bungieUser.profilePicture : (existingBungieUser.profilePicture || 0),
+                            about: agent.bungieUser.about || existingBungieUser.about || '',
+                            firstAccess: agent.bungieUser.firstAccess || existingBungieUser.firstAccess,
+                            lastAccess: agent.bungieUser.lastAccess || existingBungieUser.lastAccess,
+                            psnDisplayName: agent.bungieUser.psnDisplayName || existingBungieUser.psnDisplayName || '',
+                            showActivity: agent.bungieUser.showActivity !== undefined ? agent.bungieUser.showActivity : (existingBungieUser.showActivity || false),
+                            locale: agent.bungieUser.locale || existingBungieUser.locale || '',
+                            localeInheritDefault: agent.bungieUser.localeInheritDefault !== undefined ? agent.bungieUser.localeInheritDefault : (existingBungieUser.localeInheritDefault || false),
+                            profilePicturePath: agent.bungieUser.profilePicturePath || existingBungieUser.profilePicturePath || '',
+                            profileThemeName: agent.bungieUser.profileThemeName || existingBungieUser.profileThemeName || '',
+                            steamDisplayName: agent.bungieUser.steamDisplayName || existingBungieUser.steamDisplayName || '',
+                            twitchDisplayName: agent.bungieUser.twitchDisplayName || existingBungieUser.twitchDisplayName || '',
+                            cachedBungieGlobalDisplayName: agent.bungieUser.cachedBungieGlobalDisplayName || existingBungieUser.cachedBungieGlobalDisplayName || '',
+                            cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || existingBungieUser.cachedBungieGlobalDisplayNameCode || 0
+                        };
+                    } else {
+                        // Profil complet existant : mise à jour sélective (préserver les données existantes si nouvelles données vides)
+                        existingPlayer.bungieUser = {
+                            membershipId: agent.bungieUser.membershipId || existingBungieUser.membershipId,
+                            uniqueName: (agent.bungieUser.uniqueName?.trim() && agent.bungieUser.uniqueName.trim().length > 0) 
+                                ? agent.bungieUser.uniqueName.slice(0, 100) 
+                                : existingBungieUser.uniqueName || '',
+                            displayName: (agent.bungieUser.displayName?.trim() && agent.bungieUser.displayName.trim().length > 0)
+                                ? agent.bungieUser.displayName.slice(0, 100)
+                                : existingBungieUser.displayName || '',
+                            profilePicture: typeof agent.bungieUser.profilePicture === 'number' 
+                                ? agent.bungieUser.profilePicture 
+                                : (typeof existingBungieUser.profilePicture === 'number' ? existingBungieUser.profilePicture : 0),
+                            // Préserver les autres champs existants
+                            about: agent.bungieUser.about || existingBungieUser.about || '',
+                            firstAccess: agent.bungieUser.firstAccess || existingBungieUser.firstAccess,
+                            lastAccess: agent.bungieUser.lastAccess || existingBungieUser.lastAccess,
+                            psnDisplayName: agent.bungieUser.psnDisplayName || existingBungieUser.psnDisplayName || '',
+                            showActivity: agent.bungieUser.showActivity !== undefined ? agent.bungieUser.showActivity : existingBungieUser.showActivity || false,
+                            locale: agent.bungieUser.locale || existingBungieUser.locale || '',
+                            localeInheritDefault: agent.bungieUser.localeInheritDefault !== undefined ? agent.bungieUser.localeInheritDefault : existingBungieUser.localeInheritDefault || false,
+                            profilePicturePath: (agent.bungieUser.profilePicturePath?.trim() && agent.bungieUser.profilePicturePath.trim().length > 0)
+                                ? agent.bungieUser.profilePicturePath.trim()
+                                : existingBungieUser.profilePicturePath || '',
+                            profileThemeName: agent.bungieUser.profileThemeName || existingBungieUser.profileThemeName || '',
+                            steamDisplayName: agent.bungieUser.steamDisplayName || existingBungieUser.steamDisplayName || '',
+                            twitchDisplayName: agent.bungieUser.twitchDisplayName || existingBungieUser.twitchDisplayName || '',
+                            cachedBungieGlobalDisplayName: agent.bungieUser.cachedBungieGlobalDisplayName || existingBungieUser.cachedBungieGlobalDisplayName || '',
+                            cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || existingBungieUser.cachedBungieGlobalDisplayNameCode || 0
+                        };
+                    }
                     
                     // Log après mise à jour
                     console.log('🖼️ ProfilePicture Final Values:', {
@@ -221,7 +259,20 @@ class AgentService implements IAgentService {
                     membershipId: agent.bungieUser.membershipId,
                     uniqueName: agent.bungieUser.uniqueName?.slice(0, 100) || '',
                     displayName: agent.bungieUser.displayName?.slice(0, 100) || '',
-                    profilePicture: typeof agent.bungieUser.profilePicture === 'number' ? agent.bungieUser.profilePicture : 0
+                    profilePicture: typeof agent.bungieUser.profilePicture === 'number' ? agent.bungieUser.profilePicture : 0,
+                    about: agent.bungieUser.about || '',
+                    firstAccess: agent.bungieUser.firstAccess,
+                    lastAccess: agent.bungieUser.lastAccess,
+                    psnDisplayName: agent.bungieUser.psnDisplayName || '',
+                    showActivity: agent.bungieUser.showActivity || false,
+                    locale: agent.bungieUser.locale || '',
+                    localeInheritDefault: agent.bungieUser.localeInheritDefault || false,
+                    profilePicturePath: agent.bungieUser.profilePicturePath || '',
+                    profileThemeName: agent.bungieUser.profileThemeName || '',
+                    steamDisplayName: agent.bungieUser.steamDisplayName || '',
+                    twitchDisplayName: agent.bungieUser.twitchDisplayName || '',
+                    cachedBungieGlobalDisplayName: agent.bungieUser.cachedBungieGlobalDisplayName || '',
+                    cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || 0
                 } : undefined;
 
                 const newAgent = new AgentModel({
@@ -834,6 +885,53 @@ class AgentService implements IAgentService {
                 inactiveAgents: 0,
                 recentJoins: 0
             };
+        }
+    }
+
+    /**
+     * Répare un profil incomplet en forçant la récupération des données Bungie manquantes
+     */
+    async repairIncompleteProfile(agentId: string): Promise<boolean> {
+        try {
+            const agent = await this.getAgentById(agentId);
+            if (!agent) {
+                console.error('Agent not found for profile repair:', { agentId });
+                return false;
+            }
+
+            if (!agent.bungieTokens?.accessToken) {
+                console.error('No valid Bungie tokens for profile repair:', { agentId });
+                return false;
+            }
+
+            // Utiliser le BungieService pour récupérer les données fraîches
+            const { bungieService } = await import('./bungieservice');
+            const freshProfile = await bungieService.getCurrentUser(agent.bungieTokens.accessToken);
+            
+            // Forcer une mise à jour complète
+            const updatedAgent = await this.createOrUpdateAgent(freshProfile, {
+                access_token: agent.bungieTokens.accessToken,
+                refresh_token: agent.bungieTokens.refreshToken,
+                expires_in: Math.floor((agent.bungieTokens.expiresAt.getTime() - Date.now()) / 1000),
+                token_type: 'Bearer',
+                membership_id: agent.bungieId,
+                refresh_expires_in: 86400
+            });
+
+            console.log('Profile repair completed:', {
+                agentId,
+                hasProfilePicturePath: !!(updatedAgent.bungieUser?.profilePicturePath),
+                timestamp: new Date().toISOString()
+            });
+
+            return true;
+        } catch (error: any) {
+            console.error('Profile repair failed:', {
+                agentId,
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
+            return false;
         }
     }
 }
