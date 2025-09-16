@@ -98,6 +98,16 @@ class BungieService {
             const bungieNetUser = rawData.bungieNetUser;
             const destinyMemberships = rawData.destinyMemberships || [];
 
+            // Log de débogage pour profilePicture depuis Bungie API
+            console.log('Bungie ProfilePicture Debug:', {
+                profilePictureRaw: bungieNetUser.profilePicture,
+                profilePictureType: typeof bungieNetUser.profilePicture,
+                profilePicturePathRaw: bungieNetUser.profilePicturePath,
+                profilePicturePathType: typeof bungieNetUser.profilePicturePath,
+                bungieId: bungieNetUser.membershipId,
+                timestamp: new Date().toISOString()
+            });
+
             const agent: IAgent = {
                 bungieId: bungieNetUser.membershipId,
                 destinyMemberships: destinyMemberships,
@@ -105,7 +115,7 @@ class BungieService {
                     membershipId: parseInt(bungieNetUser.membershipId),
                     uniqueName: bungieNetUser.uniqueName || bungieNetUser.displayName,
                     displayName: bungieNetUser.displayName,
-                    profilePicture: bungieNetUser.profilePicture || 0,
+                    profilePicture: typeof bungieNetUser.profilePicture === 'number' ? bungieNetUser.profilePicture : 0,
                     about: bungieNetUser.about || '',
                     firstAccess: bungieNetUser.firstAccess || '',
                     lastAccess: bungieNetUser.lastAccess || '',
@@ -121,7 +131,9 @@ class BungieService {
                     cachedBungieGlobalDisplayNameCode: bungieNetUser.cachedBungieGlobalDisplayNameCode || 0
                 },
                 protocol: {
-                    agentName: bungieNetUser.displayName,
+                    agentName: bungieNetUser.displayName && bungieNetUser.displayName.trim().length > 0 
+                        ? bungieNetUser.displayName.trim() 
+                        : `Agent-${bungieNetUser.membershipId.slice(-6)}`, // Fallback avec les 6 derniers chiffres du membershipId
                     species: 'HUMAN',
                     role: 'AGENT',
                     clearanceLevel: 1,

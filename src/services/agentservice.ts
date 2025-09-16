@@ -77,26 +77,99 @@ class AgentService implements IAgentService {
                     timestamp: new Date().toISOString()
                 });
 
-                if (agent.protocol?.agentName && agent.protocol.agentName.trim().length > 0) {
-                    existingPlayer.protocol.agentName = agent.protocol.agentName.trim();
-                }
+                // Ne pas écraser l'agentName existant lors de la reconnexion
+                // L'agentName ne devrait être mis à jour que par l'utilisateur ou un admin
+                // if (agent.protocol?.agentName && agent.protocol.agentName.trim().length > 0) {
+                //     existingPlayer.protocol.agentName = agent.protocol.agentName.trim();
+                // }
 
+                // Mise à jour intelligente des memberships Destiny (fusion plutôt qu'écrasement)
                 if (agent.destinyMemberships && Array.isArray(agent.destinyMemberships)) {
-                    existingPlayer.destinyMemberships = agent.destinyMemberships.map(membership => ({
+                    const existingMemberships = existingPlayer.destinyMemberships || [];
+                    const newMemberships = agent.destinyMemberships.map(membership => ({
                         membershipType: membership.membershipType,
                         membershipId: membership.membershipId,
-                        displayName: membership.displayName?.slice(0, 100) || '', // Limitation de longueur
+                        displayName: membership.displayName?.slice(0, 100) || '',
                         bungieGlobalDisplayName: membership.bungieGlobalDisplayName?.slice(0, 100) || ''
                     }));
+
+                    // Fusionner les memberships existants avec les nouveaux (éviter les doublons)
+                    const mergedMemberships = [...existingMemberships];
+                    newMemberships.forEach(newMembership => {
+                        const existingIndex = mergedMemberships.findIndex(
+                            existing => existing.membershipType === newMembership.membershipType && 
+                                       existing.membershipId === newMembership.membershipId
+                        );
+                        if (existingIndex !== -1) {
+                            // Mettre à jour le membership existant
+                            mergedMemberships[existingIndex] = newMembership;
+                        } else {
+                            // Ajouter le nouveau membership
+                            mergedMemberships.push(newMembership);
+                        }
+                    });
+                    existingPlayer.destinyMemberships = mergedMemberships;
                 }
 
+                // Mise à jour sélective des données utilisateur Bungie (préserver les données existantes si nouvelles données vides)
                 if (agent.bungieUser) {
+                    const existingBungieUser = existingPlayer.bungieUser || {};
+                    
+                    // Log de débogage pour profilePicture et profilePicturePath
+                    console.log('🖼️ ProfilePicture Update Debug:', {
+                        agentId: existingPlayer._id?.toString(),
+                        bungieId: agent.bungieId,
+                        newData: {
+                            profilePicture: agent.bungieUser.profilePicture,
+                            profilePictureType: typeof agent.bungieUser.profilePicture,
+                            profilePicturePath: agent.bungieUser.profilePicturePath,
+                            profilePicturePathType: typeof agent.bungieUser.profilePicturePath,
+                        },
+                        existingData: {
+                            profilePicture: existingBungieUser.profilePicture,
+                            profilePictureType: typeof existingBungieUser.profilePicture,
+                            profilePicturePath: existingBungieUser.profilePicturePath,
+                            profilePicturePathType: typeof existingBungieUser.profilePicturePath,
+                        },
+                        timestamp: new Date().toISOString()
+                    });
+                    
                     existingPlayer.bungieUser = {
-                        membershipId: agent.bungieUser.membershipId,
-                        uniqueName: agent.bungieUser.uniqueName?.slice(0, 100) || '',
-                        displayName: agent.bungieUser.displayName?.slice(0, 100) || '',
-                        profilePicture: typeof agent.bungieUser.profilePicture === 'number' ? agent.bungieUser.profilePicture : 0
+                        membershipId: agent.bungieUser.membershipId || existingBungieUser.membershipId,
+                        uniqueName: (agent.bungieUser.uniqueName?.trim() && agent.bungieUser.uniqueName.trim().length > 0) 
+                            ? agent.bungieUser.uniqueName.slice(0, 100) 
+                            : existingBungieUser.uniqueName || '',
+                        displayName: (agent.bungieUser.displayName?.trim() && agent.bungieUser.displayName.trim().length > 0)
+                            ? agent.bungieUser.displayName.slice(0, 100)
+                            : existingBungieUser.displayName || '',
+                        profilePicture: typeof agent.bungieUser.profilePicture === 'number' 
+                            ? agent.bungieUser.profilePicture 
+                            : (typeof existingBungieUser.profilePicture === 'number' ? existingBungieUser.profilePicture : 0),
+                        // Préserver les autres champs existants
+                        about: agent.bungieUser.about || existingBungieUser.about || '',
+                        firstAccess: agent.bungieUser.firstAccess || existingBungieUser.firstAccess,
+                        lastAccess: agent.bungieUser.lastAccess || existingBungieUser.lastAccess,
+                        psnDisplayName: agent.bungieUser.psnDisplayName || existingBungieUser.psnDisplayName || '',
+                        showActivity: agent.bungieUser.showActivity !== undefined ? agent.bungieUser.showActivity : existingBungieUser.showActivity || false,
+                        locale: agent.bungieUser.locale || existingBungieUser.locale || '',
+                        localeInheritDefault: agent.bungieUser.localeInheritDefault !== undefined ? agent.bungieUser.localeInheritDefault : existingBungieUser.localeInheritDefault || false,
+                        profilePicturePath: (agent.bungieUser.profilePicturePath?.trim() && agent.bungieUser.profilePicturePath.trim().length > 0)
+                            ? agent.bungieUser.profilePicturePath.trim()
+                            : existingBungieUser.profilePicturePath || '',
+                        profileThemeName: agent.bungieUser.profileThemeName || existingBungieUser.profileThemeName || '',
+                        steamDisplayName: agent.bungieUser.steamDisplayName || existingBungieUser.steamDisplayName || '',
+                        twitchDisplayName: agent.bungieUser.twitchDisplayName || existingBungieUser.twitchDisplayName || '',
+                        cachedBungieGlobalDisplayName: agent.bungieUser.cachedBungieGlobalDisplayName || existingBungieUser.cachedBungieGlobalDisplayName || '',
+                        cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || existingBungieUser.cachedBungieGlobalDisplayNameCode || 0
                     };
+                    
+                    // Log après mise à jour
+                    console.log('🖼️ ProfilePicture Final Values:', {
+                        agentId: existingPlayer._id?.toString(),
+                        finalProfilePicture: existingPlayer.bungieUser.profilePicture,
+                        finalProfilePicturePath: existingPlayer.bungieUser.profilePicturePath,
+                        timestamp: new Date().toISOString()
+                    });
                 }
 
                 existingPlayer.bungieTokens = {
@@ -494,9 +567,9 @@ class AgentService implements IAgentService {
                 }
 
                 if (protocolUpdate.species) {
-                    const allowedSpecies = ['Human', 'Exo', 'Awoken'];
+                    const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN']; // Cohérence avec les autres validations
                     if (!allowedSpecies.includes(protocolUpdate.species)) {
-                        throw new Error('Espèce invalide');
+                        throw new Error('Espèce invalide (doit être HUMAN, EXO ou AWOKEN)');
                     }
                 }
 

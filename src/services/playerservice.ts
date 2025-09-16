@@ -14,8 +14,9 @@ class PlayerService {
             });
 
             if (existingPlayer) {
-
-                existingPlayer.protocol.agentName = agent.protocol.agentName;
+                // Ne pas écraser l'agentName existant lors de la reconnexion (même correction que AgentService)
+                // existingPlayer.protocol.agentName = agent.protocol.agentName;
+                
                 existingPlayer.lastActivity = now;
                 existingPlayer.bungieTokens = {
                     accessToken: tokens.access_token,
