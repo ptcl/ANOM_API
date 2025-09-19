@@ -33,7 +33,7 @@ class EnvironmentManager {
         if (this.isDevelopment()) {
             requiredVars.push('MONGO_URL', 'MONGO_DB_NAME_DEV');
         } else if (this.isProduction()) {
-            requiredVars.push('MONGO_URL_PROD', 'MONGO_DB_NAME_PROD');
+            requiredVars.push('MONGO_URL_PROD', 'MONGO_DB_NAME_PROD', 'CORS_ORIGINS');
         }
 
         const missingVars = requiredVars.filter(varName => !process.env[varName]);
@@ -85,12 +85,43 @@ class EnvironmentManager {
     }
 
     getServerConfig() {
+        const defaultOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+
+        let corsOrigins = defaultOrigins;
+        if (process.env.CORS_ORIGINS) {
+            corsOrigins = process.env.CORS_ORIGINS
+                .split(',')
+                .map(origin => origin.trim())
+                .filter(origin => {
+                    try {
+                        new URL(origin);
+                        return true;
+                    } catch {
+                        console.warn(`⚠️  Invalid CORS origin ignored: ${origin}`);
+                        return false;
+                    }
+                });
+
+            if (corsOrigins.length === 0) {
+                console.warn('⚠️  No valid CORS origins found, using defaults');
+                corsOrigins = defaultOrigins;
+            }
+        }
+
+        if (this.isProduction()) {
+            corsOrigins = corsOrigins.filter(origin =>
+                !origin.includes('localhost') && !origin.includes('127.0.0.1')
+            );
+
+            if (corsOrigins.length === 0) {
+                console.error('❌ No production CORS origins configured!');
+            }
+        }
+
         return {
-            port: parseInt(process.env.PORT || '3000', 10),
+            port: parseInt(process.env.PORT || '3032', 10),
             frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
-            corsOrigins: this.isProduction()
-                ? process.env.FRONTEND_URL?.split(',') || []
-                : ['http://localhost:3000', 'http://localhost:3001']
+            corsOrigins: corsOrigins
         };
     }
 

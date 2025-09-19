@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { agentService } from '../services/agentservice';
 import { IAgent } from '../types/agent';
 import { ApiResponseBuilder } from '../utils/apiresponse';
+import { formatForUser } from '../utils';
 
 
 export const FounderUpdateAgent = async (req: Request, res: Response) => {
@@ -39,7 +40,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             agentId,
             targetAgent: existingAgent.protocol?.agentName || 'unknown',
             founderAgentId: (req as any).user?.agentId || 'unknown',
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             fieldsToUpdate: Object.keys(updateData)
         });
 
@@ -231,7 +232,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             console.error('Failed to update agent profile:', {
                 agentId,
                 sanitizedData,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             
             return ApiResponseBuilder.error(res, 500, {
@@ -245,7 +246,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             agentId,
             updatedBy: (req as any).user?.agentId || 'unknown',
             updatedFields: Object.keys(sanitizedData),
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         // Réponse sécurisée avec données filtrées
@@ -278,7 +279,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             agentId: req.params.agentId,
             error: error.message,
             stack: error.stack,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {

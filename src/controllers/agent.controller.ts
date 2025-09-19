@@ -3,6 +3,7 @@ import { agentService } from '../services/agentservice';
 import { AgentModel } from '../models/agent.model';
 import { IAgent } from '../types/agent';
 import { AgentServiceStats } from '../types/services';
+import { formatForUser } from '../utils';
 
 export const getAgentByMembership = async (req: Request, res: Response) => {
     try {
@@ -48,7 +49,7 @@ export const getAgentByMembership = async (req: Request, res: Response) => {
         // Vérifier si l'agent cible a un profil public ou si le demandeur est fondateur
         const isFounder = req.user?.protocol?.role?.toUpperCase() === 'FOUNDER';
         const isPublicProfile = agent.protocol?.settings?.publicProfile !== false; // Par défaut public
-        
+
         if (!isFounder && !isPublicProfile) {
             return res.status(404).json({
                 success: false,
@@ -58,7 +59,7 @@ export const getAgentByMembership = async (req: Request, res: Response) => {
 
         // Formater les données selon les permissions
         let formattedAgent;
-        
+
         if (isFounder) {
             // Fondateurs voient toutes les informations
             formattedAgent = {
@@ -111,11 +112,11 @@ export const getAgentByMembership = async (req: Request, res: Response) => {
     } catch (error: any) {
         // Log sécurisé sans exposer d'informations sensibles
         console.error('Agent lookup error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             requesterId: req.user?.agentId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -178,11 +179,11 @@ export const updateAgentByMembership = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Agent update error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             requesterId: req.user?.agentId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -240,11 +241,11 @@ export const getProfilAgent = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Profile fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             agentId: req.user?.agentId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -302,8 +303,8 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
             }
             if (updateData.protocol.customName !== undefined) {
                 // Validation du customName
-                if (typeof updateData.protocol.customName === 'string' && 
-                    updateData.protocol.customName.length <= 50 && 
+                if (typeof updateData.protocol.customName === 'string' &&
+                    updateData.protocol.customName.length <= 50 &&
                     updateData.protocol.customName.trim().length > 0) {
                     sanitizedData.protocol.customName = updateData.protocol.customName.trim();
                 } else if (updateData.protocol.customName === null || updateData.protocol.customName === '') {
@@ -368,11 +369,11 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Profile update error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             agentId: req.user?.agentId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -413,11 +414,11 @@ export const getAllAgents = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Public agents fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -439,13 +440,13 @@ export const getAgentStatistics = async (req: Request, res: Response) => {
         }
 
         const now = new Date();
-        
+
         // Utilisation du service pour récupérer les statistiques
         const stats = await agentService.getAgentStatistics();
 
         // Log de l'accès aux statistiques pour audit
         console.log('Agent statistics accessed:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             founderId: req.user?.agentId,
             ip: req.ip,
             stats
@@ -462,7 +463,7 @@ export const getAgentStatistics = async (req: Request, res: Response) => {
 
     } catch (error: any) {
         console.error('Agent statistics error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             founderId: req.user?.agentId,
             error: error.message,
             ip: req.ip
@@ -511,7 +512,7 @@ export const repairProfile = async (req: Request, res: Response) => {
             targetAgentId,
             isFounder,
             ip: req.ip,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         const success = await agentService.repairIncompleteProfile(targetAgentId);
@@ -530,7 +531,7 @@ export const repairProfile = async (req: Request, res: Response) => {
 
     } catch (error: any) {
         console.error('Profile repair error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             requesterId: req.user?.agentId,
             targetAgentId: req.params.agentId,
             error: error.message,

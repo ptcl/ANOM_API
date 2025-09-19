@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJWT } from '../utils/auth';
 import { agentService } from '../services/agentservice';
+import { formatForUser } from '../utils';
 
 declare global {
   namespace Express {
@@ -80,9 +81,8 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
 
       return next();
     } catch (error) {
-      // Log sécurisé sans exposer d'informations sensibles
       console.error('JWT verification failed:', {
-        timestamp: new Date().toISOString(),
+        timestamp: formatForUser(),
         ip: req.ip
       });
 
@@ -94,7 +94,7 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
   } catch (error: any) {
     // Log sécurisé pour les erreurs système
     console.error('Auth middleware system error:', {
-      timestamp: new Date().toISOString(),
+      timestamp: formatForUser(),
       ip: req.ip,
       userAgent: req.get('User-Agent')
     });

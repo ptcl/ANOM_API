@@ -5,7 +5,7 @@ import app from './app';
 
 const startServer = async () => {
     try {
-        console.log('🚀 Starting AN0M ARCHIVE API...');
+        console.log('🚀 Starting AN0M-ARCHIVES API...');
 
         env.logConfiguration();
         await connectDB();
@@ -27,9 +27,9 @@ const startServer = async () => {
 ║  📊 Database: Connected              ║
 ║  🔐 Environment: ${env.getEnvironment().padEnd(11)} ║
 ║                                      ║
-║  🔗 Health: /health                  ║
+║  🔗 Health: api/health                  ║
 ║  � API Docs: /docs              ║
-║  �📡 Auth: /api/identity/bungie/login ║
+║  �📡 Auth: api/identity/bungie/login ║
 ╚══════════════════════════════════════╝
       `);
         });

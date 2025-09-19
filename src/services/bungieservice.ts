@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { bungieConfig } from '../config/bungie';
 import { BungieTokenResponse, BungieAPIResponse } from '../types/bungie';
 import { IAgent } from '../types/agent';
+import { formatForUser } from '../utils';
 
 class BungieService {
     private apiClient: AxiosInstance;
@@ -105,7 +106,7 @@ class BungieService {
                 profilePicturePathRaw: bungieNetUser.profilePicturePath,
                 profilePicturePathType: typeof bungieNetUser.profilePicturePath,
                 bungieId: bungieNetUser.membershipId,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             const agent: IAgent = {
@@ -131,8 +132,8 @@ class BungieService {
                     cachedBungieGlobalDisplayNameCode: bungieNetUser.cachedBungieGlobalDisplayNameCode || 0
                 },
                 protocol: {
-                    agentName: bungieNetUser.displayName && bungieNetUser.displayName.trim().length > 0 
-                        ? bungieNetUser.displayName.trim() 
+                    agentName: bungieNetUser.displayName && bungieNetUser.displayName.trim().length > 0
+                        ? bungieNetUser.displayName.trim()
                         : `Agent-${bungieNetUser.membershipId.slice(-6)}`, // Fallback avec les 6 derniers chiffres du membershipId
                     species: 'HUMAN',
                     role: 'AGENT',

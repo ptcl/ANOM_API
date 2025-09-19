@@ -2,6 +2,7 @@ import { BungieTokenResponse } from '../types/bungie';
 import { IAgent, IAgentDocument } from '../types/agent';
 import { AgentModel } from '../models/agent.model';
 import { ValidationResult, AgentServiceStats } from '../types/services';
+import { formatForUser } from '../utils';
 
 const TOKEN_EXPIRY_BUFFER_SECONDS = 300; // 5 minutes de buffer
 const MAX_AGENT_NAME_LENGTH = 50;
@@ -38,7 +39,7 @@ class AgentService implements IAgentService {
                     hasAgent: !!agent,
                     hasBungieId: !!agent?.bungieId,
                     bungieIdType: typeof agent?.bungieId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 throw new Error('Le bungieId est manquant ou invalide dans le profil Agent');
             }
@@ -75,16 +76,9 @@ class AgentService implements IAgentService {
                     agentId: existingPlayer._id?.toString(),
                     bungieId: agent.bungieId,
                     agentName: agent.protocol.agentName,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
 
-                // Ne pas écraser l'agentName existant lors de la reconnexion
-                // L'agentName ne devrait être mis à jour que par l'utilisateur ou un admin
-                // if (agent.protocol?.agentName && agent.protocol.agentName.trim().length > 0) {
-                //     existingPlayer.protocol.agentName = agent.protocol.agentName.trim();
-                // }
-
-                // Mise à jour intelligente des memberships Destiny (fusion plutôt qu'écrasement)
                 if (agent.destinyMemberships && Array.isArray(agent.destinyMemberships)) {
                     const existingMemberships = existingPlayer.destinyMemberships || [];
                     const newMemberships = agent.destinyMemberships.map(membership => ({
@@ -94,34 +88,26 @@ class AgentService implements IAgentService {
                         bungieGlobalDisplayName: membership.bungieGlobalDisplayName?.slice(0, 100) || ''
                     }));
 
-                    // Fusionner les memberships existants avec les nouveaux (éviter les doublons)
                     const mergedMemberships = [...existingMemberships];
                     newMemberships.forEach(newMembership => {
                         const existingIndex = mergedMemberships.findIndex(
-                            existing => existing.membershipType === newMembership.membershipType && 
-                                       existing.membershipId === newMembership.membershipId
+                            existing => existing.membershipType === newMembership.membershipType &&
+                                existing.membershipId === newMembership.membershipId
                         );
                         if (existingIndex !== -1) {
-                            // Mettre à jour le membership existant
                             mergedMemberships[existingIndex] = newMembership;
                         } else {
-                            // Ajouter le nouveau membership
                             mergedMemberships.push(newMembership);
                         }
                     });
                     existingPlayer.destinyMemberships = mergedMemberships;
                 }
 
-                // Mise à jour sélective des données utilisateur Bungie (préserver les données existantes si nouvelles données vides)
                 if (agent.bungieUser) {
                     const existingBungieUser = existingPlayer.bungieUser || {};
-                    
-                    // Détecter si le profil existant est incomplet (manque des champs essentiels)
-                    const isIncompleteProfile = !existingBungieUser.profilePicturePath || 
-                                               existingBungieUser.about === undefined ||
-                                               !existingBungieUser.locale;
-                    
-                    // Log de débogage pour profilePicture et profilePicturePath
+                    const isIncompleteProfile = !existingBungieUser.profilePicturePath ||
+                        existingBungieUser.about === undefined ||
+                        !existingBungieUser.locale;
                     console.log('🖼️ ProfilePicture Update Debug:', {
                         agentId: existingPlayer._id?.toString(),
                         bungieId: agent.bungieId,
@@ -138,17 +124,16 @@ class AgentService implements IAgentService {
                             profilePicturePath: existingBungieUser.profilePicturePath,
                             profilePicturePathType: typeof existingBungieUser.profilePicturePath,
                         },
-                        timestamp: new Date().toISOString()
+                        timestamp: formatForUser()
                     });
-                    
+
                     if (isIncompleteProfile) {
                         console.log('🔄 Detected incomplete profile, performing full update:', {
                             agentId: existingPlayer._id?.toString(),
-                            timestamp: new Date().toISOString()
+                            timestamp: formatForUser()
                         });
                     }
-                    
-                    // Si le profil existant est incomplet, faire une mise à jour complète avec les nouvelles données
+
                     if (isIncompleteProfile) {
                         existingPlayer.bungieUser = {
                             membershipId: agent.bungieUser.membershipId || existingBungieUser.membershipId,
@@ -173,14 +158,14 @@ class AgentService implements IAgentService {
                         // Profil complet existant : mise à jour sélective (préserver les données existantes si nouvelles données vides)
                         existingPlayer.bungieUser = {
                             membershipId: agent.bungieUser.membershipId || existingBungieUser.membershipId,
-                            uniqueName: (agent.bungieUser.uniqueName?.trim() && agent.bungieUser.uniqueName.trim().length > 0) 
-                                ? agent.bungieUser.uniqueName.slice(0, 100) 
+                            uniqueName: (agent.bungieUser.uniqueName?.trim() && agent.bungieUser.uniqueName.trim().length > 0)
+                                ? agent.bungieUser.uniqueName.slice(0, 100)
                                 : existingBungieUser.uniqueName || '',
                             displayName: (agent.bungieUser.displayName?.trim() && agent.bungieUser.displayName.trim().length > 0)
                                 ? agent.bungieUser.displayName.slice(0, 100)
                                 : existingBungieUser.displayName || '',
-                            profilePicture: typeof agent.bungieUser.profilePicture === 'number' 
-                                ? agent.bungieUser.profilePicture 
+                            profilePicture: typeof agent.bungieUser.profilePicture === 'number'
+                                ? agent.bungieUser.profilePicture
                                 : (typeof existingBungieUser.profilePicture === 'number' ? existingBungieUser.profilePicture : 0),
                             // Préserver les autres champs existants
                             about: agent.bungieUser.about || existingBungieUser.about || '',
@@ -200,13 +185,13 @@ class AgentService implements IAgentService {
                             cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || existingBungieUser.cachedBungieGlobalDisplayNameCode || 0
                         };
                     }
-                    
+
                     // Log après mise à jour
                     console.log('🖼️ ProfilePicture Final Values:', {
                         agentId: existingPlayer._id?.toString(),
                         finalProfilePicture: existingPlayer.bungieUser.profilePicture,
                         finalProfilePicturePath: existingPlayer.bungieUser.profilePicturePath,
-                        timestamp: new Date().toISOString()
+                        timestamp: formatForUser()
                     });
                 }
 
@@ -226,7 +211,7 @@ class AgentService implements IAgentService {
                     console.error('Erreur lors de la mise à jour de l\'agent existant:', {
                         agentId: existingPlayer._id?.toString(),
                         error: saveError.message,
-                        timestamp: new Date().toISOString()
+                        timestamp: formatForUser()
                     });
                     throw new Error(`Échec de la mise à jour de l'agent: ${saveError.message}`);
                 }
@@ -234,7 +219,7 @@ class AgentService implements IAgentService {
                 console.log('Création d\'un nouvel agent:', {
                     bungieId: agent.bungieId,
                     agentName: agent.protocol.agentName,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
 
                 const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
@@ -310,7 +295,7 @@ class AgentService implements IAgentService {
                     console.log('Nouvel agent créé avec succès:', {
                         agentId: newAgent._id?.toString(),
                         agentName: newAgent.protocol.agentName,
-                        timestamp: new Date().toISOString()
+                        timestamp: formatForUser()
                     });
                     return newAgent as IAgentDocument;
                 } catch (saveError: any) {
@@ -318,7 +303,7 @@ class AgentService implements IAgentService {
                         error: saveError.message,
                         bungieId: agent.bungieId,
                         agentName: agent.protocol.agentName,
-                        timestamp: new Date().toISOString()
+                        timestamp: formatForUser()
                     });
 
                     if (saveError.name === 'ValidationError') {
@@ -341,7 +326,7 @@ class AgentService implements IAgentService {
                 stack: error.stack,
                 bungieId: agent?.bungieId,
                 agentName: agent?.protocol?.agentName,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             if (error.message && error.message.includes('Échec') || error.message.includes('Erreur')) {
@@ -358,7 +343,7 @@ class AgentService implements IAgentService {
                 console.warn('Tentative de récupération d\'agent avec ID invalide:', {
                     agentId,
                     type: typeof agentId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -366,7 +351,7 @@ class AgentService implements IAgentService {
             if (!/^[0-9a-fA-F]{24}$/.test(agentId.trim())) {
                 console.warn('Format d\'ID agent invalide:', {
                     agentId: agentId.trim(),
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -377,7 +362,7 @@ class AgentService implements IAgentService {
                 console.log('Agent récupéré avec succès:', {
                     agentId,
                     agentName: agent.protocol?.agentName,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
             }
 
@@ -387,7 +372,7 @@ class AgentService implements IAgentService {
             console.error('Erreur lors de la récupération de l\'agent par ID:', {
                 agentId,
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             return null;
         }
@@ -399,7 +384,7 @@ class AgentService implements IAgentService {
                 console.warn('Tentative de récupération d\'agent avec Bungie ID invalide:', {
                     bungieId,
                     type: typeof bungieId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -408,7 +393,7 @@ class AgentService implements IAgentService {
             if (trimmedBungieId.length > 50 || !/^\d+$/.test(trimmedBungieId)) {
                 console.warn('Format de Bungie ID invalide:', {
                     bungieId: trimmedBungieId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -420,7 +405,7 @@ class AgentService implements IAgentService {
                     bungieId: trimmedBungieId,
                     agentId: agent._id?.toString(),
                     agentName: agent.protocol?.agentName,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
             }
 
@@ -430,7 +415,7 @@ class AgentService implements IAgentService {
             console.error('Erreur lors de la récupération de l\'agent par Bungie ID:', {
                 bungieId,
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             return null;
         }
@@ -442,7 +427,7 @@ class AgentService implements IAgentService {
                 console.warn('Type de membership Destiny invalide:', {
                     membershipType,
                     type: typeof membershipType,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -451,7 +436,7 @@ class AgentService implements IAgentService {
                 console.warn('ID de membership Destiny invalide:', {
                     membershipId,
                     type: typeof membershipId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -460,7 +445,7 @@ class AgentService implements IAgentService {
             if (trimmedMembershipId.length > 50 || !/^\d+$/.test(trimmedMembershipId)) {
                 console.warn('Format d\'ID de membership Destiny invalide:', {
                     membershipId: trimmedMembershipId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -480,13 +465,13 @@ class AgentService implements IAgentService {
                     membershipId: trimmedMembershipId,
                     agentId: agent._id?.toString(),
                     agentName: agent.protocol?.agentName,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
             } else {
                 console.log('Aucun agent trouvé pour le membership Destiny:', {
                     membershipType,
                     membershipId: trimmedMembershipId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
             }
 
@@ -497,7 +482,7 @@ class AgentService implements IAgentService {
                 membershipType,
                 membershipId,
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             return null;
         }
@@ -509,7 +494,7 @@ class AgentService implements IAgentService {
                 console.warn('Tentative de mise à jour d\'activité avec ID invalide:', {
                     agentId,
                     type: typeof agentId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return;
             }
@@ -517,7 +502,7 @@ class AgentService implements IAgentService {
             if (!/^[0-9a-fA-F]{24}$/.test(agentId.trim())) {
                 console.warn('Format d\'ID agent invalide pour mise à jour d\'activité:', {
                     agentId: agentId.trim(),
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return;
             }
@@ -530,12 +515,12 @@ class AgentService implements IAgentService {
             if (result) {
                 console.log('Activité mise à jour avec succès:', {
                     agentId: agentId.trim(),
-                    timestamp: now.toISOString()
+                    timestamp: formatForUser()
                 });
             } else {
                 console.warn('Agent non trouvé pour mise à jour d\'activité:', {
                     agentId: agentId.trim(),
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
             }
 
@@ -543,7 +528,7 @@ class AgentService implements IAgentService {
             console.error('Erreur lors de la mise à jour de la dernière activité:', {
                 agentId,
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
         }
     }
@@ -554,7 +539,7 @@ class AgentService implements IAgentService {
                 console.error('ID d\'agent invalide pour mise à jour de profil:', {
                     agentId,
                     type: typeof agentId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -563,7 +548,7 @@ class AgentService implements IAgentService {
                 console.error('Données de mise à jour invalides:', {
                     agentId,
                     updateData,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -571,7 +556,7 @@ class AgentService implements IAgentService {
             if (!/^[0-9a-fA-F]{24}$/.test(agentId.trim())) {
                 console.error('Format d\'ID agent invalide:', {
                     agentId: agentId.trim(),
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -580,7 +565,7 @@ class AgentService implements IAgentService {
             if (!currentAgent) {
                 console.error('Agent non trouvé pour mise à jour de profil:', {
                     agentId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -618,7 +603,7 @@ class AgentService implements IAgentService {
                 }
 
                 if (protocolUpdate.species) {
-                    const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN']; // Cohérence avec les autres validations
+                    const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
                     if (!allowedSpecies.includes(protocolUpdate.species)) {
                         throw new Error('Espèce invalide (doit être HUMAN, EXO ou AWOKEN)');
                     }
@@ -644,7 +629,7 @@ class AgentService implements IAgentService {
             console.log('Mise à jour de profil d\'agent:', {
                 agentId,
                 fields: Object.keys(sanitizedUpdateData),
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             const result = await AgentModel.findByIdAndUpdate(
@@ -657,13 +642,13 @@ class AgentService implements IAgentService {
                 console.log('Profil d\'agent mis à jour avec succès:', {
                     agentId,
                     agentName: result.protocol?.agentName,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return result as IAgentDocument;
             } else {
                 console.error('Agent non trouvé lors de la mise à jour:', {
                     agentId,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return null;
             }
@@ -673,7 +658,7 @@ class AgentService implements IAgentService {
                 agentId,
                 error: error.message,
                 stack: error.stack,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             throw new Error(`Échec de la mise à jour du profil d'agent: ${error.message}`);
         }
@@ -685,12 +670,11 @@ class AgentService implements IAgentService {
             const thresholdDaysAgo = new Date();
             thresholdDaysAgo.setDate(thresholdDaysAgo.getDate() - ACTIVE_AGENT_THRESHOLD_DAYS);
 
-            // Validation de la date calculée
             if (isNaN(thresholdDaysAgo.getTime()) || thresholdDaysAgo > now) {
                 console.error('Date de seuil d\'activité invalide calculée:', {
                     thresholdDaysAgo,
                     now,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return 0;
             }
@@ -706,7 +690,7 @@ class AgentService implements IAgentService {
                 console.warn('Nombre d\'agents actifs invalide retourné:', {
                     count,
                     type: typeof count,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 return 0;
             }
@@ -715,7 +699,7 @@ class AgentService implements IAgentService {
                 count,
                 thresholdDays: ACTIVE_AGENT_THRESHOLD_DAYS,
                 thresholdDate: thresholdDaysAgo.toISOString(),
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             return count;
@@ -723,7 +707,7 @@ class AgentService implements IAgentService {
         } catch (error: any) {
             console.error('Erreur lors du comptage des agents actifs:', {
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             return 0;
         }
@@ -800,7 +784,7 @@ class AgentService implements IAgentService {
         } catch (error: any) {
             console.error('Erreur lors de la validation des données agent:', {
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             return {
@@ -831,7 +815,7 @@ class AgentService implements IAgentService {
             console.error('Erreur lors de la vérification d\'existence de l\'agent:', {
                 bungieId,
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             return false;
         }
@@ -868,7 +852,7 @@ class AgentService implements IAgentService {
 
             console.log('Statistiques des agents calculées:', {
                 stats,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             return stats;
@@ -876,7 +860,7 @@ class AgentService implements IAgentService {
         } catch (error: any) {
             console.error('Erreur lors du calcul des statistiques d\'agents:', {
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             return {
@@ -888,9 +872,6 @@ class AgentService implements IAgentService {
         }
     }
 
-    /**
-     * Répare un profil incomplet en forçant la récupération des données Bungie manquantes
-     */
     async repairIncompleteProfile(agentId: string): Promise<boolean> {
         try {
             const agent = await this.getAgentById(agentId);
@@ -904,11 +885,8 @@ class AgentService implements IAgentService {
                 return false;
             }
 
-            // Utiliser le BungieService pour récupérer les données fraîches
             const { bungieService } = await import('./bungieservice');
             const freshProfile = await bungieService.getCurrentUser(agent.bungieTokens.accessToken);
-            
-            // Forcer une mise à jour complète
             const updatedAgent = await this.createOrUpdateAgent(freshProfile, {
                 access_token: agent.bungieTokens.accessToken,
                 refresh_token: agent.bungieTokens.refreshToken,
@@ -921,7 +899,7 @@ class AgentService implements IAgentService {
             console.log('Profile repair completed:', {
                 agentId,
                 hasProfilePicturePath: !!(updatedAgent.bungieUser?.profilePicturePath),
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             return true;
@@ -929,7 +907,7 @@ class AgentService implements IAgentService {
             console.error('Profile repair failed:', {
                 agentId,
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             return false;
         }

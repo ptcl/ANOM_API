@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { AppInfo, SafePackageInfo, SystemInfo } from '../types/services';
+import { formatForLog, formatForApi, formatForUser } from '../utils/dateformat';
 
-// Interface pour le service d'informations de l'application
 export interface IAppInfoService {
     getAppInfo(): AppInfo;
     getUptime(): string;
@@ -15,20 +15,12 @@ export interface IAppInfoService {
     getSystemInfo(): SystemInfo;
 }
 
-// Interface pour les informations système
-
-
-// Types pour les informations de l'application
-
-// Interface pour les informations du package.json (sécurisée)
-
-
 // Constantes de sécurité
 const MAX_UPTIME_DAYS = 365;
 const ALLOWED_ENVIRONMENTS = ['development', 'production', 'staging', 'test'] as const;
-const DEFAULT_APP_NAME = 'AN0M ARCHIVE API';
+const DEFAULT_APP_NAME = 'AN0M-ARCHIVES API';
 const DEFAULT_VERSION = '1.0.0';
-const DEFAULT_DESCRIPTION = 'API pour l\'application AN0M ARCHIVE';
+const DEFAULT_DESCRIPTION = 'API pour l\'application AN0M-ARCHIVES';
 
 export class AppInfoService implements IAppInfoService {
     private static instance: AppInfoService;
@@ -67,7 +59,7 @@ export class AppInfoService implements IAppInfoService {
             console.log('Package.json chargé avec succès:', {
                 name: safePackageInfo.name,
                 version: safePackageInfo.version,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             return safePackageInfo;
@@ -75,7 +67,7 @@ export class AppInfoService implements IAppInfoService {
         } catch (error: any) {
             console.warn('Impossible de lire le fichier package.json de manière sécurisée:', {
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
 
             // Fallback sécurisé
@@ -147,12 +139,12 @@ export class AppInfoService implements IAppInfoService {
             try {
                 AppInfoService.instance = new AppInfoService();
                 console.log('AppInfoService initialisé avec succès:', {
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
             } catch (error: any) {
                 console.error('Erreur lors de l\'initialisation d\'AppInfoService:', {
                     error: error.message,
-                    timestamp: new Date().toISOString()
+                    timestamp: formatForUser()
                 });
                 throw new Error('Impossible d\'initialiser AppInfoService');
             }
@@ -171,7 +163,7 @@ export class AppInfoService implements IAppInfoService {
             description: this.packageInfo.description || DEFAULT_DESCRIPTION,
             environment: this.getEnvironment(),
             uptime: this.getUptime(),
-            startTime: this.startDate.toISOString()
+            startTime: formatForApi(this.startDate)
         };
     }
 
@@ -205,7 +197,7 @@ export class AppInfoService implements IAppInfoService {
         } catch (error: any) {
             console.error('Erreur lors du calcul de l\'uptime:', {
                 error: error.message,
-                timestamp: new Date().toISOString()
+                timestamp: formatForUser()
             });
             return '0s';
         }

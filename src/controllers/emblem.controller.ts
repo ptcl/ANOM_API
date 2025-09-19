@@ -3,6 +3,7 @@ import { generateUniqueId } from '../utils/generate';
 import { EmblemModel } from '../models/emblem.model';
 import { IEmblem } from '../types/emblem';
 import { ApiResponseBuilder } from '../utils/apiresponse';
+import { formatForUser } from '../utils';
 
 const codePattern = /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}$/;
 
@@ -95,7 +96,7 @@ export const createEmblem = async (req: Request, res: Response) => {
         console.error('Erreur lors de la création de l\'emblème:', {
             error: error.message,
             stack: error.stack,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {
@@ -225,7 +226,7 @@ export const updateEmblem = async (req: Request, res: Response) => {
             emblemId: req.params.emblemId,
             error: error.message,
             stack: error.stack,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {
@@ -261,7 +262,7 @@ export const deleteEmblem = async (req: Request, res: Response) => {
             emblemId,
             emblemName: existingEmblem.name,
             deletedBy: (req as any).user?.agentId || 'unknown',
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         // Suppression sécurisée
@@ -277,7 +278,7 @@ export const deleteEmblem = async (req: Request, res: Response) => {
             emblemId: req.params.emblemId,
             error: error.message,
             stack: error.stack,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {
@@ -335,7 +336,7 @@ export const getAllEmblems = async (req: Request, res: Response) => {
         console.error('Erreur lors de la récupération des emblèmes:', {
             error: error.message,
             stack: error.stack,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {
@@ -380,7 +381,7 @@ export const getEmblemById = async (req: Request, res: Response) => {
             emblemId: req.params.emblemId,
             error: error.message,
             stack: error.stack,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {

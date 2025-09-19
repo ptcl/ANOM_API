@@ -5,14 +5,13 @@ import { IAgent } from '../types/agent';
 import { agentService } from '../services/agentservice';
 import { ApiResponseBuilder } from '../utils/apiresponse';
 import { isDev, getServerConfig } from '../utils/environment';
+import { formatForUser } from '../utils';
 
 export const initiateLogin = async (req: Request, res: Response) => {
   try {
-    // Génération d'un état sécurisé pour CSRF protection
     const state = generateState();
     const authUrl = bungieService.generateAuthUrl(state);
 
-    // Validation du paramètre direct
     const { direct } = req.query;
     if (direct !== undefined && typeof direct !== 'string') {
       return ApiResponseBuilder.error(res, 400, {
@@ -21,16 +20,14 @@ export const initiateLogin = async (req: Request, res: Response) => {
       });
     }
 
-    // Log de sécurité pour l'audit
     console.log('Login initiation request:', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       direct: direct === 'true',
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
     if (direct === 'true') {
-      // Validation de l'URL avant redirection
       if (!authUrl || !authUrl.startsWith('https://www.bungie.net')) {
         return ApiResponseBuilder.error(res, 500, {
           message: 'URL d\'autorisation invalide',
@@ -52,7 +49,7 @@ export const initiateLogin = async (req: Request, res: Response) => {
     console.error('Erreur lors de l\'initiation de la connexion Bungie:', {
       error: error.message,
       stack: error.stack,
-      timestamp: new Date().toISOString(),
+      timestamp: formatForUser(),
       ip: req.ip
     });
 
@@ -67,12 +64,11 @@ export const handleCallback = async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
 
-    // Validation stricte des paramètres
     if (!code || typeof code !== 'string' || code.trim().length === 0) {
       console.warn('Tentative de callback sans code valide:', {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       const serverConfig = getServerConfig();
@@ -80,12 +76,11 @@ export const handleCallback = async (req: Request, res: Response) => {
       return res.redirect(`${frontendUrl}/?error=missing_code`);
     }
 
-    // Validation du state pour CSRF protection
     if (!state || typeof state !== 'string') {
       console.warn('Tentative de callback sans state valide:', {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       const serverConfig = getServerConfig();
@@ -93,10 +88,9 @@ export const handleCallback = async (req: Request, res: Response) => {
       return res.redirect(`${frontendUrl}/?error=invalid_state`);
     }
 
-    // Limitation de la longueur du code pour éviter les attaques
     if (code.length > 1000) {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Code d\'autorisation trop long',
+        message: 'Mauvais code de validation',
         error: 'validation_error'
       });
     }
@@ -107,7 +101,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       userAgent: req.get('User-Agent'),
       hasCode: !!code,
       hasState: !!state,
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
     // Échange sécurisé du code contre les tokens
@@ -128,7 +122,7 @@ export const handleCallback = async (req: Request, res: Response) => {
         hasProfile: !!userProfile,
         hasBungieId: !!(userProfile?.bungieId),
         ip: req.ip,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return ApiResponseBuilder.error(res, 400, {
@@ -136,13 +130,12 @@ export const handleCallback = async (req: Request, res: Response) => {
         error: 'invalid_bungie_profile'
       });
     }
-    // Création ou mise à jour sécurisée de l'agent
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
     if (!agent || !agent._id) {
       console.error('Échec de la création/mise à jour de l\'agent:', {
         bungieId: userProfile.bungieId,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return ApiResponseBuilder.error(res, 500, {
@@ -158,7 +151,7 @@ export const handleCallback = async (req: Request, res: Response) => {
         hasProtocol: !!agent.protocol,
         hasAgentName: !!(agent.protocol?.agentName),
         hasRole: !!(agent.protocol?.role),
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return ApiResponseBuilder.error(res, 500, {
@@ -192,7 +185,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       bungieId: agent.bungieId,
       agentName: agent.protocol.agentName,
       ip: req.ip,
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
     // Réponse sécurisée selon l'environnement
@@ -257,7 +250,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       stack: error.stack,
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
     // Log additionnel pour les erreurs HTTP
@@ -265,7 +258,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       console.error('Détails de la réponse d\'erreur:', {
         status: error.response.status,
         statusText: error.response.statusText,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
     }
 
@@ -319,7 +312,7 @@ export const verifyToken = async (req: Request, res: Response) => {
       console.log('Token verification failed:', {
         error: jwtError.message,
         ip: req.ip,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return res.json({
@@ -345,7 +338,7 @@ export const verifyToken = async (req: Request, res: Response) => {
       console.log('Agent not found for token:', {
         agentId: decoded.agentId,
         ip: req.ip,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return res.json({
@@ -362,12 +355,10 @@ export const verifyToken = async (req: Request, res: Response) => {
       console.error('Failed to update last activity:', {
         agentId: agent._id?.toString(),
         error: updateError.message,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
-      // Continue malgré l'erreur de mise à jour
     }
 
-    // Réponse sécurisée avec données filtrées
     return res.json({
       success: true,
       data: {
@@ -397,7 +388,7 @@ export const verifyToken = async (req: Request, res: Response) => {
       error: error.message,
       stack: error.stack,
       ip: req.ip,
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
     return res.json({
@@ -428,7 +419,6 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Vérification du format JWT basique
     if (!token.includes('.') || token.split('.').length !== 3) {
       return ApiResponseBuilder.error(res, 400, {
         message: 'Format de token invalide',
@@ -436,14 +426,12 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Log de la tentative de renouvellement
     console.log('Token refresh attempt:', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
-    // Décodage sécurisé du JWT
     let decoded;
     try {
       decoded = verifyJWT(token);
@@ -451,7 +439,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       console.log('Token refresh failed - invalid token:', {
         error: jwtError.message,
         ip: req.ip,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return ApiResponseBuilder.error(res, 401, {
@@ -460,7 +448,6 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Validation de la structure du payload
     if (!decoded || !decoded.agentId || typeof decoded.agentId !== 'string') {
       return ApiResponseBuilder.error(res, 401, {
         message: 'Payload de token invalide',
@@ -468,14 +455,13 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Récupération sécurisée de l'agent
     const agent = await agentService.getAgentById(decoded.agentId);
 
     if (!agent) {
       console.warn('Token refresh failed - agent not found:', {
         agentId: decoded.agentId,
         ip: req.ip,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return ApiResponseBuilder.error(res, 404, {
@@ -484,14 +470,13 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Validation des données critiques de l'agent
     if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.role) {
       console.error('Agent incomplete for token refresh:', {
         agentId: agent._id?.toString(),
         hasProtocol: !!agent.protocol,
         hasAgentName: !!(agent.protocol?.agentName),
         hasRole: !!(agent.protocol?.role),
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
 
       return ApiResponseBuilder.error(res, 500, {
@@ -519,24 +504,21 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Mise à jour sécurisée de la dernière activité
     try {
       await agentService.updateLastActivity(agent._id!.toString());
     } catch (updateError: any) {
       console.error('Failed to update last activity during refresh:', {
         agentId: agent._id?.toString(),
         error: updateError.message,
-        timestamp: new Date().toISOString()
+        timestamp: formatForUser()
       });
-      // Continue malgré l'erreur
     }
 
-    // Log de succès
     console.log('Token refreshed successfully:', {
       agentId: agent._id?.toString(),
       agentName: agent.protocol.agentName,
       ip: req.ip,
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
     // Réponse sécurisée
@@ -569,7 +551,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       error: error.message,
       stack: error.stack,
       ip: req.ip,
-      timestamp: new Date().toISOString()
+      timestamp: formatForUser()
     });
 
     return ApiResponseBuilder.error(res, 500, {

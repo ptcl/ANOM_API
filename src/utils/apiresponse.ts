@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { formatForUser } from './dateformat';
 
 export interface ApiResponse<T = any> {
     success: boolean;
@@ -48,7 +49,7 @@ export class ApiResponseBuilder {
             success: false,
             message: options.message || 'Une erreur est survenue',
             error: options.error || 'unknown_error',
-            timestamp: options.timestamp || new Date().toISOString()
+            timestamp: options.timestamp || formatForUser()
         };
 
         if (options.details) {

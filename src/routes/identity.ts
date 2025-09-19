@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ApiResponseBuilder } from '../utils/apiresponse';
 import { AppInfoService } from '../services/appinfoservice';
 import { handleCallback, initiateLogin, refreshToken, verifyToken } from '../controllers/identity.controller';
+import { formatForUser } from '../utils';
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.get('/status', (req, res) => {
             status: 'online',
             service: 'Authentication',
             version: appInfoService.getVersion(),
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         }
     });
 });

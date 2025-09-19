@@ -2,11 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
-import { isDev } from './utils/environment';
+import { isDev, getServerConfig } from './utils/environment';
 import { swaggerSpec } from './config/swagger';
 import './docs';
 import { routes } from './routes/index';
 import rateLimit from 'express-rate-limit';
+import { formatForUser } from './utils';
 
 
 const limiter = rateLimit({
@@ -23,6 +24,8 @@ const limiter = rateLimit({
 
 const createApp = (): express.Application => {
     const app = express();
+    const serverConfig = getServerConfig();
+
     app.set('trust proxy', 1);
     app.use(helmet({
         contentSecurityPolicy: {
@@ -38,34 +41,25 @@ const createApp = (): express.Application => {
     }));
 
     app.use(cors({
-        origin: [
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'https://ladybird-helping-blindly.ngrok-free.app',
-            'https://anom-archives.net',
-            'https://www.anom-archives.net'
-        ],
+        origin: serverConfig.corsOrigins,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        credentials: true
+        credentials: true,
+        allowedHeaders: [
+            'Origin',
+            'X-Requested-With',
+            'Content-Type',
+            'Accept',
+            'Authorization',
+            'X-API-Key'
+        ],
+        optionsSuccessStatus: 200,
+        maxAge: 86400 // 24 heures
     }));
-    // app.use(cors({
-    //     origin: serverConfig.corsOrigins,
-    //     credentials: true,
-    //     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    //     allowedHeaders: [
-    //         'Origin',
-    //         'X-Requested-With',
-    //         'Content-Type',
-    //         'Accept',
-    //         'Authorization',
-    //         'X-API-Key'
-    //     ]
-    // }));
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     app.use((req, res, next) => {
-        const timestamp = new Date().toISOString();
+        const timestamp = formatForUser()
         if (isDev()) {
             console.log(`${timestamp} - ${req.method} ${req.url} - IP: ${req.ip}`);
         } else {
@@ -87,7 +81,7 @@ const createApp = (): express.Application => {
             success: false,
             error: 'API endpoint not found',
             message: `The endpoint ${req.method} ${req.originalUrl} does not exist`,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
     });
 
@@ -96,7 +90,7 @@ const createApp = (): express.Application => {
             success: false,
             error: 'Resource not found',
             message: `The resource ${req.originalUrl} does not exist`,
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
     });
 
@@ -111,7 +105,7 @@ const createApp = (): express.Application => {
             success: false,
             error: 'Internal server error',
             ...(isDev() && { details: error.message }),
-            timestamp: new Date().toISOString()
+            timestamp: formatForUser()
         });
     });
 

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AnnouncementModel } from '../models/announcement.model';
 import { generateUniqueId } from '../utils/generate';
 import { IAnnouncement } from '../types/announcement';
+import { formatForUser } from '../utils';
 
 const VALID_PRIORITIES: IAnnouncement['priority'][] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 const VALID_STATUSES: IAnnouncement['status'][] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -84,7 +85,7 @@ export const createAnnouncement = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Announcement creation error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             creatorId: req.user?.agentId,
             ip: req.ip
         });
@@ -178,7 +179,7 @@ export const updateAnnouncement = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Announcement update error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             updaterId: req.user?.agentId,
             announcementId: req.params.id,
             ip: req.ip
@@ -212,7 +213,7 @@ export const deleteAnnouncement = async (req: Request, res: Response) => {
         }
 
         console.log('Announcement deleted:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             deleterId: req.user?.agentId,
             announcementId: id,
             title: announcement.title
@@ -224,7 +225,7 @@ export const deleteAnnouncement = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Announcement deletion error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             deleterId: req.user?.agentId,
             announcementId: req.params.id,
             ip: req.ip
@@ -269,7 +270,7 @@ export const getAllAnnouncements = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Public announcements fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
@@ -297,7 +298,7 @@ export const getAllAnnouncementsForFounders = async (req: Request, res: Response
         });
     } catch (error: any) {
         console.error('Founder announcements fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             founderId: req.user?.agentId,
             ip: req.ip
         });
@@ -355,7 +356,7 @@ export const markAnnouncementAsRead = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Mark as read error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             agentId: req.user?.agentId,
             announcementId: req.params.id,
             ip: req.ip

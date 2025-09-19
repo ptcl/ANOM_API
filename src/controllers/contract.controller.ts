@@ -4,6 +4,7 @@ import { generateUniqueId } from '../utils/generate';
 import { ContractModel } from '../models/contract.model';
 import { checkContractAccess } from '../utils/contract';
 import { IContract, IEmblem, IContributor } from '../types/contract';
+import { formatForUser } from '../utils';
 
 // Constantes de validation basées sur l'interface
 const VALID_CONTRACT_STATUSES: IContract['status'][] = ['pending', 'validated', 'cancelled', 'revoked'];
@@ -148,7 +149,7 @@ export const createContract = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Contract creation error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             creatorId: req.user?.agentId,
             ip: req.ip,
             error: error.message
@@ -195,7 +196,7 @@ export const deleteContract = async (req: Request, res: Response) => {
 
         // Log de la suppression pour audit
         console.log('Contract deleted:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             deleterId: req.user?.agentId,
             contractId: contractId,
             contributorBungieId: contract.contributor?.bungieId
@@ -216,7 +217,7 @@ export const deleteContract = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Contract deletion error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             deleterId: req.user?.agentId,
             contractId: req.params.contractId,
             ip: req.ip
@@ -325,7 +326,7 @@ export const updateContract = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Contract update error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             updaterId: req.user?.agentId,
             contractId: req.params.contractId,
             ip: req.ip
@@ -388,7 +389,7 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Agent contracts fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             requesterId: req.user?.agentId,
             targetAgentId: req.params.agentId,
             ip: req.ip
@@ -442,7 +443,7 @@ export const getContractById = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Contract fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             requesterId: req.user?.agentId,
             contractId: req.params.contractId,
             ip: req.ip
@@ -472,7 +473,7 @@ export const getAllContracts = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('All contracts fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             requesterId: req.user?.agentId,
             ip: req.ip
         });

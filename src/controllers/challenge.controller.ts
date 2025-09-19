@@ -4,6 +4,7 @@ import { generateUniqueId } from '../utils/generate';
 import { determineFinalCode, getFragmentsData, getPartialCode, splitTargetCodeToFinalCode, validateAndProcessChallenges, validateCodeFormat, validateTargetCode } from '../utils/codevalidation';
 import { ChallengeModel } from '../models/challenge.model';
 import { AgentModel } from '../models/agent.model';
+import { formatForUser } from '../utils';
 
 export const createChallenge = async (req: Request, res: Response) => {
     try {
@@ -170,7 +171,7 @@ export const getAvailableChallenges = async (req: Request, res: Response) => {
     } catch (error: any) {
         // Log sécurisé sans exposer d'informations sensibles
         console.error('Public challenges fetch error:', {
-            timestamp: new Date().toISOString(),
+            timestamp: formatForUser(),
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
