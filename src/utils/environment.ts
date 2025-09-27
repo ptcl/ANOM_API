@@ -165,6 +165,7 @@ const environmentManager = EnvironmentManager.getInstance();
 export const env = environmentManager;
 export const isDev = () => environmentManager.isDevelopment();
 export const isProd = () => environmentManager.isProduction();
+export const isTest = () => environmentManager.isTesting();
 export const getMongoConfig = () => environmentManager.getMongoConfig();
 export const getBungieConfig = () => environmentManager.getBungieConfig();
 export const getJWTConfig = () => environmentManager.getJWTConfig();

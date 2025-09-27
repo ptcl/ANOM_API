@@ -4,7 +4,7 @@ import { bungieService } from '../services';
 import { IAgent } from '../types/agent';
 import { agentService } from '../services/agentservice';
 import { ApiResponseBuilder } from '../utils/apiresponse';
-import { isDev, getServerConfig } from '../utils/environment';
+import { isDev, getServerConfig, isTest } from '../utils/environment';
 import { formatForUser } from '../utils';
 
 export const initiateLogin = async (req: Request, res: Response) => {
@@ -189,7 +189,7 @@ export const handleCallback = async (req: Request, res: Response) => {
     });
 
     // Réponse sécurisée selon l'environnement
-    if (isDev()) {
+    if (isTest()) {
       // En développement, retourner les données directement avec filtrage
       return res.json({
         success: true,
