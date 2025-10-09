@@ -89,7 +89,7 @@ const createApp = (): express.Application => {
         }
     });
 
-    app.use('*', (req, res) => {
+    app.use((req, res) => {
         res.status(404).json({
             success: false,
             error: 'Resource not found',
