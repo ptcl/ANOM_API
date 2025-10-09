@@ -76,16 +76,20 @@ const createApp = (): express.Application => {
         customSiteTitle: 'Protocol API Documentation',
     }));
 
-    app.use('/api/*', (req, res) => {
-        res.status(404).json({
-            success: false,
-            error: 'API endpoint not found',
-            message: `The endpoint ${req.method} ${req.originalUrl} does not exist`,
-            timestamp: formatForUser()
-        });
+    app.use((req, res, next) => {
+        if (req.path.startsWith('/api/')) {
+            res.status(404).json({
+                success: false,
+                error: 'API endpoint not found',
+                message: `The endpoint ${req.method} ${req.originalUrl} does not exist`,
+                timestamp: formatForUser()
+            });
+        } else {
+            next();
+        }
     });
 
-    app.use('*', (req, res) => {
+    app.use((req, res) => {
         res.status(404).json({
             success: false,
             error: 'Resource not found',
