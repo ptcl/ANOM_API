@@ -576,15 +576,7 @@ export const getAgentProgress = async (req: Request, res: Response) => {
             });
         }
 
-        // Compter le nombre total de challenges où l'agent apparaît
-        const totalChallenges = await ChallengeModel.countDocuments({
-            "AgentProgress.bungieId": agentBungieId
-        });
-
-        // Optionnel : récupérer les détails si besoin
-        const challenges = await ChallengeModel.find({
-            "AgentProgress.bungieId": agentBungieId
-        }).select('challengeId title description AgentProgress finalCode isComplete isCompleteBy isActive');
+        const challenges = await ChallengeModel.find({ "AgentProgress.bungieId": agentBungieId }).select('challengeId title description AgentProgress finalCode isComplete isCompleteBy isActive');
 
         const agentChallenges = challenges.map(challenge => {
             const agentProgress = challenge.AgentProgress.find((agent: any) =>
@@ -605,9 +597,18 @@ export const getAgentProgress = async (req: Request, res: Response) => {
             };
         });
 
+        const stats = {
+            total: challenges.length,
+            completed: agentChallenges.filter(c => c.isComplete).length,
+            inProgress: agentChallenges.filter(c => !c.isComplete).length,
+            totalFragments: agentChallenges.reduce((sum, c) =>
+                sum + (c.progress.unlockedFragments?.length || 0), 0
+            )
+        };
+
         return res.status(200).json({
             success: true,
-            total: totalChallenges, // ← Le nombre total
+            stats,
             data: agentChallenges
         });
     } catch (error: any) {
