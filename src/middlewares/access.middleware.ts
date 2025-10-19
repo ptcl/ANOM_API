@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { formatForUser } from '../utils';
 
-// Liste blanche des rôles autorisés
 const AUTHORIZED_ROLES = ['FOUNDER'] as const;
 type AuthorizedRole = typeof AUTHORIZED_ROLES[number];
 
@@ -13,37 +12,40 @@ export const AccessMiddleware = async (req: Request, res: Response, next: NextFu
                 error: 'Unauthorized'
             });
         }
-
         const userRole = req.user.protocol?.role;
 
         if (!userRole || typeof userRole !== 'string') {
             return res.status(403).json({
                 success: false,
-                error: 'Forbidden'
+                error: 'Forbidden - No valid role'
             });
         }
 
-        const normalizedRole = userRole.trim().toUpperCase() as AuthorizedRole;
+        const normalizedRole = userRole.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim().toUpperCase();
 
-        if (!AUTHORIZED_ROLES.includes(normalizedRole as any)) {
+        if (!AUTHORIZED_ROLES.includes(normalizedRole as AuthorizedRole)) {
             console.warn('Unauthorized access attempt:', {
                 timestamp: formatForUser(),
                 agentId: req.user.agentId,
                 attemptedRole: userRole,
+                normalizedRole: normalizedRole,
                 ip: req.ip,
                 userAgent: req.get('User-Agent')
             });
 
             return res.status(403).json({
                 success: false,
-                error: 'Forbidden'
+                error: 'Forbidden - Insufficient privileges'
             });
         }
 
         return next();
+
     } catch (error: any) {
         console.error('Access middleware system error:', {
             timestamp: formatForUser(),
+            error: error.message,
+            stack: error.stack,
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });

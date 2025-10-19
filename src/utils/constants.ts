@@ -1,0 +1,7 @@
+export const AUTH_CONSTANTS = {
+    MAX_TOKEN_LENGTH: 2048,
+    MAX_CODE_LENGTH: 1000,
+    TOKEN_EXPIRY: '7d' as const,
+    MAX_LOGIN_ATTEMPTS: 5,
+    LOCKOUT_DURATION: 15 * 60 * 1000
+} as const;

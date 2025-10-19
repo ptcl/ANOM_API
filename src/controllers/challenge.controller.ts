@@ -141,8 +141,8 @@ export const getAvailableChallenges = async (req: Request, res: Response) => {
     try {
         // Récupérer uniquement les challenges publics et actifs
         const challenges = await ChallengeModel
-            .find({ 
-                isActive: true, 
+            .find({
+                isActive: true,
                 isComplete: false,
                 // Optionnel: ajouter un champ isPublic si nécessaire
                 // isPublic: { $ne: false }
@@ -175,7 +175,7 @@ export const getAvailableChallenges = async (req: Request, res: Response) => {
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -569,7 +569,6 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
 export const getAgentProgress = async (req: Request, res: Response) => {
     try {
         const agentBungieId = req.user?.bungieId;
-
         if (!agentBungieId) {
             return res.status(401).json({
                 success: false,
@@ -577,7 +576,15 @@ export const getAgentProgress = async (req: Request, res: Response) => {
             });
         }
 
-        const challenges = await ChallengeModel.find({ "AgentProgress.bungieId": agentBungieId }).select('challengeId title description AgentProgress finalCode isComplete isCompleteBy isActive');
+        // Compter le nombre total de challenges où l'agent apparaît
+        const totalChallenges = await ChallengeModel.countDocuments({
+            "AgentProgress.bungieId": agentBungieId
+        });
+
+        // Optionnel : récupérer les détails si besoin
+        const challenges = await ChallengeModel.find({
+            "AgentProgress.bungieId": agentBungieId
+        }).select('challengeId title description AgentProgress finalCode isComplete isCompleteBy isActive');
 
         const agentChallenges = challenges.map(challenge => {
             const agentProgress = challenge.AgentProgress.find((agent: any) =>
@@ -600,9 +607,9 @@ export const getAgentProgress = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             success: true,
+            total: totalChallenges, // ← Le nombre total
             data: agentChallenges
         });
-
     } catch (error: any) {
         console.error("Erreur lors de la récupération du progrès:", error);
         return res.status(500).json({

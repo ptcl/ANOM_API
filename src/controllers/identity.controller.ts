@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
-import { generateState, generateJWT, verifyJWT } from '../utils/auth';
+import { generateState, generateJWT, verifyJWT, createJWTPayload, validateJWTFormat } from '../utils/auth';
 import { bungieService } from '../services';
-import { IAgent } from '../types/agent';
 import { agentService } from '../services/agentservice';
 import { ApiResponseBuilder } from '../utils/apiresponse';
 import { isDev, getServerConfig, isTest } from '../utils/environment';
 import { formatForUser } from '../utils';
+import { formatAgentResponse } from '../utils/formatters';
+import { AUTH_CONSTANTS } from '../utils/constants';
 
 export const initiateLogin = async (req: Request, res: Response) => {
   try {
@@ -88,14 +89,13 @@ export const handleCallback = async (req: Request, res: Response) => {
       return res.redirect(`${frontendUrl}/?error=invalid_state`);
     }
 
-    if (code.length > 1000) {
+    if (code.length > AUTH_CONSTANTS.MAX_CODE_LENGTH) {
       return ApiResponseBuilder.error(res, 400, {
         message: 'Mauvais code de validation',
         error: 'validation_error'
       });
     }
 
-    // Log de sécurité pour le callback
     console.log('OAuth callback received:', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
@@ -104,9 +104,8 @@ export const handleCallback = async (req: Request, res: Response) => {
       timestamp: formatForUser()
     });
 
-    // Échange sécurisé du code contre les tokens
     const tokens = await bungieService.exchangeCodeForTokens(code);
-    
+
     if (!tokens || !tokens.access_token) {
       return ApiResponseBuilder.error(res, 400, {
         message: 'Échec de l\'échange de tokens',
@@ -114,7 +113,6 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
     }
 
-    // Récupération sécurisée du profil utilisateur
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
 
     if (!userProfile || !userProfile.bungieId) {
@@ -130,6 +128,7 @@ export const handleCallback = async (req: Request, res: Response) => {
         error: 'invalid_bungie_profile'
       });
     }
+
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
 
     if (!agent || !agent._id) {
@@ -144,7 +143,6 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
     }
 
-    // Validation des données de l'agent avant génération du JWT
     if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.role) {
       console.error('Données d\'agent incomplètes:', {
         agentId: agent._id,
@@ -160,17 +158,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
     }
 
-    // Génération sécurisée du JWT
-    const jwtPayload = {
-      agentId: agent._id.toString(),
-      bungieId: agent.bungieId,
-      protocol: {
-        agentName: agent.protocol.agentName,
-        role: agent.protocol.role
-      }
-    };
-
-    const jwtToken = generateJWT(jwtPayload);
+    const jwtToken = generateJWT(createJWTPayload(agent));
 
     if (!jwtToken) {
       return ApiResponseBuilder.error(res, 500, {
@@ -179,7 +167,6 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
     }
 
-    // Log de succès pour l'audit
     console.log('Authentication successful:', {
       agentId: agent._id.toString(),
       bungieId: agent.bungieId,
@@ -188,49 +175,19 @@ export const handleCallback = async (req: Request, res: Response) => {
       timestamp: formatForUser()
     });
 
-    // Réponse sécurisée selon l'environnement
     if (isTest()) {
-      // En développement, retourner les données directement avec filtrage
       return res.json({
         success: true,
         data: {
           token: jwtToken,
-          agent: {
-            _id: agent._id,
-            destinyMemberships: agent.destinyMemberships || [],
-            bungieUser: agent.bungieUser ? {
-              membershipId: agent.bungieUser.membershipId,
-              uniqueName: agent.bungieUser.uniqueName,
-              displayName: agent.bungieUser.displayName,
-              profilePicture: agent.bungieUser.profilePicture || 0
-            } : {
-              membershipId: parseInt(agent.bungieId),
-              uniqueName: agent.protocol.agentName,
-              displayName: agent.protocol.agentName,
-              profilePicture: 0
-            },
-            protocol: {
-              agentName: agent.protocol.agentName,
-              customName: agent.protocol.customName || undefined,
-              species: agent.protocol.species,
-              role: agent.protocol.role,
-              clearanceLevel: agent.protocol.clearanceLevel || 1,
-              hasSeenRecruitment: agent.protocol.hasSeenRecruitment || false,
-              protocolJoinedAt: agent.protocol.protocolJoinedAt,
-              group: agent.protocol.group,
-              settings: agent.protocol.settings
-            },
-            createdAt: agent.createdAt,
-            updatedAt: agent.updatedAt
-          } as IAgent
+          agent: formatAgentResponse(agent, true)
         },
         message: 'Authentification réussie'
       });
     } else {
-      // En production, redirection sécurisée
       const serverConfig = getServerConfig();
       const frontendUrl = serverConfig.frontendUrl;
-      
+
       if (!frontendUrl || (!frontendUrl.startsWith('https://') && !frontendUrl.startsWith('http://localhost'))) {
         console.error('URL frontend invalide configurée:', frontendUrl);
         return ApiResponseBuilder.error(res, 500, {
@@ -239,12 +196,10 @@ export const handleCallback = async (req: Request, res: Response) => {
         });
       }
 
-      // Encodage sécurisé du token pour l'URL
       const encodedToken = encodeURIComponent(jwtToken);
       return res.redirect(`${frontendUrl}/identity/bungie/callback?token=${encodedToken}`);
     }
   } catch (error: any) {
-    // Log sécurisé de l'erreur sans exposer de données sensibles
     console.error('Échec du callback Bungie:', {
       error: error.message,
       stack: error.stack,
@@ -253,7 +208,6 @@ export const handleCallback = async (req: Request, res: Response) => {
       timestamp: formatForUser()
     });
 
-    // Log additionnel pour les erreurs HTTP
     if (error.response) {
       console.error('Détails de la réponse d\'erreur:', {
         status: error.response.status,
@@ -262,10 +216,9 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
     }
 
-    // Redirection d'erreur sécurisée
     const serverConfig = getServerConfig();
-    const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3000';
-    
+    const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3001';
+
     if (isDev()) {
       return ApiResponseBuilder.error(res, 500, {
         message: 'Échec du traitement du callback Bungie',
@@ -276,35 +229,19 @@ export const handleCallback = async (req: Request, res: Response) => {
     }
   }
 };
+
 export const verifyToken = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
 
-    // Validation stricte du token
-    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+    const validation = validateJWTFormat(token);
+    if (!validation.valid) {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Token requis',
-        error: 'missing_token'
+        message: validation.message || 'Token invalide',
+        error: validation.error!
       });
     }
 
-    // Limitation de la longueur du token
-    if (token.length > 2000) {
-      return ApiResponseBuilder.error(res, 400, {
-        message: 'Token trop long',
-        error: 'invalid_token_length'
-      });
-    }
-
-    // Vérification du format JWT basique
-    if (!token.includes('.') || token.split('.').length !== 3) {
-      return ApiResponseBuilder.error(res, 400, {
-        message: 'Format de token invalide',
-        error: 'invalid_token_format'
-      });
-    }
-
-    // Décodage sécurisé du JWT
     let decoded;
     try {
       decoded = verifyJWT(token);
@@ -322,7 +259,6 @@ export const verifyToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Validation de la structure du payload
     if (!decoded || !decoded.agentId || typeof decoded.agentId !== 'string') {
       return res.json({
         success: false,
@@ -331,7 +267,6 @@ export const verifyToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Récupération sécurisée de l'agent
     const agent = await agentService.getAgentById(decoded.agentId);
 
     if (!agent) {
@@ -348,7 +283,6 @@ export const verifyToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Mise à jour sécurisée de la dernière activité
     try {
       await agentService.updateLastActivity(agent._id!.toString());
     } catch (updateError: any) {
@@ -363,22 +297,7 @@ export const verifyToken = async (req: Request, res: Response) => {
       success: true,
       data: {
         valid: true,
-        agent: {
-          _id: agent._id,
-          protocol: {
-            agentName: agent.protocol.agentName,
-            customName: agent.protocol.customName || undefined,
-            species: agent.protocol.species,
-            role: agent.protocol.role,
-            clearanceLevel: agent.protocol.clearanceLevel || 1,
-            hasSeenRecruitment: agent.protocol.hasSeenRecruitment || false,
-            protocolJoinedAt: agent.protocol.protocolJoinedAt,
-            group: agent.protocol.group,
-            settings: agent.protocol.settings
-          },
-          createdAt: agent.createdAt,
-          updatedAt: agent.updatedAt
-        } as IAgent
+        agent: formatAgentResponse(agent)
       },
       message: 'Token valide'
     });
@@ -403,26 +322,11 @@ export const refreshToken = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
 
-    // Validation stricte du token
-    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+    const validation = validateJWTFormat(token);
+    if (!validation.valid) {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Token requis pour le renouvellement',
-        error: 'missing_token'
-      });
-    }
-
-    // Limitation de la longueur du token
-    if (token.length > 2000) {
-      return ApiResponseBuilder.error(res, 400, {
-        message: 'Token trop long',
-        error: 'invalid_token_length'
-      });
-    }
-
-    if (!token.includes('.') || token.split('.').length !== 3) {
-      return ApiResponseBuilder.error(res, 400, {
-        message: 'Format de token invalide',
-        error: 'invalid_token_format'
+        message: validation.message || 'Token invalide',
+        error: validation.error!
       });
     }
 
@@ -485,17 +389,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Génération du nouveau token
-    const jwtPayload = {
-      agentId: agent._id!.toString(),
-      bungieId: agent.bungieId,
-      protocol: {
-        agentName: agent.protocol.agentName,
-        role: agent.protocol.role
-      }
-    };
-
-    const newToken = generateJWT(jwtPayload);
+    const newToken = generateJWT(createJWTPayload(agent));
 
     if (!newToken) {
       return ApiResponseBuilder.error(res, 500, {
@@ -521,27 +415,11 @@ export const refreshToken = async (req: Request, res: Response) => {
       timestamp: formatForUser()
     });
 
-    // Réponse sécurisée
     return res.json({
       success: true,
       data: {
         token: newToken,
-        agent: {
-          _id: agent._id,
-          protocol: {
-            agentName: agent.protocol.agentName,
-            customName: agent.protocol.customName || undefined,
-            species: agent.protocol.species,
-            role: agent.protocol.role,
-            clearanceLevel: agent.protocol.clearanceLevel || 1,
-            hasSeenRecruitment: agent.protocol.hasSeenRecruitment || false,
-            protocolJoinedAt: agent.protocol.protocolJoinedAt,
-            group: agent.protocol.group,
-            settings: agent.protocol.settings
-          },
-          createdAt: agent.createdAt,
-          updatedAt: agent.updatedAt
-        } as IAgent
+        agent: formatAgentResponse(agent)
       },
       message: 'Token renouvelé avec succès'
     });

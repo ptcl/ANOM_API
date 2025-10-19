@@ -50,7 +50,8 @@ const createApp = (): express.Application => {
             'Content-Type',
             'Accept',
             'Authorization',
-            'X-API-Key'
+            'X-API-Key',
+            'ngrok-skip-browser-warning'
         ],
         optionsSuccessStatus: 200,
         maxAge: 86400 // 24 heures
