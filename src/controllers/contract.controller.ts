@@ -2,29 +2,24 @@ import { Request, Response } from 'express';
 import { AgentModel } from '../models/agent.model';
 import { generateUniqueId } from '../utils/generate';
 import { ContractModel } from '../models/contract.model';
+import { EmblemModel } from '../models/emblem.model';
 import { checkContractAccess } from '../utils/contract';
 import { IContract, IEmblem, IContributor } from '../types/contract';
+import { IEmblem as IEmblemGlobal } from '../types/emblem';
 import { formatForUser } from '../utils';
 
-// Constantes de validation basées sur l'interface
 const VALID_CONTRACT_STATUSES: IContract['status'][] = ['pending', 'validated', 'cancelled', 'revoked'];
-const VALID_EMBLEM_STATUSES: IEmblem['status'][] = ['available', 'redeemed', 'revoked'];
-const VALID_REVOCATION_STATUSES = ['pending', 'processed', 'cancelled'] as const;
 
 const MAX_TITLE_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MAX_EMBLEM_CODE_LENGTH = 9;
 const MAX_LEGEND_LENGTH = 200;
-const MAX_CODES_PER_CONTRACT = 100; // Limite max d'emblèmes = limite max de médias
+const MAX_CODES_PER_CONTRACT = 100;
 
 export const createContract = async (req: Request, res: Response) => {
     try {
         const { emblems, contributor, validationDeadline, media } = req.body;
-        const userRole = req.user?.protocol?.role;
-        const isFounder = userRole === 'FOUNDER';
-        const targetAgentId = isFounder ? req.body.agentId : req.user?.bungieId;
 
-        // Validation des champs requis
         if (!contributor || !contributor.bungieId || !contributor.displayName) {
             return res.status(400).json({
                 success: false,
@@ -32,14 +27,8 @@ export const createContract = async (req: Request, res: Response) => {
             });
         }
 
-        if (!targetAgentId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Target agent not specified'
-            });
-        }
+        const targetAgentId = contributor.bungieId;
 
-        // Validation des emblems
         if (!Array.isArray(emblems) || emblems.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -54,7 +43,6 @@ export const createContract = async (req: Request, res: Response) => {
             });
         }
 
-        // Validation de la date limite
         let parsedDeadline = null;
         if (validationDeadline) {
             parsedDeadline = new Date(validationDeadline);
@@ -66,7 +54,6 @@ export const createContract = async (req: Request, res: Response) => {
             }
         }
 
-        // Vérifier que l'agent existe
         const agent = await AgentModel.findOne({ bungieId: targetAgentId });
         if (!agent) {
             return res.status(404).json({
@@ -75,45 +62,41 @@ export const createContract = async (req: Request, res: Response) => {
             });
         }
 
-        // Sanitiser et valider les emblems
         const sanitizedEmblems: IEmblem[] = emblems.map((emblem: any) => {
             if (!emblem.name || !emblem.code) {
                 throw new Error('Invalid emblem data');
             }
-            
-            // Validation du nom (peut être nettoyé)
+
             if (typeof emblem.name !== 'string' || emblem.name.length === 0 || emblem.name.length > MAX_TITLE_LENGTH) {
                 throw new Error('Invalid emblem name');
             }
-            
-            // Validation du code (STRICTE - pas de modification)
-            if (typeof emblem.code !== 'string' || emblem.code.length === 0 || emblem.code.length > MAX_EMBLEM_CODE_LENGTH) {
+
+            const codeWithoutDashes = emblem.code.replace(/-/g, '');
+            if (typeof emblem.code !== 'string' || emblem.code.length === 0 || codeWithoutDashes.length > MAX_EMBLEM_CODE_LENGTH) {
                 throw new Error('Invalid emblem code');
             }
-            
+
             return {
                 emblemId: generateUniqueId('EMBLEM'),
-                name: emblem.name, // Garde le nom tel quel
-                code: emblem.code, // Garde le code exactement tel quel
+                name: emblem.name,
+                code: emblem.code,
                 status: 'available' as const
             };
         });
 
-        // Sanitiser le contributeur
         const sanitizedContributor: IContributor = {
             bungieId: contributor.bungieId.toString(),
-            displayName: contributor.displayName.toString().substring(0, MAX_TITLE_LENGTH), // Utilisation de la constante
+            displayName: contributor.displayName.toString().substring(0, MAX_TITLE_LENGTH),
             isAnonymous: !!contributor.isAnonymous
         };
 
-        // Sanitiser les médias si fournis (autant que d'emblèmes)
-        const sanitizedMedia = Array.isArray(media) 
+        const sanitizedMedia = Array.isArray(media)
             ? media.filter((m: any) => m.url && typeof m.url === 'string')
-                   .slice(0, sanitizedEmblems.length) // Max autant que d'emblèmes
-                   .map((m: any) => ({
-                       url: m.url, // URL exacte sans trim
-                       legend: m.legend ? m.legend.toString().trim().substring(0, MAX_LEGEND_LENGTH) : undefined // Légende peut être trimmée
-                   }))
+                .slice(0, sanitizedEmblems.length)
+                .map((m: any) => ({
+                    url: m.url,
+                    legend: m.legend ? m.legend.toString().trim().substring(0, MAX_LEGEND_LENGTH) : undefined
+                }))
             : [];
 
         const contractData: Partial<IContract> = {
@@ -133,7 +116,40 @@ export const createContract = async (req: Request, res: Response) => {
 
         const newContract = await ContractModel.create(contractData);
 
-        // Ajouter le contrat à l'agent
+        const emblemCreationPromises = sanitizedEmblems.map(async (emblem) => {
+            try {
+                const existingEmblem = await EmblemModel.findOne({ code: emblem.code });
+
+                if (!existingEmblem) {
+                    const emblemData: Partial<IEmblemGlobal> = {
+                        emblemId: emblem.emblemId,
+                        name: emblem.name,
+                        code: emblem.code,
+                        status: 'unavailable',
+                        image: '',
+                        description: `Emblème provenant du contrat ${newContract.contractId}`,
+                    };
+
+                    await EmblemModel.create(emblemData);
+
+                } else {
+                    console.log('Emblème déjà existant:', {
+                        code: emblem.code,
+                        existingEmblemId: existingEmblem.emblemId,
+                        timestamp: formatForUser()
+                    });
+                }
+            } catch (emblemError: any) {
+                console.error('Erreur lors de la création de l\'emblème:', {
+                    emblemCode: emblem.code,
+                    error: emblemError.message,
+                    timestamp: formatForUser()
+                });
+            }
+        });
+
+        await Promise.all(emblemCreationPromises);
+
         agent.contracts.push({
             contractMongoId: newContract._id,
             contractId: newContract.contractId
@@ -154,7 +170,7 @@ export const createContract = async (req: Request, res: Response) => {
             ip: req.ip,
             error: error.message
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -168,7 +184,6 @@ export const deleteContract = async (req: Request, res: Response) => {
         const userBungieId = req.user?.bungieId;
         const userRole = req.user?.protocol?.role;
 
-        // Validation de l'authentification
         if (!userBungieId) {
             return res.status(401).json({
                 success: false,
@@ -176,7 +191,6 @@ export const deleteContract = async (req: Request, res: Response) => {
             });
         }
 
-        // Validation de l'ID du contrat
         if (!contractId || typeof contractId !== 'string') {
             return res.status(400).json({
                 success: false,
@@ -184,7 +198,6 @@ export const deleteContract = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérification des droits d'accès
         const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRole);
 
         if (!hasAccess || !contract) {
@@ -193,19 +206,8 @@ export const deleteContract = async (req: Request, res: Response) => {
                 error: error || 'Access denied'
             });
         }
-
-        // Log de la suppression pour audit
-        console.log('Contract deleted:', {
-            timestamp: formatForUser(),
-            deleterId: req.user?.agentId,
-            contractId: contractId,
-            contributorBungieId: contract.contributor?.bungieId
-        });
-
-        // Supprimer le contrat
         await contract.deleteOne();
 
-        // Retirer le contrat des agents
         await AgentModel.updateMany(
             { 'contracts.contractId': contractId },
             { $pull: { contracts: { contractId: contractId } } }
@@ -222,7 +224,7 @@ export const deleteContract = async (req: Request, res: Response) => {
             contractId: req.params.contractId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -237,7 +239,6 @@ export const updateContract = async (req: Request, res: Response) => {
         const userBungieId = req.user?.bungieId;
         const userRole = req.user?.protocol?.role;
 
-        // Validation de l'authentification
         if (!userBungieId) {
             return res.status(401).json({
                 success: false,
@@ -245,7 +246,6 @@ export const updateContract = async (req: Request, res: Response) => {
             });
         }
 
-        // Validation de l'ID du contrat
         if (!contractId || typeof contractId !== 'string') {
             return res.status(400).json({
                 success: false,
@@ -253,7 +253,6 @@ export const updateContract = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérification des droits d'accès
         const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRole);
 
         if (!hasAccess || !contract) {
@@ -267,12 +266,10 @@ export const updateContract = async (req: Request, res: Response) => {
             updatedAt: new Date()
         };
 
-        // Validation et mise à jour du statut
         if (status !== undefined && VALID_CONTRACT_STATUSES.includes(status)) {
             updateData.status = status;
         }
 
-        // Validation de la date limite
         if (validationDeadline !== undefined) {
             if (validationDeadline === null) {
                 updateData.validationDeadline = undefined;
@@ -284,18 +281,16 @@ export const updateContract = async (req: Request, res: Response) => {
             }
         }
 
-        // Mise à jour des médias (autant que d'emblèmes dans le contrat)
         if (media !== undefined && Array.isArray(media)) {
             const maxMedia = contract.emblems?.length || MAX_CODES_PER_CONTRACT;
             updateData.media = media.filter((m: any) => m.url && typeof m.url === 'string')
-                                   .slice(0, maxMedia) // Max autant que d'emblèmes
-                                   .map((m: any) => ({
-                                       url: m.url, // URL exacte sans modification
-                                       legend: m.legend ? m.legend.toString().trim().substring(0, MAX_LEGEND_LENGTH) : undefined // Légende peut être trimmée
-                                   }));
+                .slice(0, maxMedia)
+                .map((m: any) => ({
+                    url: m.url,
+                    legend: m.legend ? m.legend.toString().trim().substring(0, MAX_LEGEND_LENGTH) : undefined
+                }));
         }
 
-        // Mise à jour des booléens
         if (isExpired !== undefined) {
             updateData.isExpired = !!isExpired;
         }
@@ -331,7 +326,7 @@ export const updateContract = async (req: Request, res: Response) => {
             contractId: req.params.contractId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -342,10 +337,7 @@ export const updateContract = async (req: Request, res: Response) => {
 export const getAgentAllContracts = async (req: Request, res: Response) => {
     try {
         const userBungieId = req.user?.bungieId;
-        const isFounder = req.user?.protocol?.role === 'FOUNDER';
-        const targetAgentId = isFounder ? (req.params.agentId || userBungieId) : userBungieId;
 
-        // Validation de l'authentification
         if (!userBungieId) {
             return res.status(401).json({
                 success: false,
@@ -353,23 +345,7 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
             });
         }
 
-        if (!targetAgentId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Agent ID required'
-            });
-        }
-
-        // Validation de l'ID de l'agent
-        if (typeof targetAgentId !== 'string') {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid agent ID'
-            });
-        }
-
-        const agent = await AgentModel.findOne({ bungieId: targetAgentId }).populate('contracts.contractMongoId');
-
+        const agent = await AgentModel.findOne({ bungieId: userBungieId });
         if (!agent) {
             return res.status(404).json({
                 success: false,
@@ -377,12 +353,26 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
             });
         }
 
-        const contracts = agent.contracts.map((c: { contractMongoId: any; }) => c.contractMongoId).filter(Boolean);
+        const contractMongoIds = agent.contracts.map((c: any) => c.contractMongoId).filter(Boolean);
+
+        const contracts = await ContractModel.find({ _id: { $in: contractMongoIds } }).sort({ createdAt: -1 });
+
+        const stats = {
+            totalContracts: contracts.length,
+            totalContractsPending: contracts.filter(c => c.status === 'pending').length,
+            totalContractsValidated: contracts.filter(c => c.status === 'validated').length,
+            totalContractsCancelled: contracts.filter(c => c.status === 'cancelled').length,
+            totalContractsRevoked: contracts.filter(c => c.status === 'revoked').length,
+            totalEmblems: contracts.reduce((sum, c) => sum + (c.totalCodes || 0), 0),
+            totalEmblemsAvailable: contracts.reduce((sum, c) => sum + (c.availableCodes || 0), 0),
+            totalEmblemsRedeemed: contracts.reduce((sum, c) => sum + ((c.totalCodes || 0) - (c.availableCodes || 0)), 0)
+        };
 
         return res.json({
             success: true,
             data: {
                 contracts,
+                stats,
                 count: contracts.length
             },
             message: 'Agent contracts retrieved successfully'
@@ -391,10 +381,11 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
         console.error('Agent contracts fetch error:', {
             timestamp: formatForUser(),
             requesterId: req.user?.agentId,
-            targetAgentId: req.params.agentId,
-            ip: req.ip
+            ip: req.ip,
+            error: error.message,
+            stack: error.stack
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -408,7 +399,6 @@ export const getContractById = async (req: Request, res: Response) => {
         const userBungieId = req.user?.bungieId;
         const userRole = req.user?.protocol?.role;
 
-        // Validation de l'authentification
         if (!userBungieId) {
             return res.status(401).json({
                 success: false,
@@ -416,7 +406,6 @@ export const getContractById = async (req: Request, res: Response) => {
             });
         }
 
-        // Validation de l'ID du contrat
         if (!contractId || typeof contractId !== 'string') {
             return res.status(400).json({
                 success: false,
@@ -424,7 +413,6 @@ export const getContractById = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérification des droits d'accès
         const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRole);
 
         if (!hasAccess || !contract) {
@@ -448,7 +436,7 @@ export const getContractById = async (req: Request, res: Response) => {
             contractId: req.params.contractId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'
@@ -458,7 +446,6 @@ export const getContractById = async (req: Request, res: Response) => {
 
 export const getAllContracts = async (req: Request, res: Response) => {
     try {
-        // Cette fonction est réservée aux fondateurs (vérifiée au niveau des routes)
         const contracts = await ContractModel.find()
             .sort({ createdAt: -1 })
             .lean();
@@ -477,7 +464,7 @@ export const getAllContracts = async (req: Request, res: Response) => {
             requesterId: req.user?.agentId,
             ip: req.ip
         });
-        
+
         return res.status(500).json({
             success: false,
             error: 'Internal server error'

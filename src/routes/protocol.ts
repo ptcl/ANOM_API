@@ -25,8 +25,8 @@ router.patch('/agent/profile', IdentityMiddleware, updateProfilAgent);
 // ============== ROUTES CONCTRACTS AGENTS (JOUEURS) ==============
 
 router.get('/agent/contracts', IdentityMiddleware, getAgentAllContracts);
-router.get('/agent/contract/:contractId', IdentityMiddleware, getContractById);
 router.post('/agent/contract', IdentityMiddleware, createContract);
+router.get('/agent/contract/:contractId', IdentityMiddleware, getContractById);
 router.delete('/agent/contract/:contractId', IdentityMiddleware, deleteContract);
 router.patch('/agent/contract/:contractId', IdentityMiddleware, updateContract);
 
