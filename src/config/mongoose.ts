@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { getMongoConfig, isDev } from '../utils/environment';
+import { getMongoConfig, isDev, isProd, isSandbox } from '../utils/environment';
 
 let connection: mongoose.Connection | null = null;
 
@@ -8,10 +8,8 @@ export const connectMongoose = async (): Promise<void> => {
         const mongoConfig = getMongoConfig();
 
         console.log('🔌 Connecting to MongoDB with Mongoose...');
-        console.log(`   Environment: ${isDev() ? 'Development' : 'Production'}`);
+        console.log(`   Environment: ${isProd() ? 'Production' : isSandbox() ? 'Sandbox' : 'Development'}`);
         console.log(`   Database: ${mongoConfig.dbName}`);
-        console.log(`   URI: ${mongoConfig.uri.replace(/\/\/.*@/, '//***@')}`);
-
         mongoose.set('strictQuery', false);
 
         const mongooseOptions = {

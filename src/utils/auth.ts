@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { IAgent } from '../types/agent';
+import { IAgent, IAgentDocument } from '../types/agent';
 import { AUTH_CONSTANTS } from './constants';
 
 
@@ -28,7 +28,7 @@ export function verifyJWT(token: string): any {
     return jwt.verify(token, secret);
 }
 
-export const createJWTPayload = (agent: IAgent) => {
+export const createJWTPayload = (agent: IAgentDocument) => {
     if (!agent._id) {
         throw new Error('Agent ID missing');
     }

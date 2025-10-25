@@ -1,6 +1,6 @@
 {
   "name": "anom_api",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "description": "Api AN0M",
   "main": "dist/server.js",
   "scripts": {

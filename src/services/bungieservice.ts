@@ -132,12 +132,20 @@ class BungieService {
                     cachedBungieGlobalDisplayNameCode: bungieNetUser.cachedBungieGlobalDisplayNameCode || 0
                 },
                 protocol: {
-                    agentName: bungieNetUser.displayName && bungieNetUser.displayName.trim().length > 0
-                        ? bungieNetUser.displayName.trim()
-                        : `Agent-${bungieNetUser.membershipId.slice(-6)}`, // Fallback avec les 6 derniers chiffres du membershipId
+                    agentName: bungieNetUser.displayName,
                     species: 'HUMAN',
                     role: 'AGENT',
+                    badges: [],
                     clearanceLevel: 1,
+                    group: 'PROTOCOL',
+                    history: [],
+                    stats: {
+                        challengesSolved: 0,
+                        fragmentsCollected: 0,
+                        timelinesCompleted: 0,
+                        loreUnlocked: 0,
+                        lastRewardedAt: undefined
+                    },
                     hasSeenRecruitment: false,
                     settings: {
                         notifications: true,

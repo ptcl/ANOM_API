@@ -37,7 +37,7 @@ export interface IContract {
     validationDeadline?: Date;
     isExpired: boolean;
 
-    contributor: IContributor;
+    contributors: IContributor[];
 
     emblems: IEmblem[];
 

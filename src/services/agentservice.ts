@@ -1,6 +1,6 @@
 import { BungieTokenResponse } from '../types/bungie';
-import { IAgent, IAgentDocument } from '../types/agent';
-import { AgentModel } from '../models/agent.model';
+import { IAgent, IAgentDocument, IDestinyMembership } from '../types/agent';
+import { Agent } from '../models/agent.model';
 import { ValidationResult, AgentServiceStats } from '../types/services';
 import { formatForUser } from '../utils';
 
@@ -67,7 +67,7 @@ class AgentService implements IAgentService {
             const now = new Date();
             const expiresAt = new Date(now.getTime() + ((tokens.expires_in - TOKEN_EXPIRY_BUFFER_SECONDS) * 1000));
 
-            const existingPlayer = await AgentModel.findOne({
+            const existingPlayer = await Agent.findOne({
                 bungieId: agent.bungieId.trim()
             });
 
@@ -88,7 +88,8 @@ class AgentService implements IAgentService {
                         bungieGlobalDisplayName: membership.bungieGlobalDisplayName?.slice(0, 100) || ''
                     }));
 
-                    const mergedMemberships = [...existingMemberships];
+                    const mergedMemberships: any[] = [...existingMemberships];
+
                     newMemberships.forEach(newMembership => {
                         const existingIndex = mergedMemberships.findIndex(
                             existing => existing.membershipType === newMembership.membershipType &&
@@ -100,7 +101,9 @@ class AgentService implements IAgentService {
                             mergedMemberships.push(newMembership);
                         }
                     });
-                    existingPlayer.destinyMemberships = mergedMemberships;
+
+                    // ✅ Utiliser set() au lieu d'une assignation directe
+                    existingPlayer.set('destinyMemberships', mergedMemberships);
                 }
 
                 if (agent.bungieUser) {
@@ -206,7 +209,7 @@ class AgentService implements IAgentService {
 
                 try {
                     await existingPlayer.save();
-                    return existingPlayer as IAgentDocument;
+                    return existingPlayer as unknown as IAgentDocument;
                 } catch (saveError: any) {
                     console.error('Erreur lors de la mise à jour de l\'agent existant:', {
                         agentId: existingPlayer._id?.toString(),
@@ -260,7 +263,7 @@ class AgentService implements IAgentService {
                     cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || 0
                 } : undefined;
 
-                const newAgent = new AgentModel({
+                const newAgent = new Agent({
                     bungieId: agent.bungieId.trim(),
                     destinyMemberships: sanitizedMemberships,
                     bungieUser: sanitizedBungieUser,
@@ -294,10 +297,10 @@ class AgentService implements IAgentService {
                     await newAgent.save();
                     console.log('Nouvel agent créé avec succès:', {
                         agentId: newAgent._id?.toString(),
-                        agentName: newAgent.protocol.agentName,
+                        agentName: newAgent.protocol?.agentName || newAgent.bungieId,
                         timestamp: formatForUser()
                     });
-                    return newAgent as IAgentDocument;
+                    return newAgent as unknown as IAgentDocument;
                 } catch (saveError: any) {
                     console.error('Erreur lors de la sauvegarde du nouvel agent:', {
                         error: saveError.message,
@@ -356,7 +359,7 @@ class AgentService implements IAgentService {
                 return null;
             }
 
-            const agent = await AgentModel.findById(agentId.trim());
+            const agent = await Agent.findById(agentId.trim());
 
             if (agent) {
                 console.log('Agent récupéré avec succès:', {
@@ -366,7 +369,7 @@ class AgentService implements IAgentService {
                 });
             }
 
-            return agent as IAgentDocument;
+            return agent as unknown as IAgentDocument;
 
         } catch (error: any) {
             console.error('Erreur lors de la récupération de l\'agent par ID:', {
@@ -398,7 +401,7 @@ class AgentService implements IAgentService {
                 return null;
             }
 
-            const agent = await AgentModel.findOne({ bungieId: trimmedBungieId });
+            const agent = await Agent.findOne({ bungieId: trimmedBungieId });
 
             if (agent) {
                 console.log('Agent trouvé par Bungie ID:', {
@@ -409,7 +412,7 @@ class AgentService implements IAgentService {
                 });
             }
 
-            return agent as IAgentDocument;
+            return agent as unknown as IAgentDocument;
 
         } catch (error: any) {
             console.error('Erreur lors de la récupération de l\'agent par Bungie ID:', {
@@ -450,7 +453,7 @@ class AgentService implements IAgentService {
                 return null;
             }
 
-            const agent = await AgentModel.findOne({
+            const agent = await Agent.findOne({
                 'destinyMemberships': {
                     $elemMatch: {
                         membershipType: membershipType,
@@ -475,7 +478,7 @@ class AgentService implements IAgentService {
                 });
             }
 
-            return agent as IAgentDocument;
+            return agent as unknown as IAgentDocument;
 
         } catch (error: any) {
             console.error('Erreur lors de la récupération de l\'agent par membership Destiny:', {
@@ -508,7 +511,7 @@ class AgentService implements IAgentService {
             }
 
             const now = new Date();
-            const result = await AgentModel.findByIdAndUpdate(agentId.trim(), {
+            const result = await Agent.findByIdAndUpdate(agentId.trim(), {
                 $set: { lastActivity: now, updatedAt: now }
             });
 
@@ -570,69 +573,28 @@ class AgentService implements IAgentService {
                 return null;
             }
 
-            const sanitizedUpdateData: Partial<IAgentDocument> = {};
-
+            const sanitizedUpdateData: any = {};
             const forbiddenFields = ['_id', 'bungieId', 'bungieTokens', 'joinedAt', 'createdAt'];
 
+            // ✅ Ne pas filtrer les champs ici, on les reçoit déjà aplatis depuis le contrôleur
             for (const [key, value] of Object.entries(updateData)) {
-                if (!forbiddenFields.includes(key)) {
-                    (sanitizedUpdateData as any)[key] = value;
+                // Vérifier si c'est un champ interdit (sans le préfixe "protocol.")
+                const baseField = key.split('.')[0];
+                if (!forbiddenFields.includes(baseField)) {
+                    sanitizedUpdateData[key] = value;
                 }
             }
 
             const now = new Date();
             sanitizedUpdateData.updatedAt = now;
-
-            if (sanitizedUpdateData.protocol && currentAgent.protocol) {
-                const protocolUpdate = sanitizedUpdateData.protocol;
-
-                if (protocolUpdate.agentName && protocolUpdate.agentName.length > MAX_AGENT_NAME_LENGTH) {
-                    throw new Error(`Nom d'agent trop long (max ${MAX_AGENT_NAME_LENGTH} caractères)`);
-                }
-
-                if (protocolUpdate.customName && protocolUpdate.customName.length > MAX_CUSTOM_NAME_LENGTH) {
-                    throw new Error(`Nom personnalisé trop long (max ${MAX_CUSTOM_NAME_LENGTH} caractères)`);
-                }
-
-                if (protocolUpdate.clearanceLevel !== undefined) {
-                    if (typeof protocolUpdate.clearanceLevel !== 'number' ||
-                        protocolUpdate.clearanceLevel < MIN_CLEARANCE_LEVEL ||
-                        protocolUpdate.clearanceLevel > MAX_CLEARANCE_LEVEL) {
-                        throw new Error(`Niveau d'autorisation invalide (${MIN_CLEARANCE_LEVEL}-${MAX_CLEARANCE_LEVEL})`);
-                    }
-                }
-
-                if (protocolUpdate.species) {
-                    const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
-                    if (!allowedSpecies.includes(protocolUpdate.species)) {
-                        throw new Error('Espèce invalide (doit être HUMAN, EXO ou AWOKEN)');
-                    }
-                }
-
-                if (protocolUpdate.role) {
-                    const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
-                    if (!allowedRoles.includes(protocolUpdate.role)) {
-                        throw new Error('Rôle invalide');
-                    }
-                }
-
-                sanitizedUpdateData.protocol = {
-                    ...currentAgent.protocol,
-                    ...protocolUpdate,
-                    settings: {
-                        ...currentAgent.protocol.settings,
-                        ...(protocolUpdate.settings || {})
-                    }
-                };
-            }
-
             console.log('Mise à jour de profil d\'agent:', {
                 agentId,
                 fields: Object.keys(sanitizedUpdateData),
+                data: sanitizedUpdateData,
                 timestamp: formatForUser()
             });
 
-            const result = await AgentModel.findByIdAndUpdate(
+            const result = await Agent.findByIdAndUpdate(
                 agentId.trim(),
                 { $set: sanitizedUpdateData },
                 { new: true, runValidators: true }
@@ -642,9 +604,10 @@ class AgentService implements IAgentService {
                 console.log('Profil d\'agent mis à jour avec succès:', {
                     agentId,
                     agentName: result.protocol?.agentName,
+                    updatedFields: Object.keys(sanitizedUpdateData),
                     timestamp: formatForUser()
                 });
-                return result as IAgentDocument;
+                return result as unknown as IAgentDocument;
             } else {
                 console.error('Agent non trouvé lors de la mise à jour:', {
                     agentId,
@@ -663,7 +626,6 @@ class AgentService implements IAgentService {
             throw new Error(`Échec de la mise à jour du profil d'agent: ${error.message}`);
         }
     }
-
     async getActiveAgentsCount(): Promise<number> {
         try {
             const now = new Date();
@@ -679,7 +641,7 @@ class AgentService implements IAgentService {
                 return 0;
             }
 
-            const count = await AgentModel.countDocuments({
+            const count = await Agent.countDocuments({
                 lastActivity: {
                     $gte: thresholdDaysAgo,
                     $lte: now
@@ -805,7 +767,7 @@ class AgentService implements IAgentService {
                 return false;
             }
 
-            const count = await AgentModel.countDocuments({
+            const count = await Agent.countDocuments({
                 bungieId: trimmedBungieId
             });
 
@@ -831,14 +793,14 @@ class AgentService implements IAgentService {
                 inactiveAgents,
                 recentJoins
             ] = await Promise.all([
-                AgentModel.countDocuments({}),
-                AgentModel.countDocuments({
+                Agent.countDocuments({}),
+                Agent.countDocuments({
                     isActive: true
                 }),
-                AgentModel.countDocuments({
+                Agent.countDocuments({
                     isActive: false
                 }),
-                AgentModel.countDocuments({
+                Agent.countDocuments({
                     joinedAt: { $gte: thirtyDaysAgo }
                 })
             ]);

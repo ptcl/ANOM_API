@@ -56,12 +56,6 @@ export class AppInfoService implements IAppInfoService {
                 description: this.sanitizeString(rawPackageInfo.description)
             };
 
-            console.log('Package.json chargé avec succès:', {
-                name: safePackageInfo.name,
-                version: safePackageInfo.version,
-                timestamp: formatForUser()
-            });
-
             return safePackageInfo;
 
         } catch (error: any) {
