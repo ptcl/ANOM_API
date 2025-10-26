@@ -386,10 +386,10 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
 
         const stats = {
             totalContracts: contracts.length,
-            totalContractsPending: contracts.filter(c => c.status === 'pending').length,
-            totalContractsValidated: contracts.filter(c => c.status === 'validated').length,
-            totalContractsCancelled: contracts.filter(c => c.status === 'cancelled').length,
-            totalContractsRevoked: contracts.filter(c => c.status === 'revoked').length,
+            totalContractsPending: contracts.filter(c => c.status?.toUpperCase() === 'PENDING').length,
+            totalContractsValidated: contracts.filter(c => c.status?.toUpperCase() === 'VALIDATED').length,
+            totalContractsCancelled: contracts.filter(c => c.status?.toUpperCase() === 'CANCELLED').length,
+            totalContractsRevoked: contracts.filter(c => c.status?.toUpperCase() === 'REVOKED').length,
             totalEmblems: contracts.reduce((sum, c) => sum + (c.totalCodes || 0), 0),
             totalEmblemsAvailable: contracts.reduce((sum, c) => sum + (c.availableCodes || 0), 0),
             totalEmblemsRedeemed: contracts.reduce((sum, c) => sum + ((c.totalCodes || 0) - (c.availableCodes || 0)), 0)
