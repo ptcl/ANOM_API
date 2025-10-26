@@ -1,81 +1,149 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
-const agentSchema = new mongoose.Schema({
-    bungieId: { type: String, required: true, unique: true },
-    bungieTokens: {
-        accessToken: { type: String, required: true },
-        refreshToken: { type: String, required: true },
-        expiresAt: { type: Date, required: true },
-    },
-    destinyMemberships: [{
-        crossSaveOverride: { type: Number },
-        applicableMembershipTypes: [{ type: Number }],
-        isPublic: { type: Boolean },
-        membershipType: { type: Number },
-        membershipId: { type: String },
-        displayName: { type: String },
-        bungieGlobalDisplayName: { type: String },
-        bungieGlobalDisplayNameCode: { type: Number }
+const BungieTokenSchema = new Schema({
+  accessToken: String,
+  refreshToken: String,
+  expiresAt: Date
+}, { _id: false });
 
-    }],
-    bungieUser: {
-        membershipId: { type: Number },
-        uniqueName: { type: String },
-        displayName: { type: String },
-        profilePicture: { type: Number },
-        about: { type: String },
-        firstAccess: { type: Date },
-        lastAccess: { type: Date },
-        psnDisplayName: { type: String },
-        showActivity: { type: Boolean },
-        locale: { type: String },
-        localeInheritDefault: { type: Boolean },
-        profilePicturePath: { type: String },
-        profileThemeName: { type: String },
-        steamDisplayName: { type: String },
-        twitchDisplayName: { type: String },
-        cachedBungieGlobalDisplayName: { type: String },
-        cachedBungieGlobalDisplayNameCode: { type: Number }
-    },
-    protocol: {
-        agentName: { type: String, required: true },
-        customName: { type: String },
-        species: { type: String, enum: ['HUMAN', 'EXO', 'AWOKEN'], required: true },
-        role: { type: String, enum: ['AGENT', 'SPECIALIST', 'FOUNDER'], default: 'AGENT' },
-        clearanceLevel: { type: Number, enum: [1, 2, 3], required: true },
-        hasSeenRecruitment: { type: Boolean, default: false },
-        protocolJoinedAt: { type: Date },
-        group: { type: String, enum: ['PROTOCOL', 'AURORA', 'ZENITH'] },
-        settings: {
-            notifications: { type: Boolean, default: true },
-            publicProfile: { type: Boolean, default: false },
-            protocolOSTheme: { type: String, enum: ['DEFAULT', 'DARKNESS'], default: 'DEFAULT' },
-            protocolSounds: { type: Boolean, default: true }
-        }
-    },
-    contracts: [
-        {
-            contractMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "Emblem-Contract" },
-            contractId: { type: String }
-        }
-    ],
-    challenges: [
-        {
-            challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge" },
-            challengeId: { type: String },
-            title: { type: String },
-            complete: { type: Boolean, default: false },
-            accessedAt: { type: Date, default: Date.now },
-            completedAt: { type: Date },
-            partialCode: { type: String },
-            unlockedFragments: [{ type: String }],
-            progress: { type: mongoose.Schema.Types.Mixed }
-        }
-    ],
-    lastActivity: { type: Date, default: Date.now },
+const DestinyMembershipSchema = new Schema({
+  crossSaveOverride: Number,
+  applicableMembershipTypes: [Number],
+  isPublic: Boolean,
+  membershipType: { type: Number, required: true },
+  membershipId: { type: String, required: true },
+  displayName: String,
+  bungieGlobalDisplayName: String,
+  bungieGlobalDisplayNameCode: Number
+}, { _id: false });
+
+const BungieUserSchema = new Schema({
+  membershipId: Number,
+  uniqueName: String,
+  displayName: String,
+  profilePicture: Number,
+  about: String,
+  firstAccess: Date,
+  lastAccess: Date,
+  psnDisplayName: String,
+  showActivity: Boolean,
+  locale: String,
+  localeInheritDefault: Boolean,
+  profilePicturePath: String,
+  profileThemeName: String,
+  steamDisplayName: String,
+  twitchDisplayName: String,
+  cachedBungieGlobalDisplayName: String,
+  cachedBungieGlobalDisplayNameCode: Number
+}, { _id: false });
+
+const AgentSettingsSchema = new Schema({
+  notifications: { type: Boolean, default: true },
+  publicProfile: { type: Boolean, default: true },
+  protocolOSTheme: {
+    type: String,
+    enum: ["DEFAULT", "DARKNESS"],
+    default: "DEFAULT"
+  },
+  protocolSounds: { type: Boolean, default: true },
+  language: { type: String, default: "fr" }
+}, { _id: false });
+
+const AgentBadgeSchema = new Schema({
+  badgeId: { type: Schema.Types.ObjectId, ref: "Badge", required: true },
+  obtainedAt: { type: Date, default: Date.now }
+}, { _id: false });
+
+const AgentStatsSchema = new Schema({
+  timelinesCompleted: { type: Number, default: 0 },
+  challengesSolved: { type: Number, default: 0 },
+  fragmentsCollected: { type: Number, default: 0 },
+  loreUnlocked: { type: Number, default: 0 },
+  lastRewardedAt: Date
+}, { _id: false });
+
+const AgentHistorySchema = new Schema({
+  action: { type: String, required: true },
+  targetId: String,
+  timestamp: { type: Date, default: Date.now },
+  success: Boolean,
+  meta: { type: Schema.Types.Mixed }
+}, { _id: false });
+
+const ProtocolSchema = new Schema({
+  agentName: { type: String, required: true },
+  customName: String,
+  species: { type: String, enum: ["HUMAN", "EXO", "AWOKEN"], default: "HUMAN" },
+  role: { type: String, enum: ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"], default: "AGENT" },
+  clearanceLevel: { type: Number, default: 1 },
+  hasSeenRecruitment: { type: Boolean, default: false },
+  protocolJoinedAt: { type: Date, default: Date.now },
+  group: { type: String, enum: ["PROTOCOL", "AURORA", "ZENITH"], default: "PROTOCOL" },
+  settings: AgentSettingsSchema,
+  badges: [AgentBadgeSchema],
+  stats: AgentStatsSchema,
+  history: [AgentHistorySchema]
+}, { _id: false });
+
+const AgentSchema = new Schema({
+  bungieId: { type: String, required: true },
+
+  bungieTokens: BungieTokenSchema,
+  destinyMemberships: [DestinyMembershipSchema],
+  bungieUser: BungieUserSchema,
+  protocol: ProtocolSchema,
+  lastActivity: Date,
+  isActive: { type: Boolean, default: true },
+  deactivatedAt: Date,
+  deactivatedBy: String,
+  deactivationReason: String,
+  reactivatedAt: Date,
+  reactivatedBy: String,
+
+  contracts: [
+    {
+      contractMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "Emblem-Contract", required: true },
+      contractId: { type: String, required: true },
+      createdAs: { type: String, enum: ["donor"], default: "donor" },
+      linkedAt: { type: Date, default: Date.now },
+      statusSnapshot: {
+        type: String,
+        enum: ["pending", "validated", "cancelled", "revoked"],
+        default: "pending"
+      },
+      lastSyncedAt: { type: Date, default: Date.now }
+    }
+  ],
+  challenges: [
+    {
+      challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge" },
+      challengeId: { type: String },
+      title: { type: String },
+      complete: { type: Boolean, default: false },
+      accessedAt: { type: Date, default: Date.now },
+      completedAt: { type: Date },
+      partialCode: { type: String },
+      unlockedFragments: [{ type: String }],
+      progress: { type: mongoose.Schema.Types.Mixed }
+    }
+  ],
+
+
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-agentSchema.index({ 'protocol.agentName': 1 });
-agentSchema.index({ lastActivity: 1 });
+/* -------------------------------------------------------------------------- */
+/*                                   INDEXES                                  */
+/* -------------------------------------------------------------------------- */
 
-export const AgentModel = mongoose.models.Agent || mongoose.model('Agent', agentSchema);
+AgentSchema.index({ bungieId: 1 }, { unique: true, background: true });
+AgentSchema.index({ "protocol.role": 1 });
+AgentSchema.index({ "protocol.group": 1 });
+AgentSchema.index({ "protocol.badges.badgeId": 1 });
+AgentSchema.index({ "protocol.stats.timelinesCompleted": -1 });
+AgentSchema.index({ isActive: 1 });
+AgentSchema.index({ deactivatedAt: -1 });
+/* -------------------------------------------------------------------------- */
+
+export const Agent = model("Agent", AgentSchema);

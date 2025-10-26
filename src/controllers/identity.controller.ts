@@ -3,7 +3,7 @@ import { generateState, generateJWT, verifyJWT, createJWTPayload, validateJWTFor
 import { bungieService } from '../services';
 import { agentService } from '../services/agentservice';
 import { ApiResponseBuilder } from '../utils/apiresponse';
-import { isDev, getServerConfig, isTest } from '../utils/environment';
+import { isDev, getServerConfig, isSandbox } from '../utils/environment';
 import { formatForUser } from '../utils';
 import { formatAgentResponse } from '../utils/formatters';
 import { AUTH_CONSTANTS } from '../utils/constants';
@@ -175,7 +175,7 @@ export const handleCallback = async (req: Request, res: Response) => {
       timestamp: formatForUser()
     });
 
-    if (isTest()) {
+    if (isSandbox()) {
       return res.json({
         success: true,
         data: {

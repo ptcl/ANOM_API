@@ -1,4 +1,4 @@
-import { AgentModel } from "../models/agent.model";
+import { Agent } from "../models/agent.model";
 import { ContractModel } from "../models/contract.model";
 
 export const checkContractAccess = async (contractId: string, userBungieId: string, userRole?: string) => {
@@ -12,7 +12,7 @@ export const checkContractAccess = async (contractId: string, userBungieId: stri
         return { contract, hasAccess: true, error: null };
     }
 
-    const agent = await AgentModel.findOne({
+    const agent = await Agent.findOne({
         bungieId: userBungieId,
         'contracts.contractId': contractId
     });

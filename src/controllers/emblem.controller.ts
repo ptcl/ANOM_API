@@ -55,10 +55,10 @@ export const createEmblem = async (req: Request, res: Response) => {
         }
 
         // Validation du statut
-        const allowedStatuses: Array<IEmblem['status']> = ['available', 'unavailable'];
+        const allowedStatuses: Array<IEmblem['status']> = ['AVAILABLE', 'UNAVAILABLE'];
         if (!status || !allowedStatuses.includes(status)) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Le statut doit être "available" ou "unavailable"',
+                message: 'Le statut doit être "AVAILABLE" ou "UNAVAILABLE"',
                 error: 'validation_error'
             });
         }
@@ -198,10 +198,10 @@ export const updateEmblem = async (req: Request, res: Response) => {
 
         // Validation du statut (si fourni)
         if (status !== undefined) {
-            const allowedStatuses: Array<IEmblem['status']> = ['available', 'unavailable'];
+            const allowedStatuses: Array<IEmblem['status']> = ['AVAILABLE', 'UNAVAILABLE'];
             if (!allowedStatuses.includes(status)) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'Le statut doit être "available" ou "unavailable"',
+                    message: 'Le statut doit être "AVAILABLE" ou "UNAVAILABLE"',
                     error: 'validation_error'
                 });
             }

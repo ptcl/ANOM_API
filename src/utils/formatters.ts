@@ -1,6 +1,6 @@
-import { IAgent } from "../types/agent";
+import {IAgentDocument } from "../types/agent";
 
-export const formatAgentResponse = (agent: IAgent, includeDestiny = false) => {
+export const formatAgentResponse = (agent: IAgentDocument, includeDestiny = false) => {
     const response: any = {
         _id: agent._id,
         protocol: {

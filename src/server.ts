@@ -7,7 +7,6 @@ const startServer = async () => {
     try {
         console.log('🚀 Starting AN0M-ARCHIVES API...');
 
-        env.logConfiguration();
         await connectDB();
         await connectMongoose();
 
@@ -18,21 +17,7 @@ const startServer = async () => {
 
         const serverConfig = getServerConfig();
 
-        const server = app.listen(serverConfig.port, () => {
-            console.log(`
-╔══════════════════════════════════════╗
-║         AN0M ARCHIVE API             ║
-║                                      ║
-║  🚀 Server: http://localhost:${serverConfig.port.toString().padEnd(4)} ║
-║  📊 Database: Connected              ║
-║  🔐 Environment: ${env.getEnvironment().padEnd(11)} ║
-║                                      ║
-║  🔗 Health: api/health                  ║
-║  � API Docs: /docs              ║
-║  �📡 Auth: api/identity/bungie/login ║
-╚══════════════════════════════════════╝
-      `);
-        });
+        const server = app.listen(serverConfig.port);
 
         const gracefulShutdown = async (signal: string) => {
             console.log(`\n📴 ${signal} received, shutting down gracefully...`);

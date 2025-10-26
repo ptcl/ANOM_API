@@ -1,14 +1,20 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-export type Environment = 'development' | 'production' | 'test';
+export type Environment = 'development' | 'production' | 'sandbox';
 
 class EnvironmentManager {
     private static instance: EnvironmentManager;
     private env: Environment;
 
     private constructor() {
-        this.env = (process.env.NODE_ENV as Environment) || 'development';
+        const nodeEnv = process.env.NODE_ENV as Environment;
+        if (!['development', 'production', 'sandbox'].includes(nodeEnv)) {
+            console.warn(`⚠️  Unknown NODE_ENV="${process.env.NODE_ENV}", defaulting to "development"`);
+            this.env = 'development';
+        } else {
+            this.env = nodeEnv;
+        }
         this.validateEnvironment();
     }
 
@@ -34,41 +40,19 @@ class EnvironmentManager {
             requiredVars.push('MONGO_URL', 'MONGO_DB_NAME_DEV');
         } else if (this.isProduction()) {
             requiredVars.push('MONGO_URL_PROD', 'MONGO_DB_NAME_PROD', 'CORS_ORIGINS');
+        } else if (this.isSandbox()) {
+            requiredVars.push('MONGO_URL_SANDBOX', 'MONGO_DB_NAME_SANDBOX');
         }
 
-        const missingVars = requiredVars.filter(varName => !process.env[varName]);
-
-        if (missingVars.length > 0) {
-            console.error('❌ Missing required environment variables:');
-            missingVars.forEach(varName => {
-                console.error(`   - ${varName}`);
-            });
-
-            if (this.isProduction()) {
-                console.error('🚫 Exiting due to missing environment variables in production');
-                process.exit(1);
-            } else {
-                console.warn('⚠️  Continuing in development mode, but some features may not work');
-            }
+        const missing = requiredVars.filter(v => !process.env[v]);
+        if (missing.length > 0) {
+            console.error('❌ Missing env variables:');
+            missing.forEach(v => console.error(`   - ${v}`));
+            if (this.isProduction()) process.exit(1);
         } else {
-            console.log('✅ All required environment variables are present');
+            console.log('✅ Env check passed');
         }
     }
-
-    getMongoConfig(): { uri: string; dbName: string } {
-        if (this.isProduction()) {
-            return {
-                uri: process.env.MONGO_URL_PROD!,
-                dbName: process.env.MONGO_DB_NAME_PROD!
-            };
-        } else {
-            return {
-                uri: process.env.MONGO_URL!,
-                dbName: process.env.MONGO_DB_NAME_DEV!
-            };
-        }
-    }
-
     getBungieConfig() {
         return {
             apiKey: process.env.BUNGIE_API_KEY!,
@@ -77,87 +61,48 @@ class EnvironmentManager {
             redirectUri: process.env.BUNGIE_REDIRECT_URI!
         };
     }
-
-    getJWTConfig() {
-        return {
-            secret: process.env.JWT_SECRET!,
-        };
+    getMongoConfig(): { uri: string; dbName: string } {
+        if (this.isProduction()) {
+            return { uri: process.env.MONGO_URL_PROD!, dbName: process.env.MONGO_DB_NAME_PROD! };
+        } else if (this.isSandbox()) {
+            return { uri: process.env.MONGO_URL_SANDBOX!, dbName: process.env.MONGO_DB_NAME_SANDBOX! };
+        } else {
+            return { uri: process.env.MONGO_URL!, dbName: process.env.MONGO_DB_NAME_DEV! };
+        }
     }
 
     getServerConfig() {
         const defaultOrigins = ['http://localhost:3000', 'http://localhost:3001'];
-
         let corsOrigins = defaultOrigins;
+
         if (process.env.CORS_ORIGINS) {
             corsOrigins = process.env.CORS_ORIGINS
                 .split(',')
                 .map(origin => origin.trim())
-                .filter(origin => {
+                .filter(o => {
                     try {
-                        new URL(origin);
+                        new URL(o);
                         return true;
                     } catch {
-                        console.warn(`⚠️  Invalid CORS origin ignored: ${origin}`);
+                        console.warn(`⚠️ Invalid CORS origin ignored: ${o}`);
                         return false;
                     }
                 });
-
-            if (corsOrigins.length === 0) {
-                console.warn('⚠️  No valid CORS origins found, using defaults');
-                corsOrigins = defaultOrigins;
-            }
         }
 
-        if (this.isProduction()) {
-            corsOrigins = corsOrigins.filter(origin =>
-                !origin.includes('localhost') && !origin.includes('127.0.0.1')
-            );
-
-            if (corsOrigins.length === 0) {
-                console.error('❌ No production CORS origins configured!');
-            }
-        }
+        if (corsOrigins.length === 0) corsOrigins = defaultOrigins;
 
         return {
-            port: parseInt(process.env.PORT || '3032', 10),
+            port: parseInt(process.env.PORT || '3031', 10),
             frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
-            corsOrigins: corsOrigins
+            corsOrigins
         };
     }
 
-
-    isDevelopment(): boolean {
-        return this.env === 'development';
-    }
-
-    isProduction(): boolean {
-        return this.env === 'production';
-    }
-
-    isTesting(): boolean {
-        return this.env === 'test';
-    }
-
-    getEnvironment(): Environment {
-        return this.env;
-    }
-
-    logConfiguration(): void {
-        const mongoConfig = this.getMongoConfig();
-        const serverConfig = this.getServerConfig();
-
-        console.log(`
-╔══════════════════════════════════════╗
-║         CONFIGURATION                ║
-║                                      ║
-║  🌍 Environment: ${this.env.padEnd(11)} ║
-║  📊 Database: ${mongoConfig.dbName.padEnd(15)} ║
-║  🚀 Port: ${serverConfig.port.toString().padEnd(19)} ║
-║  🔐 Bungie: ${process.env.BUNGIE_API_KEY ? 'Configured' : 'Missing'.padEnd(10)} ║
-║  🎯 Frontend: ${serverConfig.frontendUrl.length > 20 ? 'Configured' : serverConfig.frontendUrl.padEnd(11)} ║
-╚══════════════════════════════════════╝
-    `);
-    }
+    isDevelopment() { return this.env === 'development'; }
+    isProduction() { return this.env === 'production'; }
+    isSandbox() { return this.env === 'sandbox'; }
+    getEnvironment() { return this.env; }
 }
 
 const environmentManager = EnvironmentManager.getInstance();
@@ -165,8 +110,7 @@ const environmentManager = EnvironmentManager.getInstance();
 export const env = environmentManager;
 export const isDev = () => environmentManager.isDevelopment();
 export const isProd = () => environmentManager.isProduction();
-export const isTest = () => environmentManager.isTesting();
+export const isSandbox = () => environmentManager.isSandbox();
 export const getMongoConfig = () => environmentManager.getMongoConfig();
-export const getBungieConfig = () => environmentManager.getBungieConfig();
-export const getJWTConfig = () => environmentManager.getJWTConfig();
 export const getServerConfig = () => environmentManager.getServerConfig();
+export const getBungieConfig = () => environmentManager.getBungieConfig();

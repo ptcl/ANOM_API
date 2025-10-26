@@ -4,7 +4,7 @@ export interface IEmblem {
     emblemId: string;
     name: string;
     code: string;
-    status: 'available' | 'redeemed' | 'revoked';
+    status: 'AVAILABLE' | 'REDEEMED' | 'REVOKED';
     redeemedBy?: Types.ObjectId | string;
     redeemedDate?: Date;
 }
@@ -14,7 +14,7 @@ export interface IRevocationRequest {
     effectiveDate?: Date;
     emblemCodes: string[];
     isPartial: boolean;
-    status: 'pending' | 'processed' | 'cancelled';
+    status: 'PENDING' | 'PROCESSED' | 'CANCELLED';
 }
 
 export interface IContractMedia {
@@ -32,12 +32,12 @@ export interface IContract {
     _id?: Types.ObjectId | string;
     contractId: string;
     contractDate: Date;
-    status: 'pending' | 'validated' | 'cancelled' | 'revoked';
+    status: 'PENDING' | 'VALIDATED' | 'CANCELLED' | 'REVOKED';
 
     validationDeadline?: Date;
     isExpired: boolean;
 
-    contributor: IContributor;
+    contributors: IContributor[];
 
     emblems: IEmblem[];
 

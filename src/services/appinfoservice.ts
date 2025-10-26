@@ -15,7 +15,6 @@ export interface IAppInfoService {
     getSystemInfo(): SystemInfo;
 }
 
-// Constantes de sécurité
 const MAX_UPTIME_DAYS = 365;
 const ALLOWED_ENVIRONMENTS = ['development', 'production', 'staging', 'test'] as const;
 const DEFAULT_APP_NAME = 'AN0M-ARCHIVES API';
@@ -56,12 +55,6 @@ export class AppInfoService implements IAppInfoService {
                 description: this.sanitizeString(rawPackageInfo.description)
             };
 
-            console.log('Package.json chargé avec succès:', {
-                name: safePackageInfo.name,
-                version: safePackageInfo.version,
-                timestamp: formatForUser()
-            });
-
             return safePackageInfo;
 
         } catch (error: any) {
@@ -70,7 +63,6 @@ export class AppInfoService implements IAppInfoService {
                 timestamp: formatForUser()
             });
 
-            // Fallback sécurisé
             return {
                 name: DEFAULT_APP_NAME,
                 version: this.sanitizeVersion(process.env.npm_package_version) || DEFAULT_VERSION,

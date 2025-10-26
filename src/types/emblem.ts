@@ -4,7 +4,7 @@ export interface IEmblem {
     description?: string;
     image?: string;
     code?: string;
-    status: "available" | "unavailable";
+    status: "AVAILABLE" | "UNAVAILABLE";
     createdAt?: Date;
     updatedAt?: Date;
 }

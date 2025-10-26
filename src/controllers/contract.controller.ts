@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AgentModel } from '../models/agent.model';
+import { Agent } from '../models/agent.model';
 import { generateUniqueId } from '../utils/generate';
 import { ContractModel } from '../models/contract.model';
 import { EmblemModel } from '../models/emblem.model';
@@ -8,7 +8,7 @@ import { IContract, IEmblem, IContributor } from '../types/contract';
 import { IEmblem as IEmblemGlobal } from '../types/emblem';
 import { formatForUser } from '../utils';
 
-const VALID_CONTRACT_STATUSES: IContract['status'][] = ['pending', 'validated', 'cancelled', 'revoked'];
+const VALID_CONTRACT_STATUSES: IContract['status'][] = ['PENDING', 'VALIDATED', 'CANCELLED', 'REVOKED'];
 
 const MAX_TITLE_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 1000;
@@ -18,16 +18,24 @@ const MAX_CODES_PER_CONTRACT = 100;
 
 export const createContract = async (req: Request, res: Response) => {
     try {
-        const { emblems, contributor, validationDeadline, media } = req.body;
+        const { emblems, contributors, validationDeadline, media } = req.body;
 
-        if (!contributor || !contributor.bungieId || !contributor.displayName) {
+        if (!Array.isArray(contributors) || contributors.length === 0) {
             return res.status(400).json({
                 success: false,
                 error: 'Missing required contributor information'
             });
         }
 
-        const targetAgentId = contributor.bungieId;
+        for (const c of contributors) {
+            if (!c.bungieId || !c.displayName) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid contributor data'
+                });
+            }
+        }
+
 
         if (!Array.isArray(emblems) || emblems.length === 0) {
             return res.status(400).json({
@@ -54,11 +62,14 @@ export const createContract = async (req: Request, res: Response) => {
             }
         }
 
-        const agent = await AgentModel.findOne({ bungieId: targetAgentId });
-        if (!agent) {
+        const contributorAgents = await Agent.find({
+            bungieId: { $in: contributors.map((c: any) => c.bungieId.toString()) }
+        });
+
+        if (contributorAgents.length === 0) {
             return res.status(404).json({
                 success: false,
-                error: 'Agent not found'
+                error: 'No valid agents found for contributors'
             });
         }
 
@@ -80,15 +91,15 @@ export const createContract = async (req: Request, res: Response) => {
                 emblemId: generateUniqueId('EMBLEM'),
                 name: emblem.name,
                 code: emblem.code,
-                status: 'available' as const
+                status: 'AVAILABLE' as const
             };
         });
 
-        const sanitizedContributor: IContributor = {
-            bungieId: contributor.bungieId.toString(),
-            displayName: contributor.displayName.toString().substring(0, MAX_TITLE_LENGTH),
-            isAnonymous: !!contributor.isAnonymous
-        };
+        const sanitizedContributors: IContributor[] = contributors.map((c: any) => ({
+            bungieId: c.bungieId.toString(),
+            displayName: c.displayName.toString().substring(0, MAX_TITLE_LENGTH),
+            isAnonymous: !!c.isAnonymous
+        }));
 
         const sanitizedMedia = Array.isArray(media)
             ? media.filter((m: any) => m.url && typeof m.url === 'string')
@@ -101,13 +112,13 @@ export const createContract = async (req: Request, res: Response) => {
 
         const contractData: Partial<IContract> = {
             contractId: generateUniqueId('CONT'),
-            contributor: sanitizedContributor,
+            contributors: sanitizedContributors,
             emblems: sanitizedEmblems,
             totalCodes: sanitizedEmblems.length,
             availableCodes: sanitizedEmblems.length,
             validationDeadline: parsedDeadline || undefined,
             media: sanitizedMedia,
-            status: 'pending',
+            status: 'PENDING',
             isExpired: false,
             isSigned: false,
             revocationRequests: [],
@@ -125,7 +136,7 @@ export const createContract = async (req: Request, res: Response) => {
                         emblemId: emblem.emblemId,
                         name: emblem.name,
                         code: emblem.code,
-                        status: 'unavailable',
+                        status: 'UNAVAILABLE',
                         image: '',
                         description: `Emblème provenant du contrat ${newContract.contractId}`,
                     };
@@ -150,11 +161,17 @@ export const createContract = async (req: Request, res: Response) => {
 
         await Promise.all(emblemCreationPromises);
 
-        agent.contracts.push({
-            contractMongoId: newContract._id,
-            contractId: newContract.contractId
-        });
-        await agent.save();
+        for (const contributorAgent of contributorAgents) {
+            contributorAgent.contracts.push({
+                contractMongoId: newContract._id,
+                contractId: newContract.contractId,
+                createdAs: "donor",
+                linkedAt: new Date(),
+                statusSnapshot: newContract.status,
+                lastSyncedAt: new Date()
+            });
+            await contributorAgent.save();
+        }
 
         return res.status(201).json({
             success: true,
@@ -207,9 +224,8 @@ export const deleteContract = async (req: Request, res: Response) => {
             });
         }
         await contract.deleteOne();
-
-        await AgentModel.updateMany(
-            { 'contracts.contractId': contractId },
+        await Agent.updateMany(
+            { "contracts.contractId": contractId },
             { $pull: { contracts: { contractId: contractId } } }
         );
 
@@ -305,6 +321,17 @@ export const updateContract = async (req: Request, res: Response) => {
             { new: true }
         );
 
+        if (updatedContract) {
+            await Agent.updateMany(
+                { "contracts.contractMongoId": updatedContract._id },
+                {
+                    $set: {
+                        "contracts.$.statusSnapshot": updatedContract.status,
+                        "contracts.$.lastSyncedAt": new Date()
+                    }
+                }
+            );
+        }
         if (!updatedContract) {
             return res.status(404).json({
                 success: false,
@@ -345,7 +372,7 @@ export const getAgentAllContracts = async (req: Request, res: Response) => {
             });
         }
 
-        const agent = await AgentModel.findOne({ bungieId: userBungieId });
+        const agent = await Agent.findOne({ bungieId: userBungieId });
         if (!agent) {
             return res.status(404).json({
                 success: false,

@@ -3,7 +3,7 @@ import { IEmblemChallenge } from '../types/challenge';
 import { generateUniqueId } from '../utils/generate';
 import { determineFinalCode, getFragmentsData, getPartialCode, splitTargetCodeToFinalCode, validateAndProcessChallenges, validateCodeFormat, validateTargetCode } from '../utils/codevalidation';
 import { ChallengeModel } from '../models/challenge.model';
-import { AgentModel } from '../models/agent.model';
+import { Agent } from '../models/agent.model';
 import { formatForUser } from '../utils';
 
 export const createChallenge = async (req: Request, res: Response) => {
@@ -239,7 +239,7 @@ export const accessChallenge = async (req: Request, res: Response) => {
             });
         }
 
-        const agent = await AgentModel.findOne({ bungieId: agentBungieId });
+        const agent = await Agent.findOne({ bungieId: agentBungieId });
         if (!agent) {
             return res.status(404).json({
                 success: false,
@@ -269,7 +269,7 @@ export const accessChallenge = async (req: Request, res: Response) => {
         // Vérification si le challenge est complété
         if (challenge.isComplete) {
             const completedBy = challenge.isCompleteBy
-                ? await AgentModel.findOne({ bungieId: challenge.isCompleteBy }).select('protocol.agentName bungieUser.displayName')
+                ? await Agent.findOne({ bungieId: challenge.isCompleteBy }).select('protocol.agentName bungieUser.displayName')
                 : null;
 
             const completedByName = completedBy
@@ -339,7 +339,7 @@ export const accessChallenge = async (req: Request, res: Response) => {
         const newAgentProgress = {
             agentId: agent._id,
             bungieId: agentBungieId,
-            displayName: agent.protocol.agentName || agent.bungieUser.displayName || "Agent",
+            displayName: agent.protocol?.agentName || agent.bungieUser?.displayName || agent.bungieId || "Agent",
             unlockedFragments: [] as string[],
             currentProgress: accessCode,
             complete: false,
@@ -349,7 +349,7 @@ export const accessChallenge = async (req: Request, res: Response) => {
         challenge.AgentProgress.push(newAgentProgress);
         const partialCode = getPartialCode(newAgentProgress.unlockedFragments, challenge.finalCode);
 
-        const existingChallengeInAgent = agent.challenges.find((c: { challengeId: string }) => c.challengeId === challenge.challengeId);
+        const existingChallengeInAgent = agent.challenges.find((c: { challengeId?: string | null }) => c.challengeId && c.challengeId === challenge.challengeId);
         if (!existingChallengeInAgent) {
             agent.challenges.push({
                 challengeMongoId: challenge._id,
@@ -437,7 +437,7 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
         // Vérification si le challenge est déjà complété
         if (challenge.isComplete) {
             const completedBy = challenge.isCompleteBy
-                ? await AgentModel.findOne({ bungieId: challenge.isCompleteBy }).select('protocol.agentName bungieUser.displayName')
+                ? await Agent.findOne({ bungieId: challenge.isCompleteBy }).select('protocol.agentName bungieUser.displayName')
                 : null;
 
             const completedByName = completedBy
@@ -516,9 +516,9 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
 
             await challenge.save();
 
-            const agent = await AgentModel.findOne({ bungieId: agentBungieId });
+            const agent = await Agent.findOne({ bungieId: agentBungieId });
             if (agent) {
-                const existingChallengeInAgent = agent.challenges.find((c: { challengeId: string }) => c.challengeId === challenge.challengeId);
+                const existingChallengeInAgent = agent.challenges.find((c: { challengeId?: string | null }) => c.challengeId && c.challengeId === challenge.challengeId);
                 if (existingChallengeInAgent) {
                     const partialCode = getPartialCode(agentProgress.unlockedFragments, challenge.finalCode);
                     existingChallengeInAgent.complete = agentProgress.complete;

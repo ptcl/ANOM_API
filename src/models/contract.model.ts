@@ -8,15 +8,17 @@ const ContractSchema = new mongoose.Schema({
     validationDeadline: Date,
     isExpired: { type: Boolean, default: false },
 
-    contributor: {
-        bungieId: { type: String, required: true },
-        displayName: { type: String, required: true },
-        isAnonymous: { type: Boolean, default: false }
-    },
+    contributors: [
+        {
+            bungieId: { type: String, required: true },
+            displayName: { type: String, required: true },
+            isAnonymous: { type: Boolean, default: false }
+        }
+    ],
 
     emblems: [
         {
-            emblemId: { type: String, default: '' },
+            emblemId: { type: String, default: null },
             name: String,
             code: String,
             status: { type: String, enum: ["available", "redeemed", "revoked"], default: "available" },
