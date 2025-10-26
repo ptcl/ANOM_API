@@ -165,7 +165,7 @@ export const createContract = async (req: Request, res: Response) => {
             contributorAgent.contracts.push({
                 contractMongoId: newContract._id,
                 contractId: newContract.contractId,
-                createdAs: "donor",
+                createdAs: "DONOR",
                 linkedAt: new Date(),
                 statusSnapshot: newContract.status,
                 lastSyncedAt: new Date()
