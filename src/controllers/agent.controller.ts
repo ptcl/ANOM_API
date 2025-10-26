@@ -252,7 +252,7 @@ export const DeleteOwnAccount = async (req: Request, res: Response) => {
         const deletedInfo = {
             bungieId: agent.bungieId,
             agentName: agent.protocol?.agentName,
-            role: agent.protocol?.roles
+            roles: agent.protocol?.roles
         };
 
         await Agent.findByIdAndDelete(agent._id);

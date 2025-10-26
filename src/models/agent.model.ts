@@ -152,7 +152,7 @@ const AgentSchema = new Schema({
 /* -------------------------------------------------------------------------- */
 
 AgentSchema.index({ bungieId: 1 }, { unique: true, background: true });
-AgentSchema.index({ "protocol.role": 1 });
+AgentSchema.index({ "protocol.roles": 1 });
 AgentSchema.index({ "protocol.group": 1 });
 AgentSchema.index({ "protocol.badges.badgeId": 1 });
 AgentSchema.index({ "protocol.stats.timelinesCompleted": -1 });
