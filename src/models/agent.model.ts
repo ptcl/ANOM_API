@@ -1,5 +1,8 @@
 import mongoose, { Schema, model } from "mongoose";
 
+type RoleType = "AGENT" | "ECHO" | "ORACLE" | "ARCHITECT" | "FOUNDER" | "EMISSARY";
+
+
 const BungieTokenSchema = new Schema({
   accessToken: String,
   refreshToken: String,
@@ -81,7 +84,7 @@ const ProtocolSchema = new Schema({
   history: [AgentHistorySchema]
 }, { _id: false });
 
-const roleHierarchy: Record<string, string[]> = {
+const roleHierarchy: Record<RoleType, RoleType[]> = {
   AGENT: [],
   ECHO: ["AGENT"],
   ORACLE: ["AGENT"],
@@ -90,19 +93,18 @@ const roleHierarchy: Record<string, string[]> = {
   EMISSARY: ["AGENT"]
 };
 ProtocolSchema.pre("save", function (next) {
-  const baseRoles = this.roles || ["AGENT"];
-  const fullHierarchy = new Set<string>();
+  const baseRoles = this.roles || (["AGENT"] as RoleType[]);
+  const fullHierarchy = new Set<RoleType>();
 
   for (const role of baseRoles) {
-    fullHierarchy.add(role);
-    const inherited = roleHierarchy[role] || [];
+    fullHierarchy.add(role as RoleType);
+    const inherited = roleHierarchy[role as RoleType] || [];
     inherited.forEach((r) => fullHierarchy.add(r));
   }
 
   this.roles = Array.from(fullHierarchy);
   next();
 });
-
 const AgentSchema = new Schema({
   bungieId: { type: String, required: true },
 
