@@ -17,22 +17,18 @@ BadgeSchema.index({ rarity: 1 });
 BadgeSchema.index({ obtainable: 1 });
 BadgeSchema.index({ linkedTier: 1 });
 
-BadgeSchema.pre("save", async function (next) {
-    if (!this.isNew || this.badgeId) return next()
+BadgeSchema.pre("validate", function (next) {
+    if (!this.badgeId) {
+        const nameKey = typeof this.name === "string"
+            ? this.name.split(".").pop()?.toUpperCase()
+            : "UNKNOWN";
 
-    const rawName = this.name.trim()
-    const normalizedName = rawName.includes(".")
-        ? rawName.split(".")[2]
-        : rawName
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "_")
-            .replace(/^_|_$/g, "")
+        const year = new Date().getFullYear();
+        const rarity = (this.rarity || "COMMON").toUpperCase();
 
-    const year = new Date().getFullYear()
-
-    this.badgeId = `BADGE-${year}-${this.rarity}-${normalizedName}`.toUpperCase()
-
-    next()
-})
+        this.badgeId = `BADGE-${year}-${rarity}-${nameKey}`;
+    }
+    next();
+});
 
 export const Badge = model("Badge", BadgeSchema);
