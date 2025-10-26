@@ -16,7 +16,6 @@ const BadgeSchema = new Schema({
     createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-// Indexes utiles pour recherche et affichage
 BadgeSchema.index({ rarity: 1 });
 BadgeSchema.index({ obtainable: 1 });
 BadgeSchema.index({ linkedTier: 1 });

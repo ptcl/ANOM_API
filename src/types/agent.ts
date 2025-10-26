@@ -2,10 +2,6 @@ import { Types, Document } from "mongoose";
 import { IBadge } from "./badge";
 import { IContract } from "./contract";
 
-/* -------------------------------------------------------------------------- */
-/*                                Sous-interfaces                             */
-/* -------------------------------------------------------------------------- */
-
 export interface IBungieToken {
     accessToken: string;
     refreshToken: string;
@@ -13,14 +9,14 @@ export interface IBungieToken {
 }
 
 export interface IDestinyMembership {
-    crossSaveOverride?: number | null;  // ✅ Ajoutez | null
+    crossSaveOverride?: number | null;
     applicableMembershipTypes?: number[];
-    isPublic?: boolean | null;  // Ajoutez aussi | null ici si nécessaire
+    isPublic?: boolean | null;
     membershipType: number;
     membershipId: string;
-    displayName?: string | null;  // Et ici
-    bungieGlobalDisplayName?: string | null;  // Et ici
-    bungieGlobalDisplayNameCode?: number | null;  // Et ici
+    displayName?: string | null;
+    bungieGlobalDisplayName?: string | null;
+    bungieGlobalDisplayNameCode?: number | null;
 }
 
 export interface IBungieUser {
@@ -50,10 +46,6 @@ export interface IAgentSettings {
     protocolSounds?: boolean;
     language?: string;
 }
-
-/* -------------------------------------------------------------------------- */
-/*                               Protocol Agent                               */
-/* -------------------------------------------------------------------------- */
 
 export interface IAgentBadge {
     badgeId: Types.ObjectId | IBadge;
@@ -94,10 +86,14 @@ export interface IProtocolProfile {
     stats: IAgentStats;
     history: IAgentHistory[];
 }
-
-/* -------------------------------------------------------------------------- */
-/*                                  Agent Base                                */
-/* -------------------------------------------------------------------------- */
+export interface IAgentContractLink {
+    contractMongoId: Types.ObjectId;
+    contractId: string;
+    createdAs: "donor";
+    linkedAt: Date;
+    statusSnapshot: "pending" | "validated" | "cancelled" | "revoked";
+    lastSyncedAt: Date;
+}
 
 export interface IAgent {
     bungieId: string;
@@ -105,10 +101,10 @@ export interface IAgent {
     destinyMemberships?: IDestinyMembership[];
     bungieUser: IBungieUser;
     protocol: IProtocolProfile;
-    contracts?: Array<Types.ObjectId | IContract>;
+    contracts?: IAgentContractLink[];
 
-    activeTimeline?: string;         // timeline en cours
-    completedTimelines?: string[];   // timelines terminées
+    activeTimeline?: string;
+    completedTimelines?: string[];
 
     isActive?: boolean;
     deactivatedAt?: Date;
@@ -123,9 +119,6 @@ export interface IAgent {
     updatedAt?: Date;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               Mongoose types                               */
-/* -------------------------------------------------------------------------- */
 
 export interface IAgentDocument extends IAgent, Document<Types.ObjectId> { }
 export interface IAgentPopulated extends Omit<IAgent, "protocol"> {

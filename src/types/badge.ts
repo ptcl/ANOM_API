@@ -1,6 +1,6 @@
 import { Document, Types } from "mongoose";
 
-export type BadgeRarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY";
+export type BadgeRarity = "COMMON" | "UNCOMMON" | "RARE" | "LEGENDARY" | "EXOTIC";
 
 export interface IBadge {
     badgeId: string;

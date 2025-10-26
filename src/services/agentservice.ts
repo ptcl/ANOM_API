@@ -576,9 +576,7 @@ class AgentService implements IAgentService {
             const sanitizedUpdateData: any = {};
             const forbiddenFields = ['_id', 'bungieId', 'bungieTokens', 'joinedAt', 'createdAt'];
 
-            // ✅ Ne pas filtrer les champs ici, on les reçoit déjà aplatis depuis le contrôleur
             for (const [key, value] of Object.entries(updateData)) {
-                // Vérifier si c'est un champ interdit (sans le préfixe "protocol.")
                 const baseField = key.split('.')[0];
                 if (!forbiddenFields.includes(baseField)) {
                     sanitizedUpdateData[key] = value;
