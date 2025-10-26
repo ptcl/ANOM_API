@@ -15,12 +15,18 @@ export const getProfilAgent = async (req: Request, res: Response) => {
             });
         }
 
-        const agent = await agentService.getAgentById(agentId);
+        const agent = await Agent.findById(agentId)
+            .populate({
+                path: "protocol.badges.badgeId",
+                model: "Badge",
+                select: "badgeId name description rarity icon obtainable"
+            })
+            .lean();
 
-        if (!agent) {
+        if (!agent || !agent.protocol) {
             return res.status(404).json({
                 success: false,
-                error: 'Profile not found'
+                error: "Agent protocol not found"
             });
         }
 
