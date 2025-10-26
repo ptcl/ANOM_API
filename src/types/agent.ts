@@ -89,9 +89,9 @@ export interface IProtocolProfile {
 export interface IAgentContractLink {
     contractMongoId: Types.ObjectId;
     contractId: string;
-    createdAs: "donor";
+    createdAs: "DONOR";
     linkedAt: Date;
-    statusSnapshot: "pending" | "validated" | "cancelled" | "revoked";
+    statusSnapshot: "PENDING" | "VALIDATED" | "CANCELLED" | "REVOKED";
     lastSyncedAt: Date;
 }
 

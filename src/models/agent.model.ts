@@ -104,12 +104,12 @@ const AgentSchema = new Schema({
     {
       contractMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "Emblem-Contract", required: true },
       contractId: { type: String, required: true },
-      createdAs: { type: String, enum: ["donor"], default: "donor" },
+      createdAs: { type: String, enum: ["DONOR"], default: "DONOR" },
       linkedAt: { type: Date, default: Date.now },
       statusSnapshot: {
         type: String,
-        enum: ["pending", "validated", "cancelled", "revoked"],
-        default: "pending"
+        enum: ["PENDING", "VALIDATED", "CANCELLED", "REVOKED"],
+        default: "PENDING"
       },
       lastSyncedAt: { type: Date, default: Date.now }
     }
