@@ -20,7 +20,7 @@ BadgeSchema.index({ linkedTier: 1 });
 BadgeSchema.pre("validate", function (next) {
     if (!this.badgeId) {
         const nameKey = typeof this.name === "string"
-            ? this.name.split(".").pop()?.toUpperCase()
+            ? this.name.split(".").slice(-2, -1)[0]?.toUpperCase()
             : "UNKNOWN";
 
         const year = new Date().getFullYear();
