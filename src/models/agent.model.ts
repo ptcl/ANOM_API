@@ -70,7 +70,7 @@ const ProtocolSchema = new Schema({
   agentName: { type: String, required: true },
   customName: String,
   species: { type: String, enum: ["HUMAN", "EXO", "AWOKEN"], default: "HUMAN", set: (v: string) => v.toUpperCase() },
-  role: { type: String, enum: ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"], default: "AGENT", set: (v: string) => v.toUpperCase() },
+  roles: { type: [String], enum: ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"], default: ["AGENT"], set: (v: string[] | string) => Array.isArray(v) ? v.map((r) => r.toUpperCase()) : [v.toUpperCase()] },
   clearanceLevel: { type: Number, default: 1 },
   hasSeenRecruitment: { type: Boolean, default: false },
   protocolJoinedAt: { type: Date, default: Date.now },
@@ -80,6 +80,28 @@ const ProtocolSchema = new Schema({
   stats: AgentStatsSchema,
   history: [AgentHistorySchema]
 }, { _id: false });
+
+const roleHierarchy: Record<string, string[]> = {
+  AGENT: [],
+  ECHO: ["AGENT"],
+  ORACLE: ["AGENT"],
+  ARCHITECT: ["ECHO", "AGENT"],
+  FOUNDER: ["ARCHITECT", "ECHO", "AGENT"],
+  EMISSARY: ["AGENT"]
+};
+ProtocolSchema.pre("save", function (next) {
+  const baseRoles = this.roles || ["AGENT"];
+  const fullHierarchy = new Set<string>();
+
+  for (const role of baseRoles) {
+    fullHierarchy.add(role);
+    const inherited = roleHierarchy[role] || [];
+    inherited.forEach((r) => fullHierarchy.add(r));
+  }
+
+  this.roles = Array.from(fullHierarchy);
+  next();
+});
 
 const AgentSchema = new Schema({
   bungieId: { type: String, required: true },

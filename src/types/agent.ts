@@ -68,7 +68,7 @@ export interface IAgentHistory {
     meta?: Record<string, any>;
 }
 
-export type AgentRole = "AGENT" | "SPECIALIST" | "FOUNDER" | "ADMIN";
+export type AgentRole = "AGENT" | "ECHO" | "ORACLE" | "ARCHITECT" | "FOUNDER" | "EMISSARY";
 export type AgentGroup = "PROTOCOL" | "AURORA" | "ZENITH";
 export type AgentSpecies = "HUMAN" | "EXO" | "AWOKEN";
 
@@ -77,7 +77,7 @@ export interface IProtocolProfile {
     customName?: string;
     badges: IAgentBadge[];
     species: AgentSpecies;
-    role: AgentRole;
+    roles: AgentRole[];
     clearanceLevel: number;
     hasSeenRecruitment: boolean;
     protocolJoinedAt?: Date;

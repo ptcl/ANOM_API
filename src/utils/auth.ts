@@ -33,7 +33,7 @@ export const createJWTPayload = (agent: IAgentDocument) => {
         throw new Error('Agent ID missing');
     }
 
-    if (!agent.protocol?.agentName || !agent.protocol?.role) {
+    if (!agent.protocol?.agentName || !agent.protocol?.roles) {
         throw new Error('Agent protocol incomplete');
     }
 

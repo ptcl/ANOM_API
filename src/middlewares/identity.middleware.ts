@@ -11,7 +11,7 @@ declare global {
         bungieId: string;
         protocol?: {
           agentName: string;
-          role: string;
+          roles: string[];
           clearanceLevel: number;
         };
       };
@@ -61,7 +61,7 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
 
       if (!agent.protocol ||
         typeof agent.protocol.agentName !== 'string' ||
-        typeof agent.protocol.role !== 'string' ||
+        !Array.isArray(agent.protocol.roles) ||
         typeof agent.protocol.clearanceLevel !== 'number') {
         return res.status(401).json({
           success: false,
@@ -74,7 +74,7 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
         bungieId: agent.bungieId,
         protocol: {
           agentName: agent.protocol.agentName,
-          role: agent.protocol.role,
+          roles: agent.protocol.roles,
           clearanceLevel: agent.protocol.clearanceLevel
         }
       };

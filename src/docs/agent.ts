@@ -137,12 +137,14 @@
  *               enum: [HUMAN, EXO, AWOKEN]
  *               description: Espèce de l'agent
  *               example: "HUMAN"
- *             role:
- *               type: string
- *               enum: [AGENT, SPECIALIST, FOUNDER]
- *               description: Rôle de l'agent dans le Protocol
- *               default: "AGENT"
- *               example: "AGENT"
+ *             roles:
+ *               type: array
+ *               items:
+ *                 type: string
+ *                 enum: [AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER, EMISSARY]
+ *               description: Rôles de l'agent dans le Protocol
+ *               default: ["AGENT"]
+ *               example: ["AGENT"]
  *             clearanceLevel:
  *               type: number
  *               enum: [1, 2, 3]

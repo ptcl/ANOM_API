@@ -38,7 +38,7 @@ class PlayerService {
                         customName: "",
                         badges: [],
                         species: agent.protocol.species || 'HUMAN',
-                        role: agent.protocol.role || 'AGENT',
+                        roles: Array.isArray(agent.protocol.roles) ? agent.protocol.roles : [agent.protocol.roles || 'AGENT'],
                         clearanceLevel: agent.protocol.clearanceLevel || 1,
                         hasSeenRecruitment: false,
                         protocolJoinedAt: now,

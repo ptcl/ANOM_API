@@ -34,7 +34,7 @@ export const getProfilAgent = async (req: Request, res: Response) => {
                 customName: agent.protocol.customName,
                 badges: agent.protocol.badges,
                 species: agent.protocol.species,
-                role: agent.protocol.role,
+                roles: agent.protocol.roles,
                 clearanceLevel: agent.protocol.clearanceLevel,
                 hasSeenRecruitment: agent.protocol.hasSeenRecruitment,
                 protocolJoinedAt: agent.protocol.protocolJoinedAt,
@@ -225,7 +225,7 @@ export const DeleteOwnAccount = async (req: Request, res: Response) => {
             });
         }
 
-        if (agent.protocol?.role === 'FOUNDER') {
+        if (agent.protocol?.roles.includes('FOUNDER')) {
             return res.status(403).json({
                 success: false,
                 error: 'Les comptes FOUNDER ne peuvent pas être supprimés',
@@ -252,7 +252,7 @@ export const DeleteOwnAccount = async (req: Request, res: Response) => {
         const deletedInfo = {
             bungieId: agent.bungieId,
             agentName: agent.protocol?.agentName,
-            role: agent.protocol?.role
+            role: agent.protocol?.roles
         };
 
         await Agent.findByIdAndDelete(agent._id);
@@ -305,7 +305,7 @@ export const getAllAgents = async (req: Request, res: Response) => {
                 customName: agent.protocol?.customName || null,
                 badgeIds: agent.protocol?.badges || [],
                 species: agent.protocol?.species || 'UNKNOWN',
-                role: agent.protocol?.role || 'AGENT',
+                roles: agent.protocol?.roles || ['AGENT'],
                 group: agent.protocol?.group || null
             },
             joinedAt: agent.protocol?.protocolJoinedAt || agent.createdAt
@@ -361,7 +361,7 @@ export const DeactivateOwnAccount = async (req: Request, res: Response) => {
             });
         }
 
-        if (agent.protocol?.role === 'FOUNDER') {
+        if (agent.protocol?.roles.includes('FOUNDER')) {
             return res.status(403).json({
                 success: false,
                 error: 'Les comptes FOUNDER ne peuvent pas être désactivés',

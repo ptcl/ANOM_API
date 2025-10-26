@@ -7,7 +7,7 @@ export const formatAgentResponse = (agent: IAgentDocument, includeDestiny = fals
             agentName: agent.protocol.agentName,
             customName: agent.protocol.customName || undefined,
             species: agent.protocol.species,
-            role: agent.protocol.role,
+            roles: agent.protocol.roles,
             clearanceLevel: agent.protocol.clearanceLevel || 1,
             hasSeenRecruitment: agent.protocol.hasSeenRecruitment || false,
             protocolJoinedAt: agent.protocol.protocolJoinedAt,

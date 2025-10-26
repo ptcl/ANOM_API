@@ -35,7 +35,7 @@
  *           example: "PUBLISHED"
  *         visibility:
  *           type: string
- *           enum: [ALL, FOUNDERS, SPECIALISTS]
+ *           enum: [ALL, AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER, EMISSARY, GROUP]
  *           description: Contrôle de visibilité de l'annonce
  *           default: "ALL"
  *           example: "ALL"
@@ -129,7 +129,7 @@
  *           example: "PUBLISHED"
  *         visibility:
  *           type: string
- *           enum: [ALL, FOUNDERS, SPECIALISTS]
+ *           enum: [ALL, AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER, EMISSARY, GROUP]
  *           description: Contrôle de visibilité de l'annonce
  *           default: "ALL"
  *           example: "ALL"
@@ -169,7 +169,7 @@
  *           example: "ARCHIVED"
  *         visibility:
  *           type: string
- *           enum: [ALL, FOUNDERS, SPECIALISTS]
+ *           enum: [ALL, AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER, EMISSARY, GROUP]
  *           description: Contrôle de visibilité de l'annonce
  *           example: "FOUNDERS"
  *       example:

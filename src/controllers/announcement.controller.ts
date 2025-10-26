@@ -6,7 +6,8 @@ import { formatForUser } from '../utils';
 
 const VALID_PRIORITIES: IAnnouncement['priority'][] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 const VALID_STATUSES: IAnnouncement['status'][] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
-const VALID_VISIBILITIES: IAnnouncement['visibility'][] = ['ALL', 'FOUNDERS', 'SPECIALISTS', 'GROUP'];
+const VALID_VISIBILITIES: IAnnouncement['visibility'][] = ['ALL', "AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY", 'GROUP'];
+
 const VALID_TARGET_GROUPS: NonNullable<IAnnouncement['targetGroup']>[] = ['PROTOCOL', 'AURORA', 'ZENITH'];
 
 const MAX_TITLE_LENGTH = 200;

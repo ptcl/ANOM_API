@@ -228,8 +228,7 @@ class AgentService implements IAgentService {
                 const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
                 const species = allowedSpecies.includes(agent.protocol.species || '') ? agent.protocol.species : 'HUMAN';
 
-                const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
-                const role = allowedRoles.includes(agent.protocol.role || '') ? agent.protocol.role : 'AGENT';
+                const roles = Array.isArray(agent.protocol.roles) ? agent.protocol.roles : ['AGENT'];
 
                 let clearanceLevel = agent.protocol.clearanceLevel || 1;
                 if (typeof clearanceLevel !== 'number' || clearanceLevel < MIN_CLEARANCE_LEVEL || clearanceLevel > MAX_CLEARANCE_LEVEL) {
@@ -276,7 +275,7 @@ class AgentService implements IAgentService {
                         agentName: agent.protocol.agentName.trim(),
                         customName: "",
                         species,
-                        role,
+                        roles,
                         clearanceLevel,
                         hasSeenRecruitment: false,
                         protocolJoinedAt: now,
@@ -706,10 +705,10 @@ class AgentService implements IAgentService {
                     }
                 }
 
-                if (protocol.role) {
-                    const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
-                    if (!allowedRoles.includes(protocol.role)) {
-                        errors.push('rôle invalide (doit être AGENT, SPECIALIST ou FOUNDER)');
+                if (protocol.roles) {
+                    const allowedRoles = ['AGENT', 'ECHO', 'ORACLE', 'ARCHITECT', 'FOUNDER', 'EMISSARY'];
+                    if (!Array.isArray(protocol.roles) || !protocol.roles.every(role => allowedRoles.includes(role))) {
+                        errors.push('rôle invalide (doit être AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER ou EMISSARY)');
                     }
                 }
 

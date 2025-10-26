@@ -12,23 +12,25 @@ export const AccessMiddleware = async (req: Request, res: Response, next: NextFu
                 error: 'Unauthorized'
             });
         }
-        const userRole = req.user.protocol?.role;
+        const userRoles = req.user.protocol?.roles;
 
-        if (!userRole || typeof userRole !== 'string') {
+        if (!userRoles || !Array.isArray(userRoles) || userRoles.length === 0) {
             return res.status(403).json({
                 success: false,
                 error: 'Forbidden - No valid role'
             });
         }
 
-        const normalizedRole = userRole.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim().toUpperCase();
+        const normalizedRoles = userRoles.map(role => role.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim().toUpperCase());
 
-        if (!AUTHORIZED_ROLES.includes(normalizedRole as AuthorizedRole)) {
+        const hasAccess = normalizedRoles.some(role => AUTHORIZED_ROLES.includes(role as AuthorizedRole));
+
+        if (!hasAccess) {
             console.warn('Unauthorized access attempt:', {
                 timestamp: formatForUser(),
                 agentId: req.user.agentId,
-                attemptedRole: userRole,
-                normalizedRole: normalizedRole,
+                attemptedRoles: userRoles,
+                normalizedRoles: normalizedRoles,
                 ip: req.ip,
                 userAgent: req.get('User-Agent')
             });

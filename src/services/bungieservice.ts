@@ -123,7 +123,7 @@ class BungieService {
                 protocol: {
                     agentName: bungieNetUser.displayName,
                     species: 'HUMAN',
-                    role: 'AGENT',
+                    roles: ['AGENT'],
                     badges: [],
                     clearanceLevel: 1,
                     group: 'PROTOCOL',
@@ -146,7 +146,7 @@ class BungieService {
             };
 
             console.log('🔍 Processed Agent Profile:');
-            console.table({ bungieId: agent.bungieId, agentName: agent.protocol.agentName, role: agent.protocol.role });
+            console.table({ bungieId: agent.bungieId, agentName: agent.protocol.agentName, roles: agent.protocol.roles });
 
             console.log(`✅ Retrieved profile for: ${agent.protocol.agentName}`);
             return agent;

@@ -15,6 +15,6 @@ export interface IAnnouncement {
         agentId: Types.ObjectId | string;
         readAt: Date;
     }>;
-    visibility: 'ALL' | 'FOUNDERS' | 'SPECIALISTS' | 'GROUP';
+    visibility: 'ALL' | "AGENT" | "ECHO" | "ORACLE" | "ARCHITECT" | "FOUNDER" | "EMISSARY" | 'GROUP';
     targetGroup?: 'PROTOCOL' | 'AURORA' | 'ZENITH';
 }

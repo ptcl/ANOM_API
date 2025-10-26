@@ -143,12 +143,12 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
     }
 
-    if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.role) {
+    if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.roles) {
       console.error('Données d\'agent incomplètes:', {
         agentId: agent._id,
         hasProtocol: !!agent.protocol,
         hasAgentName: !!(agent.protocol?.agentName),
-        hasRole: !!(agent.protocol?.role),
+        hasRoles: !!(agent.protocol?.roles),
         timestamp: formatForUser()
       });
 
@@ -374,12 +374,12 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.role) {
+    if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.roles) {
       console.error('Agent incomplete for token refresh:', {
         agentId: agent._id?.toString(),
         hasProtocol: !!agent.protocol,
         hasAgentName: !!(agent.protocol?.agentName),
-        hasRole: !!(agent.protocol?.role),
+        hasRoles: !!(agent.protocol?.roles),
         timestamp: formatForUser()
       });
 

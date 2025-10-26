@@ -146,7 +146,7 @@
  *         name: role
  *         schema:
  *           type: string
- *           enum: [AGENT, SPECIALIST, FOUNDER]
+ *           enum: [AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER, EMISSARY]
  *         description: Filtrer par rôle d'agent
  *       - in: query
  *         name: group
@@ -1030,10 +1030,12 @@
  *               protocol:
  *                 type: object
  *                 properties:
- *                   role:
- *                     type: string
- *                     enum: [AGENT, SPECIALIST, FOUNDER]
- *                     example: "SPECIALIST"
+ *                   roles:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       enum: [AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER, EMISSARY]
+ *                       example: "FOUNDER"
  *                   clearanceLevel:
  *                     type: number
  *                     enum: [1, 2, 3]
@@ -2070,10 +2072,12 @@
  *         protocol:
  *           type: object
  *           properties:
- *             role:
- *               type: string
- *               enum: [AGENT, SPECIALIST, FOUNDER]
- *               example: "AGENT"
+ *             roles:
+ *               type: array
+ *               items:
+ *                 type: string
+ *                 enum: [AGENT, ECHO, ORACLE, ARCHITECT, FOUNDER, EMISSARY]
+ *               example: ["AGENT"]
  *             clearanceLevel:
  *               type: number
  *               enum: [1, 2, 3]

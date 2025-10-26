@@ -167,7 +167,7 @@ export async function getAgentBasicInfo(identifier: string) {
         agentName: agent.protocol?.agentName,
         uniqueName: agent.bungieUser?.uniqueName,
         displayName: agent.bungieUser?.displayName,
-        role: agent.protocol?.role,
+        roles: agent.protocol?.roles,
         clearanceLevel: agent.protocol?.clearanceLevel
     };
 }

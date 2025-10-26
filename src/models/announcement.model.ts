@@ -6,7 +6,7 @@ const announcementSchema = new mongoose.Schema({
     content: { type: String, required: true },
     priority: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'], default: 'LOW' },
     status: { type: String, enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'], default: 'PUBLISHED' },
-    visibility: { type: String, enum: ['ALL', 'FOUNDERS', 'SPECIALISTS'], default: 'ALL' }
+    visibility: { type: String, enum: ['ALL', 'AGENT', 'ECHO', 'ORACLE', 'ARCHITECT', 'FOUNDER', 'EMISSARY'], default: 'ALL' }
 }, { timestamps: true });
 
 export const AnnouncementModel = mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);

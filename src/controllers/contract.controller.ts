@@ -199,7 +199,7 @@ export const deleteContract = async (req: Request, res: Response) => {
     try {
         const { contractId } = req.params;
         const userBungieId = req.user?.bungieId;
-        const userRole = req.user?.protocol?.role;
+        const userRoles = req.user?.protocol?.roles;
 
         if (!userBungieId) {
             return res.status(401).json({
@@ -215,7 +215,7 @@ export const deleteContract = async (req: Request, res: Response) => {
             });
         }
 
-        const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRole);
+        const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRoles);
 
         if (!hasAccess || !contract) {
             return res.status(403).json({
@@ -253,7 +253,7 @@ export const updateContract = async (req: Request, res: Response) => {
         const { contractId } = req.params;
         const { status, validationDeadline, media, isExpired, isSigned } = req.body;
         const userBungieId = req.user?.bungieId;
-        const userRole = req.user?.protocol?.role;
+        const userRoles = req.user?.protocol?.roles;
 
         if (!userBungieId) {
             return res.status(401).json({
@@ -269,7 +269,7 @@ export const updateContract = async (req: Request, res: Response) => {
             });
         }
 
-        const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRole);
+        const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRoles);
 
         if (!hasAccess || !contract) {
             return res.status(403).json({
@@ -424,7 +424,7 @@ export const getContractById = async (req: Request, res: Response) => {
     try {
         const { contractId } = req.params;
         const userBungieId = req.user?.bungieId;
-        const userRole = req.user?.protocol?.role;
+        const userRoles = req.user?.protocol?.roles;
 
         if (!userBungieId) {
             return res.status(401).json({
@@ -440,7 +440,7 @@ export const getContractById = async (req: Request, res: Response) => {
             });
         }
 
-        const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRole);
+        const { contract, hasAccess, error } = await checkContractAccess(contractId, userBungieId, userRoles);
 
         if (!hasAccess || !contract) {
             return res.status(403).json({

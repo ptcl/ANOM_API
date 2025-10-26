@@ -84,10 +84,10 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             }
 
             if (updateData.protocol.role !== undefined) {
-                const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
+                const allowedRoles = ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"];
                 if (!allowedRoles.includes(updateData.protocol.role)) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Rôle invalide. Doit être AGENT, SPECIALIST ou FOUNDER',
+                        message: 'Rôle invalide. Doit être AGENT ou FOUNDER',
                         error: 'validation_error'
                     });
                 }
@@ -249,7 +249,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                         agentName: updatedAgent.protocol?.agentName,
                         customName: updatedAgent.protocol?.customName,
                         species: updatedAgent.protocol?.species,
-                        role: updatedAgent.protocol?.role,
+                        roles: updatedAgent.protocol?.roles,
                         clearanceLevel: updatedAgent.protocol?.clearanceLevel,
                         hasSeenRecruitment: updatedAgent.protocol?.hasSeenRecruitment,
                         protocolJoinedAt: updatedAgent.protocol?.protocolJoinedAt,
@@ -311,7 +311,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        if (agentToDelete.protocol?.role === 'FOUNDER') {
+        if (agentToDelete.protocol?.roles.includes('FOUNDER')) {
             console.warn('Attempt to delete another FOUNDER account:', {
                 targetAgentId: agentToDelete._id?.toString(),
                 targetAgentName: agentToDelete.protocol?.agentName,
@@ -336,7 +336,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
                         bungieId: agentToDelete.bungieId,
                         agentName: agentToDelete.protocol?.agentName,
                         uniqueName: agentToDelete.bungieUser?.uniqueName,
-                        role: agentToDelete.protocol?.role,
+                        roles: agentToDelete.protocol?.roles,
                         joinedAt: agentToDelete.protocol?.protocolJoinedAt,
                         stats: agentToDelete.protocol?.stats
                     }
@@ -351,7 +351,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             uniqueName: agentToDelete.bungieUser?.uniqueName,
             agentName: agentToDelete.protocol?.agentName,
             displayName: agentToDelete.bungieUser?.displayName,
-            role: agentToDelete.protocol?.role,
+            roles: agentToDelete.protocol?.roles,
             clearanceLevel: agentToDelete.protocol?.clearanceLevel,
             group: agentToDelete.protocol?.group,
             joinedAt: agentToDelete.protocol?.protocolJoinedAt,
@@ -420,7 +420,7 @@ export const FounderRepairProfile = async (req: Request, res: Response) => {
     try {
         const requesterId = req.user?.agentId;
         const targetAgentId = req.params.agentId || requesterId;
-        const isFounder = req.user?.protocol?.role === 'FOUNDER';
+        const isFounder = req.user?.protocol?.roles.includes('FOUNDER');
 
         if (!requesterId) {
             return res.status(401).json({
@@ -505,7 +505,7 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        if (agent.protocol?.role === 'FOUNDER') {
+        if (agent.protocol?.roles.includes('FOUNDER')) {
             const founderAgentId = (req as any).user?.agentId;
 
             if (agent._id?.toString() !== founderAgentId) {
