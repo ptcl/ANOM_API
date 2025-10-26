@@ -116,15 +116,7 @@ export const getBadgeById = async (req: Request, res: Response): Promise<any> =>
 
 export const createBadge = async (req: Request, res: Response): Promise<any> => {
     try {
-        const { badgeId, name, description, rarity, icon, obtainable, linkedTier, linkedTimeline } = req.body;
-
-        // Validation
-        if (!badgeId || typeof badgeId !== 'string' || badgeId.trim().length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Badge ID is required'
-            });
-        }
+        const { name, description, rarity, icon, obtainable, linkedTier, linkedTimeline } = req.body;
 
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
             return res.status(400).json({
@@ -133,33 +125,24 @@ export const createBadge = async (req: Request, res: Response): Promise<any> => 
             });
         }
 
-        if (name.length > 100) {
+        if (!name.startsWith("badges.") && name.length > 100) {
             return res.status(400).json({
                 success: false,
                 error: 'Badge name too long (max 100 characters)'
             });
         }
 
-        if (rarity && !['COMMON', 'RARE', 'EPIC', 'LEGENDARY'].includes(rarity)) {
+        if (rarity && !['COMMON', 'UNCOMMON', 'RARE', 'LEGENDARY', 'EXOTIC'].includes(rarity.toUpperCase())) {
             return res.status(400).json({
                 success: false,
-                error: 'Invalid rarity (must be COMMON, RARE, EPIC, or LEGENDARY)'
-            });
-        }
-
-        const existingBadge = await Badge.findOne({ badgeId: badgeId.trim() });
-        if (existingBadge) {
-            return res.status(409).json({
-                success: false,
-                error: 'Badge with this ID already exists'
+                error: 'Invalid rarity'
             });
         }
 
         const newBadge = new Badge({
-            badgeId: badgeId.trim(),
             name: name.trim(),
             description: description?.trim() || '',
-            rarity: rarity || 'COMMON',
+            rarity: rarity?.toUpperCase() || 'COMMON',
             icon: icon?.trim() || '',
             obtainable: obtainable !== undefined ? obtainable : true,
             linkedTier: linkedTier || undefined,
@@ -167,11 +150,12 @@ export const createBadge = async (req: Request, res: Response): Promise<any> => 
         });
 
         await newBadge.save();
+
         return res.status(201).json({
             success: true,
-            data: { badge: newBadge }
+            data: { badge: newBadge },
+            message: 'Badge created successfully'
         });
-
     } catch (error: any) {
         console.error('Error creating badge:', {
             timestamp: formatForUser(),
@@ -179,14 +163,6 @@ export const createBadge = async (req: Request, res: Response): Promise<any> => 
             stack: error.stack,
             agentId: req.user?.agentId
         });
-
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                error: 'Validation error',
-                details: Object.values(error.errors).map((e: any) => e.message)
-            });
-        }
 
         return res.status(500).json({
             success: false,
@@ -227,7 +203,7 @@ export const updateBadge = async (req: Request, res: Response): Promise<any> => 
             updates.name = updates.name.trim();
         }
 
-        if (updates.rarity && !['COMMON', 'RARE', 'EPIC', 'LEGENDARY'].includes(updates.rarity)) {
+        if (updates.rarity && !['COMMON', 'UNCOMMON', 'RARE', 'LEGENDARY', 'EXOTIC'].includes(updates.rarity)) {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid rarity'
@@ -360,9 +336,10 @@ export const getBadgeStats = async (req: Request, res: Response): Promise<any> =
             unobtainable: unobtainableCount,
             byRarity: {
                 COMMON: rarityStats.COMMON || 0,
+                UNCOMMON: rarityStats.UNCOMMON || 0,
                 RARE: rarityStats.RARE || 0,
-                EPIC: rarityStats.EPIC || 0,
-                LEGENDARY: rarityStats.LEGENDARY || 0
+                LEGENDARY: rarityStats.LEGENDARY || 0,
+                EXOTIC: rarityStats.EXOTIC || 0
             }
         };
 
@@ -404,7 +381,7 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
         }
 
 
-        const badge = await Badge.findOne({ badgeId: badgeId.trim() });
+        const badge = await Badge.findOne({ badgeId: badgeId.trim() }).lean();;
         if (!badge) {
             return res.status(404).json({
                 success: false,
