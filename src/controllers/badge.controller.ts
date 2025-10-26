@@ -1,16 +1,9 @@
 import { Request, Response } from 'express';
 import { Badge } from '../models/badge.model';
 import { formatForUser } from '../utils';
-import { Agent } from '../models/agent.model';
 import { findAgentByIdentifier } from '../utils/verifyAgent.helper';
 
-/**
- * Badge Controller
- * Gère les opérations CRUD sur les badges
- * Routes protégées par AccessMiddleware (FOUNDER uniquement)
- */
 
-// GET /api/badges - Récupérer tous les badges
 export const getAllBadges = async (req: Request, res: Response): Promise<any> => {
     try {
         const {
@@ -53,15 +46,6 @@ export const getAllBadges = async (req: Request, res: Response): Promise<any> =>
             Badge.countDocuments(query)
         ]);
 
-        console.log('Badges retrieved:', {
-            timestamp: formatForUser(),
-            agentId: req.user?.agentId,
-            total,
-            page: pageNum,
-            limit: limitNum,
-            filters: query
-        });
-
         return res.status(200).json({
             success: true,
             data: {
@@ -90,7 +74,6 @@ export const getAllBadges = async (req: Request, res: Response): Promise<any> =>
     }
 };
 
-// GET /api/badges/:badgeId - Récupérer un badge spécifique
 export const getBadgeById = async (req: Request, res: Response): Promise<any> => {
     try {
         const { badgeId } = req.params;
@@ -110,12 +93,6 @@ export const getBadgeById = async (req: Request, res: Response): Promise<any> =>
                 error: 'Badge not found'
             });
         }
-
-        console.log('Badge retrieved:', {
-            timestamp: formatForUser(),
-            badgeId: badge.badgeId,
-            agentId: req.user?.agentId
-        });
 
         return res.status(200).json({
             success: true,
@@ -137,7 +114,6 @@ export const getBadgeById = async (req: Request, res: Response): Promise<any> =>
     }
 };
 
-// POST /api/badges - Créer un nouveau badge (FOUNDER only)
 export const createBadge = async (req: Request, res: Response): Promise<any> => {
     try {
         const { badgeId, name, description, rarity, icon, obtainable, linkedTier, linkedTimeline } = req.body;
@@ -171,7 +147,6 @@ export const createBadge = async (req: Request, res: Response): Promise<any> => 
             });
         }
 
-        // Vérifier si le badge existe déjà
         const existingBadge = await Badge.findOne({ badgeId: badgeId.trim() });
         if (existingBadge) {
             return res.status(409).json({
@@ -180,7 +155,6 @@ export const createBadge = async (req: Request, res: Response): Promise<any> => 
             });
         }
 
-        // Créer le badge
         const newBadge = new Badge({
             badgeId: badgeId.trim(),
             name: name.trim(),
@@ -193,14 +167,6 @@ export const createBadge = async (req: Request, res: Response): Promise<any> => 
         });
 
         await newBadge.save();
-
-        console.log('Badge created:', {
-            timestamp: formatForUser(),
-            badgeId: newBadge.badgeId,
-            name: newBadge.name,
-            createdBy: req.user?.agentId
-        });
-
         return res.status(201).json({
             success: true,
             data: { badge: newBadge }
@@ -229,7 +195,6 @@ export const createBadge = async (req: Request, res: Response): Promise<any> => 
     }
 };
 
-// PUT /api/badges/:badgeId - Mettre à jour un badge (FOUNDER only)
 export const updateBadge = async (req: Request, res: Response): Promise<any> => {
     try {
         const { badgeId } = req.params;
@@ -242,12 +207,10 @@ export const updateBadge = async (req: Request, res: Response): Promise<any> => 
             });
         }
 
-        // Empêcher la modification du badgeId
         if (updates.badgeId) {
             delete updates.badgeId;
         }
 
-        // Validation des champs
         if (updates.name !== undefined) {
             if (typeof updates.name !== 'string' || updates.name.trim().length === 0) {
                 return res.status(400).json({
@@ -296,13 +259,6 @@ export const updateBadge = async (req: Request, res: Response): Promise<any> => 
             });
         }
 
-        console.log('Badge updated:', {
-            timestamp: formatForUser(),
-            badgeId: badge.badgeId,
-            updatedFields: Object.keys(updates),
-            updatedBy: req.user?.agentId
-        });
-
         return res.status(200).json({
             success: true,
             data: { badge }
@@ -331,7 +287,6 @@ export const updateBadge = async (req: Request, res: Response): Promise<any> => 
     }
 };
 
-// DELETE /api/badges/:badgeId - Supprimer un badge (FOUNDER only)
 export const deleteBadge = async (req: Request, res: Response): Promise<any> => {
     try {
         const { badgeId } = req.params;
@@ -351,13 +306,6 @@ export const deleteBadge = async (req: Request, res: Response): Promise<any> => 
                 error: 'Badge not found'
             });
         }
-
-        console.log('Badge deleted:', {
-            timestamp: formatForUser(),
-            badgeId: badge.badgeId,
-            name: badge.name,
-            deletedBy: req.user?.agentId
-        });
 
         return res.status(200).json({
             success: true,
@@ -380,7 +328,6 @@ export const deleteBadge = async (req: Request, res: Response): Promise<any> => 
     }
 };
 
-// GET /api/badges/stats - Statistiques des badges
 export const getBadgeStats = async (req: Request, res: Response): Promise<any> => {
     try {
         const [
@@ -419,12 +366,6 @@ export const getBadgeStats = async (req: Request, res: Response): Promise<any> =
             }
         };
 
-        console.log('Badge stats retrieved:', {
-            timestamp: formatForUser(),
-            stats,
-            agentId: req.user?.agentId
-        });
-
         return res.status(200).json({
             success: true,
             data: { stats }
@@ -443,7 +384,6 @@ export const getBadgeStats = async (req: Request, res: Response): Promise<any> =
         });
     }
 };
-// POST /api/founder/badges/gift/:agentId/:badgeId - Donner un badge (par params)
 export const giftBadge = async (req: Request, res: Response): Promise<any> => {
     try {
         const { agentId, badgeId } = req.params;
@@ -463,9 +403,7 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
             });
         }
 
-        // Import du helper
 
-        // Vérifier que le badge existe
         const badge = await Badge.findOne({ badgeId: badgeId.trim() });
         if (!badge) {
             return res.status(404).json({
@@ -474,7 +412,6 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
             });
         }
 
-        // Trouver l'agent avec le helper
         const agent = await findAgentByIdentifier(agentId);
 
         if (!agent) {
@@ -484,7 +421,6 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
             });
         }
 
-        // Vérifier si l'agent possède déjà ce badge
         const hasBadge = agent.protocol?.badges?.some(
             (b: any) => b.badgeId?.toString() === badge._id.toString()
         );
@@ -507,7 +443,6 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
             });
         }
 
-        // Ajouter le badge
         agent.protocol.badges.push({
             badgeId: badge._id,
             obtainedAt: new Date()
@@ -515,16 +450,6 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
 
         agent.updatedAt = new Date();
         await agent.save();
-
-        console.log('Badge gifted to agent:', {
-            timestamp: formatForUser(),
-            badgeId: badge.badgeId,
-            badgeName: badge.name,
-            agentId: agent._id?.toString(),
-            agentName: agent.protocol.agentName,
-            bungieId: agent.bungieId,
-            giftedBy: req.user?.agentId
-        });
 
         return res.status(200).json({
             success: true,
@@ -562,12 +487,10 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
 };
 
 
-// / DELETE /api / founder / badges / revoke /: agentId /: badgeId - Retirer un badge(par params)
 export const revokeBadge = async (req: Request, res: Response): Promise<any> => {
     try {
         const { agentId, badgeId } = req.params;
 
-        // Validation
         if (!badgeId || typeof badgeId !== 'string' || badgeId.trim().length === 0) {
             return res.status(400).json({
                 success: false,
@@ -583,7 +506,6 @@ export const revokeBadge = async (req: Request, res: Response): Promise<any> => 
         }
 
 
-        // Vérifier que le badge existe
         const badge = await Badge.findOne({ badgeId: badgeId.trim() });
         if (!badge) {
             return res.status(404).json({
@@ -608,7 +530,6 @@ export const revokeBadge = async (req: Request, res: Response): Promise<any> => 
             });
         }
 
-        // Trouver l'index du badge
         const badgeIndex = agent.protocol.badges?.findIndex(
             (b: any) => b.badgeId?.toString() === badge._id.toString()
         ) ?? -1;
@@ -624,25 +545,12 @@ export const revokeBadge = async (req: Request, res: Response): Promise<any> => 
             });
         }
 
-        // Récupérer les infos du badge avant suppression
         const removedBadge = agent.protocol.badges[badgeIndex];
 
-        // Retirer le badge en utilisant splice sur le DocumentArray
         agent.protocol.badges.splice(badgeIndex, 1);
 
         agent.updatedAt = new Date();
         await agent.save();
-
-        console.log('Badge revoked from agent:', {
-            timestamp: formatForUser(),
-            badgeId: badge.badgeId,
-            badgeName: badge.name,
-            agentId: agent._id?.toString(),
-            agentName: agent.protocol.agentName,
-            bungieId: agent.bungieId,
-            obtainedAt: removedBadge.obtainedAt,
-            revokedBy: req.user?.agentId
-        });
 
         return res.status(200).json({
             success: true,

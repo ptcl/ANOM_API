@@ -11,7 +11,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
         const { agentId } = req.params;
         const updateData = req.body;
 
-        // Validation de l'agentId avec le helper
         const validation = validateIdentifier(agentId);
         if (!validation.isValid) {
             return ApiResponseBuilder.error(res, 400, {
@@ -20,7 +19,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Validation des données de mise à jour
         if (!updateData || typeof updateData !== 'object') {
             return ApiResponseBuilder.error(res, 400, {
                 message: 'Données de mise à jour invalides',
@@ -28,7 +26,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Utiliser le helper pour trouver l'agent (supporte MongoDB ID, bungieId, uniqueName)
         const existingAgent = await findAgentByIdentifier(agentId);
         if (!existingAgent) {
             return ApiResponseBuilder.error(res, 404, {
@@ -37,25 +34,9 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Log de sécurité pour l'audit
-        console.log('Founder update agent request:', {
-            agentId: existingAgent._id?.toString(),
-            bungieId: existingAgent.bungieId,
-            uniqueName: existingAgent.bungieUser?.uniqueName,
-            targetAgent: existingAgent.protocol?.agentName || 'unknown',
-            founderAgentId: (req as any).user?.agentId || 'unknown',
-            timestamp: formatForUser(),
-            fieldsToUpdate: Object.keys(updateData),
-            identifierUsed: agentId,
-            identifierType: validation.type
-        });
-
-        // Préparation des données sécurisées
         const sanitizedData: Partial<IAgent> = {};
 
-        // Validation et sanitisation du protocole
         if (updateData.protocol && typeof updateData.protocol === 'object') {
-            // Vérification que le protocole existe sur l'agent existant
             if (!existingAgent.protocol) {
                 return ApiResponseBuilder.error(res, 400, {
                     message: 'L\'agent n\'a pas de protocole configuré',
@@ -63,10 +44,8 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 });
             }
 
-            // Créer un objet partiel pour les mises à jour du protocole
             const protocolUpdates: any = {};
 
-            // Validation et mise à jour sécurisée de l'agentName
             if (updateData.protocol.agentName !== undefined) {
                 if (typeof updateData.protocol.agentName !== 'string' || updateData.protocol.agentName.trim().length === 0) {
                     return ApiResponseBuilder.error(res, 400, {
@@ -83,7 +62,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.agentName = updateData.protocol.agentName.trim();
             }
 
-            // Validation et mise à jour du customName
             if (updateData.protocol.customName !== undefined) {
                 if (updateData.protocol.customName && (typeof updateData.protocol.customName !== 'string' || updateData.protocol.customName.length > 50)) {
                     return ApiResponseBuilder.error(res, 400, {
@@ -94,7 +72,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.customName = updateData.protocol.customName?.trim() || undefined;
             }
 
-            // Validation des espèces
             if (updateData.protocol.species !== undefined) {
                 const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
                 if (!allowedSpecies.includes(updateData.protocol.species)) {
@@ -106,7 +83,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.species = updateData.protocol.species;
             }
 
-            // Validation des rôles
             if (updateData.protocol.role !== undefined) {
                 const allowedRoles = ['AGENT', 'SPECIALIST', 'FOUNDER'];
                 if (!allowedRoles.includes(updateData.protocol.role)) {
@@ -118,7 +94,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.role = updateData.protocol.role;
             }
 
-            // Validation du niveau d'autorisation
             if (updateData.protocol.clearanceLevel !== undefined) {
                 if (typeof updateData.protocol.clearanceLevel !== 'number' || updateData.protocol.clearanceLevel < 0 || updateData.protocol.clearanceLevel > 10) {
                     return ApiResponseBuilder.error(res, 400, {
@@ -129,7 +104,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.clearanceLevel = updateData.protocol.clearanceLevel;
             }
 
-            // Validation des booléens
             if (updateData.protocol.hasSeenRecruitment !== undefined) {
                 if (typeof updateData.protocol.hasSeenRecruitment !== 'boolean') {
                     return ApiResponseBuilder.error(res, 400, {
@@ -140,7 +114,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.hasSeenRecruitment = updateData.protocol.hasSeenRecruitment;
             }
 
-            // Validation des dates
             if (updateData.protocol.protocolJoinedAt !== undefined) {
                 const joinDate = new Date(updateData.protocol.protocolJoinedAt);
                 if (isNaN(joinDate.getTime())) {
@@ -152,7 +125,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.protocolJoinedAt = joinDate;
             }
 
-            // Validation du groupe
             if (updateData.protocol.group !== undefined) {
                 const allowedGroups = ['PROTOCOL', 'AURORA', 'ZENITH'];
                 if (!allowedGroups.includes(updateData.protocol.group)) {
@@ -164,7 +136,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 protocolUpdates.group = updateData.protocol.group;
             }
 
-            // Validation des paramètres
             if (updateData.protocol.settings && typeof updateData.protocol.settings === 'object') {
                 protocolUpdates.settings = {};
 
@@ -220,13 +191,11 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 }
             }
 
-            // Seulement si des champs protocol ont été modifiés
             if (Object.keys(protocolUpdates).length > 0) {
                 sanitizedData.protocol = protocolUpdates;
             }
         }
 
-        // Validation qu'au moins un champ a été modifié
         if (Object.keys(sanitizedData).length === 0) {
             return ApiResponseBuilder.error(res, 400, {
                 message: 'Aucune donnée valide à mettre à jour',
@@ -234,13 +203,11 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Convertir les champs imbriqués en notation "dot" pour Mongoose
         const flattenedData: any = {};
 
         if (sanitizedData.protocol) {
             for (const [key, value] of Object.entries(sanitizedData.protocol)) {
                 if (key === 'settings' && typeof value === 'object' && value !== null) {
-                    // Aplatir les settings aussi
                     for (const [settingKey, settingValue] of Object.entries(value)) {
                         flattenedData[`protocol.settings.${settingKey}`] = settingValue;
                     }
@@ -250,24 +217,13 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             }
         }
 
-        // Ajouter les autres champs (non-protocol) s'il y en a
         for (const [key, value] of Object.entries(sanitizedData)) {
             if (key !== 'protocol') {
                 flattenedData[key] = value;
             }
         }
 
-        console.log('Flattened update data:', {
-            original: sanitizedData,
-            flattened: flattenedData,
-            timestamp: formatForUser()
-        });
-
-        // Mise à jour sécurisée (utiliser le vrai MongoDB _id)
-        const updatedAgent = await agentService.updateAgentProfile(
-            existingAgent._id!.toString(),
-            flattenedData // ✅ Correct maintenant
-        );
+        const updatedAgent = await agentService.updateAgentProfile(existingAgent._id!.toString(), flattenedData);
 
         if (!updatedAgent) {
             console.error('Failed to update agent profile:', {
@@ -282,17 +238,6 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Log de succès pour l'audit
-        console.log('Agent profile updated successfully:', {
-            agentId: updatedAgent._id?.toString(),
-            bungieId: updatedAgent.bungieId,
-            uniqueName: updatedAgent.bungieUser?.uniqueName,
-            updatedBy: (req as any).user?.agentId || 'unknown',
-            updatedFields: Object.keys(sanitizedData),
-            timestamp: formatForUser()
-        });
-
-        // Réponse sécurisée avec données filtrées
         return res.status(200).json({
             success: true,
             message: `Profil de l'agent ${updatedAgent.protocol?.agentName || agentId} mis à jour avec succès`,
@@ -335,9 +280,8 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
 export const FounderDeleteAgent = async (req: Request, res: Response) => {
     try {
         const { agentId } = req.params;
-        const { confirm } = req.body; // Optionnel : nécessiter une confirmation
+        const { confirm } = req.body;
 
-        // Validation de l'agentId avec le helper
         const validation = validateIdentifier(agentId);
         if (!validation.isValid) {
             return ApiResponseBuilder.error(res, 400, {
@@ -346,7 +290,6 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Trouver l'agent à supprimer
         const agentToDelete = await findAgentByIdentifier(agentId);
         if (!agentToDelete) {
             return ApiResponseBuilder.error(res, 404, {
@@ -355,7 +298,6 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Empêcher l'auto-suppression (optionnel)
         const founderAgentId = (req as any).user?.agentId;
         if (founderAgentId && agentToDelete._id?.toString() === founderAgentId) {
             console.warn('Founder attempted to delete own account:', {
@@ -369,7 +311,6 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Sécurité supplémentaire : empêcher la suppression d'autres FOUNDERS (optionnel)
         if (agentToDelete.protocol?.role === 'FOUNDER') {
             console.warn('Attempt to delete another FOUNDER account:', {
                 targetAgentId: agentToDelete._id?.toString(),
@@ -384,7 +325,6 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Optionnel : Nécessiter une confirmation explicite
         if (confirm !== true) {
             return res.status(200).json({
                 success: false,
@@ -405,20 +345,6 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Log de sécurité avant suppression
-        console.log('⚠️ Agent deletion initiated:', {
-            targetAgentId: agentToDelete._id?.toString(),
-            bungieId: agentToDelete.bungieId,
-            uniqueName: agentToDelete.bungieUser?.uniqueName,
-            agentName: agentToDelete.protocol?.agentName,
-            role: agentToDelete.protocol?.role,
-            deletedBy: founderAgentId,
-            timestamp: formatForUser(),
-            identifierUsed: agentId,
-            identifierType: validation.type
-        });
-
-        // Sauvegarder les infos avant suppression pour le log
         const deletedAgentInfo = {
             _id: agentToDelete._id?.toString(),
             bungieId: agentToDelete.bungieId,
@@ -434,17 +360,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             createdAt: agentToDelete.createdAt
         };
 
-        // Supprimer l'agent
         await Agent.findByIdAndDelete(agentToDelete._id);
-
-        // Log de succès pour l'audit
-        console.log('✅ Agent deleted successfully:', {
-            deletedAgent: deletedAgentInfo,
-            deletedBy: founderAgentId,
-            timestamp: formatForUser()
-        });
-
-        // Réponse de confirmation
         return res.status(200).json({
             success: true,
             message: `Agent ${deletedAgentInfo.agentName || deletedAgentInfo.bungieId} supprimé avec succès`,
@@ -475,18 +391,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
 export const FounderAgentStatistics = async (req: Request, res: Response) => {
     try {
         const now = new Date();
-
-        // Utilisation du service pour récupérer les statistiques
         const stats = await agentService.getAgentStatistics();
-
-        // Log de l'accès aux statistiques pour audit
-        console.log('Agent statistics accessed:', {
-            timestamp: formatForUser(),
-            founderId: req.user?.agentId,
-            ip: req.ip,
-            stats
-        });
-
         return res.json({
             success: true,
             data: {
@@ -511,8 +416,6 @@ export const FounderAgentStatistics = async (req: Request, res: Response) => {
     }
 };
 
-
-
 export const FounderRepairProfile = async (req: Request, res: Response) => {
     try {
         const requesterId = req.user?.agentId;
@@ -533,21 +436,12 @@ export const FounderRepairProfile = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérifier les permissions : propre profil ou fondateur
         if (targetAgentId !== requesterId && !isFounder) {
             return res.status(403).json({
                 success: false,
                 error: 'Forbidden - Can only repair own profile'
             });
         }
-
-        console.log('Profile repair requested:', {
-            requesterId,
-            targetAgentId,
-            isFounder,
-            ip: req.ip,
-            timestamp: formatForUser()
-        });
 
         const success = await agentService.repairIncompleteProfile(targetAgentId);
 
@@ -582,9 +476,8 @@ export const FounderRepairProfile = async (req: Request, res: Response) => {
 export const FounderDeactivateAgent = async (req: Request, res: Response) => {
     try {
         const { agentId } = req.params;
-        const { reason } = req.body; // Raison optionnelle de la désactivation
+        const { reason } = req.body;
 
-        // Validation de l'agentId
         const validation = validateIdentifier(agentId);
         if (!validation.isValid) {
             return ApiResponseBuilder.error(res, 400, {
@@ -593,7 +486,6 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Trouver l'agent
         const agent = await findAgentByIdentifier(agentId);
         if (!agent) {
             return ApiResponseBuilder.error(res, 404, {
@@ -602,7 +494,6 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérifier si déjà désactivé
         if (agent.isActive === false) {
             return ApiResponseBuilder.error(res, 400, {
                 message: 'Cet agent est déjà désactivé',
@@ -614,11 +505,9 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Empêcher la désactivation de FOUNDERS
         if (agent.protocol?.role === 'FOUNDER') {
             const founderAgentId = (req as any).user?.agentId;
 
-            // Sauf si c'est lui-même (auto-désactivation)
             if (agent._id?.toString() !== founderAgentId) {
                 return ApiResponseBuilder.error(res, 403, {
                     message: 'Impossible de désactiver un compte FOUNDER',
@@ -627,17 +516,6 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
             }
         }
 
-        // Log de sécurité
-        console.log('⚠️ Agent deactivation initiated:', {
-            targetAgentId: agent._id?.toString(),
-            bungieId: agent.bungieId,
-            agentName: agent.protocol?.agentName,
-            reason: reason || 'No reason provided',
-            deactivatedBy: (req as any).user?.agentId,
-            timestamp: formatForUser()
-        });
-
-        // Désactiver l'agent
         const updatedAgent = await Agent.findByIdAndUpdate(
             agent._id,
             {
@@ -658,12 +536,6 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
                 error: 'deactivation_failed'
             });
         }
-
-        console.log('✅ Agent deactivated successfully:', {
-            agentId: updatedAgent._id?.toString(),
-            agentName: updatedAgent.protocol?.agentName,
-            timestamp: formatForUser()
-        });
 
         return res.status(200).json({
             success: true,
@@ -694,10 +566,6 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * PATCH /api/founder/agents/:agentId/reactivate
- * Réactive un agent désactivé - FOUNDER uniquement
- */
 export const FounderReactivateAgent = async (req: Request, res: Response) => {
     try {
         const { agentId } = req.params;
@@ -711,7 +579,6 @@ export const FounderReactivateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Trouver l'agent (même désactivé)
         const agent = await Agent.findOne({
             $or: [
                 { _id: /^[0-9a-fA-F]{24}$/.test(agentId) ? agentId : null },
@@ -727,7 +594,6 @@ export const FounderReactivateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Vérifier si déjà actif
         if (agent.isActive !== false) {
             return ApiResponseBuilder.error(res, 400, {
                 message: 'Cet agent est déjà actif',
@@ -735,17 +601,6 @@ export const FounderReactivateAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Log de sécurité
-        console.log('🔄 Agent reactivation initiated:', {
-            targetAgentId: agent._id?.toString(),
-            bungieId: agent.bungieId,
-            agentName: agent.protocol?.agentName,
-            wasDeactivatedAt: agent.deactivatedAt,
-            reactivatedBy: (req as any).user?.agentId,
-            timestamp: formatForUser()
-        });
-
-        // Réactiver l'agent
         const updatedAgent = await Agent.findByIdAndUpdate(
             agent._id,
             {
@@ -770,12 +625,6 @@ export const FounderReactivateAgent = async (req: Request, res: Response) => {
                 error: 'reactivation_failed'
             });
         }
-
-        console.log('✅ Agent reactivated successfully:', {
-            agentId: updatedAgent._id?.toString(),
-            agentName: updatedAgent.protocol?.agentName,
-            timestamp: formatForUser()
-        });
 
         return res.status(200).json({
             success: true,
@@ -823,14 +672,6 @@ export const GetDeactivatedAgents = async (req: Request, res: Response) => {
                 .lean(),
             Agent.countDocuments({ isActive: false })
         ]);
-
-        console.log('Deactivated agents retrieved:', {
-            total,
-            page: pageNum,
-            limit: limitNum,
-            requestedBy: (req as any).user?.agentId,
-            timestamp: formatForUser()
-        });
 
         return res.status(200).json({
             success: true,

@@ -8,7 +8,7 @@ import { IContract, IEmblem, IContributor } from '../types/contract';
 import { IEmblem as IEmblemGlobal } from '../types/emblem';
 import { formatForUser } from '../utils';
 
-const VALID_CONTRACT_STATUSES: IContract['status'][] = ['pending', 'validated', 'cancelled', 'revoked'];
+const VALID_CONTRACT_STATUSES: IContract['status'][] = ['PENDING', 'VALIDATED', 'CANCELLED', 'REVOKED'];
 
 const MAX_TITLE_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 1000;
@@ -91,7 +91,7 @@ export const createContract = async (req: Request, res: Response) => {
                 emblemId: generateUniqueId('EMBLEM'),
                 name: emblem.name,
                 code: emblem.code,
-                status: 'available' as const
+                status: 'AVAILABLE' as const
             };
         });
 
@@ -118,7 +118,7 @@ export const createContract = async (req: Request, res: Response) => {
             availableCodes: sanitizedEmblems.length,
             validationDeadline: parsedDeadline || undefined,
             media: sanitizedMedia,
-            status: 'pending',
+            status: 'PENDING',
             isExpired: false,
             isSigned: false,
             revocationRequests: [],
@@ -136,7 +136,7 @@ export const createContract = async (req: Request, res: Response) => {
                         emblemId: emblem.emblemId,
                         name: emblem.name,
                         code: emblem.code,
-                        status: 'unavailable',
+                        status: 'UNAVAILABLE',
                         image: '',
                         description: `Emblème provenant du contrat ${newContract.contractId}`,
                     };

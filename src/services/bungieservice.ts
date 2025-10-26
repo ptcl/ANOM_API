@@ -98,17 +98,6 @@ class BungieService {
             const rawData = response.data.Response;
             const bungieNetUser = rawData.bungieNetUser;
             const destinyMemberships = rawData.destinyMemberships || [];
-
-            // Log de débogage pour profilePicture depuis Bungie API
-            console.log('Bungie ProfilePicture Debug:', {
-                profilePictureRaw: bungieNetUser.profilePicture,
-                profilePictureType: typeof bungieNetUser.profilePicture,
-                profilePicturePathRaw: bungieNetUser.profilePicturePath,
-                profilePicturePathType: typeof bungieNetUser.profilePicturePath,
-                bungieId: bungieNetUser.membershipId,
-                timestamp: formatForUser()
-            });
-
             const agent: IAgent = {
                 bungieId: bungieNetUser.membershipId,
                 destinyMemberships: destinyMemberships,
@@ -157,9 +146,7 @@ class BungieService {
             };
 
             console.log('🔍 Processed Agent Profile:');
-            console.log('   bungieId:', agent.bungieId);
-            console.log('   agentName:', agent.protocol.agentName);
-            console.log('   role:', agent.protocol.role);
+            console.table({ bungieId: agent.bungieId, agentName: agent.protocol.agentName, role: agent.protocol.role });
 
             console.log(`✅ Retrieved profile for: ${agent.protocol.agentName}`);
             return agent;

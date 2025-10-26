@@ -1,22 +1,19 @@
-import { AgentModel } from '../models/agent.model';
+import { Agent } from '../models/agent.model';
 import { BungieTokenResponse } from '../types/bungie';
-import { IAgent, IPlayerDocument } from '../types/agent';
+import { IAgent, IAgentDocument } from '../types/agent';
 
 class PlayerService {
-    async createOrUpdatePlayer(agent: IAgent, tokens: BungieTokenResponse): Promise<IPlayerDocument> {
+    async createOrUpdatePlayer(agent: IAgent, tokens: BungieTokenResponse): Promise<IAgentDocument> {
         try {
 
             const now = new Date();
             const expiresAt = new Date(now.getTime() + (tokens.expires_in * 1000));
 
-            const existingPlayer = await AgentModel.findOne({
+            const existingPlayer = await Agent.findOne({
                 bungieId: agent.bungieId
             });
 
             if (existingPlayer) {
-                // Ne pas écraser l'agentName existant lors de la reconnexion (même correction que AgentService)
-                // existingPlayer.protocol.agentName = agent.protocol.agentName;
-                
                 existingPlayer.lastActivity = now;
                 existingPlayer.bungieTokens = {
                     accessToken: tokens.access_token,
@@ -27,9 +24,9 @@ class PlayerService {
 
                 await existingPlayer.save();
 
-                return existingPlayer as IPlayerDocument;
+                return existingPlayer as IAgentDocument;
             } else {
-                const newPlayer = new AgentModel({
+                const newPlayer = new Agent({
                     bungieId: agent.bungieId,
                     bungieTokens: {
                         accessToken: tokens.access_token,
@@ -39,6 +36,7 @@ class PlayerService {
                     protocol: {
                         agentName: agent.protocol.agentName,
                         customName: "",
+                        badges: [],
                         species: agent.protocol.species || 'HUMAN',
                         role: agent.protocol.role || 'AGENT',
                         clearanceLevel: agent.protocol.clearanceLevel || 1,
@@ -60,7 +58,7 @@ class PlayerService {
 
                 await newPlayer.save();
                 console.log('🔍 Creating new player with data:');
-                return newPlayer as IPlayerDocument;
+                return newPlayer as IAgentDocument;
             }
         } catch (error) {
             console.error('❌ Error creating/updating player:', error);
@@ -68,26 +66,26 @@ class PlayerService {
         }
     }
 
-    async getPlayerById(playerId: string): Promise<IPlayerDocument | null> {
+    async getPlayerById(playerId: string): Promise<IAgentDocument | null> {
         try {
-            const player = await AgentModel.findById(playerId);
+            const player = await Agent.findById(playerId);
 
             if (player) {
-                console.log(`🔍 Found player: ${player.protocol.agentName} (ID: ${playerId})`);
+                console.log(`🔍 Found player: ${player.protocol?.agentName} (ID: ${playerId})`);
             } else {
                 console.log(`❌ Player not found with ID: ${playerId}`);
             }
 
-            return player as IPlayerDocument;
+            return player as IAgentDocument | null;
         } catch (error) {
             console.error('❌ Error getting player by ID:', error);
             return null;
         }
     }
 
-    async getPlayerByBungieId(bungieId: string): Promise<IPlayerDocument | null> {
+    async getPlayerByBungieId(bungieId: string): Promise<IAgentDocument | null> {
         try {
-            return await AgentModel.findOne({ bungieId }) as IPlayerDocument;
+            return await Agent.findOne({ bungieId }) as IAgentDocument;
         } catch (error) {
             console.error('❌ Error getting player by Bungie ID:', error);
             return null;
@@ -97,7 +95,7 @@ class PlayerService {
     async updateLastActivity(playerId: string): Promise<void> {
         try {
             const now = new Date();
-            await AgentModel.findByIdAndUpdate(playerId, {
+            await Agent.findByIdAndUpdate(playerId, {
                 $set: { lastActivity: now, updatedAt: now }
             });
             console.log(`⏰ Updated last activity for player: ${playerId}`);
@@ -106,7 +104,7 @@ class PlayerService {
         }
     }
 
-    async updatePlayerProfile(playerId: string, updateData: Partial<IPlayerDocument>): Promise<IPlayerDocument | null> {
+    async updatePlayerProfile(playerId: string, updateData: Partial<IAgentDocument>): Promise<IAgentDocument | null> {
         try {
             console.log(`🔄 Updating profile for player: ${playerId}`);
 
@@ -136,15 +134,15 @@ class PlayerService {
                 };
             }
 
-            const result = await AgentModel.findByIdAndUpdate(
+            const result = await Agent.findByIdAndUpdate(
                 playerId,
                 { $set: sanitizedUpdateData },
                 { new: true }
             );
 
             if (result) {
-                console.log(`✅ Successfully updated profile for: ${result.protocol.agentName}`);
-                return result as IPlayerDocument;
+                console.log(`✅ Successfully updated profile for: ${result.protocol?.agentName}`);
+                return result as IAgentDocument ;
             } else {
                 console.error(`❌ Player not found with ID: ${playerId}`);
                 return null;
