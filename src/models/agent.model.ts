@@ -40,11 +40,7 @@ const BungieUserSchema = new Schema({
 const AgentSettingsSchema = new Schema({
   notifications: { type: Boolean, default: true },
   publicProfile: { type: Boolean, default: true },
-  protocolOSTheme: {
-    type: String,
-    enum: ["DEFAULT", "DARKNESS"],
-    default: "DEFAULT"
-  },
+  protocolOSTheme: { type: String, enum: ["DEFAULT", "DARKNESS"], default: "DEFAULT", set: (v: string) => v.toUpperCase() },
   protocolSounds: { type: Boolean, default: true },
   language: { type: String, default: "fr" }
 }, { _id: false });
@@ -73,12 +69,12 @@ const AgentHistorySchema = new Schema({
 const ProtocolSchema = new Schema({
   agentName: { type: String, required: true },
   customName: String,
-  species: { type: String, enum: ["HUMAN", "EXO", "AWOKEN"], default: "HUMAN" },
-  role: { type: String, enum: ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"], default: "AGENT" },
+  species: { type: String, enum: ["HUMAN", "EXO", "AWOKEN"], default: "HUMAN", set: (v: string) => v.toUpperCase() },
+  role: { type: String, enum: ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"], default: "AGENT", set: (v: string) => v.toUpperCase() },
   clearanceLevel: { type: Number, default: 1 },
   hasSeenRecruitment: { type: Boolean, default: false },
   protocolJoinedAt: { type: Date, default: Date.now },
-  group: { type: String, enum: ["PROTOCOL", "AURORA", "ZENITH"], default: "PROTOCOL" },
+  group: { type: String, enum: ["PROTOCOL", "AURORA", "ZENITH"], default: "PROTOCOL", set: (v: string) => v.toUpperCase() },
   settings: AgentSettingsSchema,
   badges: [AgentBadgeSchema],
   stats: AgentStatsSchema,
@@ -106,11 +102,7 @@ const AgentSchema = new Schema({
       contractId: { type: String, required: true },
       createdAs: { type: String, enum: ["DONOR"], default: "DONOR" },
       linkedAt: { type: Date, default: Date.now },
-      statusSnapshot: {
-        type: String,
-        enum: ["PENDING", "VALIDATED", "CANCELLED", "REVOKED"],
-        default: "PENDING"
-      },
+      statusSnapshot: { type: String, enum: ["PENDING", "VALIDATED", "CANCELLED", "REVOKED"], default: "PENDING", set: (v: string) => v.toUpperCase() },
       lastSyncedAt: { type: Date, default: Date.now }
     }
   ],

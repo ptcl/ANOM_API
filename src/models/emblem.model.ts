@@ -6,7 +6,7 @@ const EmblemSchema = new mongoose.Schema({
     description: { type: String },
     image: { type: String },
     code: { type: String },
-    status: { type: String, enum: ["available", "unavailable"], default: "unavailable" }
+    status: { type: String, enum: ["AVAILABLE", "UNAVAILABLE"], default: "UNAVAILABLE", set: (v: string) => v.toUpperCase() }
 }, { timestamps: true });
 
 export const EmblemModel = mongoose.models.Emblem || mongoose.model("Emblem", EmblemSchema);
