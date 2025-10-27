@@ -96,7 +96,7 @@ class EnvironmentManager {
             port: parseInt(process.env.PORT || '3031', 10),
             frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3031',
             cookieDomain: process.env.COOKIE_DOMAIN || undefined,
-            corsOrigins
+            corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim().replace(/\/$/, '')) : ['https://localhost:3001']
         };
     }
 

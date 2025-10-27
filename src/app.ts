@@ -43,8 +43,8 @@ const createApp = (): express.Application => {
     app.use(cookieParser());
     app.use(cors({
         origin: serverConfig.corsOrigins,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         allowedHeaders: [
             'Origin',
             'X-Requested-With',
@@ -55,7 +55,7 @@ const createApp = (): express.Application => {
             'ngrok-skip-browser-warning'
         ],
         optionsSuccessStatus: 200,
-        maxAge: 86400 // 24 heures
+        maxAge: 86400
     }));
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
