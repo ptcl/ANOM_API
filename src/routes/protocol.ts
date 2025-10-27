@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { DeactivateOwnAccount, getAllAgents, getProfilAgent, updateProfilAgent } from '../controllers/agent.controller';
+import { DeactivateOwnAccount, getAllAgents, getProfilAgent, syncAgentStats, updateProfilAgent } from '../controllers/agent.controller';
 import { getProtocolStatus } from '../controllers/protocol.controller';
 import { FounderAgentStatistics, FounderDeactivateAgent, FounderDeleteAgent, FounderReactivateAgent, FounderRepairProfile, FounderUpdateAgent, GetDeactivatedAgents } from '../controllers/founder.controller';
 import { createContract, deleteContract, getAgentAllContracts, getAllContracts, getContractById, updateContract } from '../controllers/contract.controller';
@@ -10,13 +10,15 @@ import { createEmblem, updateEmblem, deleteEmblem, getAllEmblems, getEmblemById 
 import { accessChallenge, createChallenge, deleteChallenge, getAgentChallengeFragments, getAgentProgress, getAllChallenges, getAvailableChallenges, getChallengeById, submitChallengeAnswer, updateChallenge } from '../controllers/challenge.controller';
 import { createBadge, deleteBadge, getAllBadges, getBadgeById, getBadgeStats, giftBadge, revokeBadge, updateBadge } from '../controllers/badge.controller';
 import { ActiveAgentMiddleware } from '../middlewares/activeAgent.middleware';
+import { syncAgentsDynamic } from '../controllers/utils.controller';
 
 const router = Router();
 
 
 router.get('/status', getProtocolStatus);
 router.get('/agents', getAllAgents);
-
+router.post("/agent/sync-stats", IdentityMiddleware, ActiveAgentMiddleware, syncAgentStats);
+router.post('/sync-all', IdentityMiddleware, AccessMiddleware, syncAgentsDynamic);
 
 // ============== ROUTES BADGES (PUBLIC) ==============
 

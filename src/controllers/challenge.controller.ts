@@ -5,6 +5,7 @@ import { determineFinalCode, getFragmentsData, getPartialCode, splitTargetCodeTo
 import { ChallengeModel } from '../models/challenge.model';
 import { Agent } from '../models/agent.model';
 import { formatForUser } from '../utils';
+import { agentStatsService } from '../services/agentStats';
 
 export const createChallenge = async (req: Request, res: Response) => {
     try {
@@ -219,63 +220,27 @@ export const deleteChallenge = async (req: Request, res: Response) => {
         return res.status(500).json({ message: "Erreur lors de la suppression", error: error.message });
     }
 };
-
 export const accessChallenge = async (req: Request, res: Response) => {
     try {
         const { accessCode } = req.body;
         const agentBungieId = req.user?.bungieId;
 
-        if (!accessCode) {
-            return res.status(400).json({
-                success: false,
-                message: "Code d'accès requis"
-            });
-        }
-
-        if (!agentBungieId) {
-            return res.status(401).json({
-                success: false,
-                message: "Agent non authentifié"
-            });
-        }
+        if (!accessCode) return res.status(400).json({ success: false, message: "Code d'accès requis" });
+        if (!agentBungieId) return res.status(401).json({ success: false, message: "Agent non authentifié" });
 
         const agent = await Agent.findOne({ bungieId: agentBungieId });
-        if (!agent) {
-            return res.status(404).json({
-                success: false,
-                message: "Agent non trouvé"
-            });
-        }
+        if (!agent) return res.status(404).json({ success: false, message: "Agent non trouvé" });
 
-        const challenge = await ChallengeModel.findOne({
-            "challenges.groups.accessCode": accessCode
-        });
+        const challenge = await ChallengeModel.findOne({ "challenges.groups.accessCode": accessCode });
+        if (!challenge) return res.status(404).json({ success: false, message: "Code d'accès invalide" });
+        if (!challenge.isActive) return res.status(403).json({ success: false, message: "Ce challenge n'est pas actif actuellement." });
 
-        if (!challenge) {
-            return res.status(404).json({
-                success: false,
-                message: "Code d'accès invalide"
-            });
-        }
-
-        // Vérification si le challenge est actif
-        if (!challenge.isActive) {
-            return res.status(403).json({
-                success: false,
-                message: "Ce challenge n'est pas actif actuellement."
-            });
-        }
-
-        // Vérification si le challenge est complété
         if (challenge.isComplete) {
             const completedBy = challenge.isCompleteBy
-                ? await Agent.findOne({ bungieId: challenge.isCompleteBy }).select('protocol.agentName bungieUser.displayName')
+                ? await Agent.findOne({ bungieId: challenge.isCompleteBy }).select("protocol.agentName bungieUser.displayName")
                 : null;
 
-            const completedByName = completedBy
-                ? (completedBy.protocol?.agentName || completedBy.bungieUser?.displayName || "Agent inconnu")
-                : "Agent inconnu";
-
+            const completedByName = completedBy?.protocol?.agentName || completedBy?.bungieUser?.displayName || "Agent inconnu";
             return res.status(403).json({
                 success: false,
                 message: `Ce challenge a été complété par ${completedByName} et n'est plus disponible.`,
@@ -284,28 +249,34 @@ export const accessChallenge = async (req: Request, res: Response) => {
             });
         }
 
-        const existingAgentProgress = challenge.AgentProgress.find((agentProgress: any) =>
-            agentProgress.bungieId === agentBungieId
+        // 🔎 sous-challenge ciblé par l'accessCode
+        const targetChallenge = challenge.challenges.find((c: any) =>
+            c.groups?.some((g: any) => g.accessCode === accessCode)
         );
+        if (!targetChallenge) {
+            return res.status(404).json({ success: false, message: "Aucun challenge associé à ce code." });
+        }
 
-        if (existingAgentProgress) {
-            let currentChallengeData = null;
-            let currentGroup = null;
+        // ✅ rewardId vient du sous-challenge (fallback éventuel au root)
+        const rewardId: string | undefined = targetChallenge.rewardId || (challenge as any).rewardId;
+        if (!rewardId) {
+            return res.status(500).json({
+                success: false,
+                message: "Configuration invalide : rewardId manquant sur le challenge ciblé."
+            });
+        }
 
-            for (const challengeItem of challenge.challenges) {
-                const group = challengeItem.groups.find((g: { accessCode: string }) => g.accessCode === accessCode);
-                if (group) {
-                    currentChallengeData = challengeItem;
-                    currentGroup = group;
-                    existingAgentProgress.currentProgress = accessCode;
-                    challenge.markModified('AgentProgress');
-                    await challenge.save();
-                    break;
-                }
-            }
+        // Progress existante ?
+        const existingProgress = challenge.AgentProgress.find((ap: any) => ap.bungieId === agentBungieId);
+        const now = new Date();
+
+        if (existingProgress) {
+            existingProgress.currentProgress = accessCode;
+            existingProgress.lastUpdated = now;
+            challenge.markModified("AgentProgress");
             await challenge.save();
 
-            const fragmentsData = getFragmentsData(existingAgentProgress.unlockedFragments, challenge.finalCode);
+            const fragmentsData = getFragmentsData(existingProgress.unlockedFragments, challenge.finalCode);
             return res.status(200).json({
                 success: true,
                 message: "Agent déjà enregistré pour ce défi",
@@ -314,63 +285,71 @@ export const accessChallenge = async (req: Request, res: Response) => {
                     title: challenge.title,
                     description: challenge.description,
                     currentChallenge: {
-                        challengeType: currentChallengeData?.challengeType,
-                        promptLines: currentGroup?.promptLines,
-                        hintLines: currentChallengeData?.hintLines
+                        challengeType: targetChallenge.challengeType,
+                        promptLines: targetChallenge.groups.find((g: any) => g.accessCode === accessCode)?.promptLines,
+                        hintLines: targetChallenge.hintLines
                     },
-                    agentProgress: existingAgentProgress,
+                    agentProgress: existingProgress,
                     fragmentsData
                 }
             });
         }
 
-        let targetChallengeData = null;
-        let targetGroup = null;
-
-        for (const challengeItem of challenge.challenges) {
-            const group = challengeItem.groups.find((g: { accessCode: string }) => g.accessCode === accessCode);
-            if (group) {
-                targetChallengeData = challengeItem;
-                targetGroup = group;
-                break;
-            }
-        }
-
-        const newAgentProgress = {
+        // ➕ création de la progression côté Challenge
+        const newProgress = {
             agentId: agent._id,
             bungieId: agentBungieId,
-            displayName: agent.protocol?.agentName || agent.bungieUser?.displayName || agent.bungieId || "Agent",
+            displayName: agent.protocol?.agentName || agent.bungieUser?.displayName || "Agent",
             unlockedFragments: [] as string[],
             currentProgress: accessCode,
             complete: false,
-            lastUpdated: new Date()
+            lastUpdated: now
         };
+        challenge.AgentProgress.push(newProgress);
+        await challenge.save();
 
-        challenge.AgentProgress.push(newAgentProgress);
-        const partialCode = getPartialCode(newAgentProgress.unlockedFragments, challenge.finalCode);
+        // 🧮 total de fragments du challenge (unique)
+        const allFragments = Array.from(new Set(challenge.challenges.flatMap((c: any) => c.fragmentId)));
+        const totalFragments = allFragments.length;
 
-        const existingChallengeInAgent = agent.challenges.find((c: { challengeId?: string | null }) => c.challengeId && c.challengeId === challenge.challengeId);
-        if (!existingChallengeInAgent) {
+        // 🔗 enregistrement côté Agent (challenge + emblem)
+        const agentChallenge = agent.challenges.find((c: any) => c.challengeId === challenge.challengeId);
+        if (!agentChallenge) {
             agent.challenges.push({
                 challengeMongoId: challenge._id,
                 challengeId: challenge.challengeId,
                 title: challenge.title,
-                complete: false,
-                accessedAt: new Date(),
-                partialCode,
-                unlockedFragments: [],
-                progress: newAgentProgress
+                accessedAt: now,
+                lastUpdatedAt: now,
+                emblems: [
+                    {
+                        emblemId: rewardId,            // ✅ ici corrigé
+                        totalFragments,
+                        unlockedFragments: [],
+                        isComplete: false
+                    }
+                ]
             });
         } else {
-            existingChallengeInAgent.accessedAt = new Date();
-            existingChallengeInAgent.partialCode = partialCode;
-            existingChallengeInAgent.unlockedFragments = newAgentProgress.unlockedFragments;
-            existingChallengeInAgent.progress = newAgentProgress;
+            agentChallenge.accessedAt = now;
+            agentChallenge.lastUpdatedAt = now;
+
+            const existingEmblem = agentChallenge.emblems.find((e: any) => e.emblemId === rewardId);
+            if (!existingEmblem) {
+                agentChallenge.emblems.push({
+                    emblemId: rewardId,            // ✅ ici corrigé aussi
+                    totalFragments,
+                    unlockedFragments: [],
+                    isComplete: false
+                });
+            }
         }
-        agent.lastActivity = new Date();
+
+        agent.lastActivity = now;
         await agent.save();
 
-        await challenge.save();
+        // Option : sync des stats globales
+        // await agentStatsService.syncAgentStats(agent._id);
 
         return res.status(200).json({
             success: true,
@@ -381,24 +360,22 @@ export const accessChallenge = async (req: Request, res: Response) => {
                 description: challenge.description,
                 codeFormat: challenge.codeFormat,
                 currentChallenge: {
-                    challengeType: targetChallengeData?.challengeType,
-                    promptLines: targetGroup?.promptLines,
-                    hintLines: targetChallengeData?.hintLines
+                    challengeType: targetChallenge.challengeType,
+                    promptLines: targetChallenge.groups.find((g: any) => g.accessCode === accessCode)?.promptLines,
+                    hintLines: targetChallenge.hintLines
                 },
-                agentProgress: newAgentProgress
+                agentProgress: newProgress
             }
         });
-
     } catch (error: any) {
         console.error("Erreur lors de l'accès au défi:", error);
         return res.status(500).json({
             success: false,
             message: "Erreur serveur lors de l'accès au défi",
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: process.env.NODE_ENV === "development" ? error.message : undefined
         });
     }
 };
-
 export const submitChallengeAnswer = async (req: Request, res: Response) => {
     try {
         const { challengeId, answer } = req.body;
@@ -517,19 +494,67 @@ export const submitChallengeAnswer = async (req: Request, res: Response) => {
             await challenge.save();
 
             const agent = await Agent.findOne({ bungieId: agentBungieId });
+
+            const rewardId = challenge.rewardId || `UNASSIGNED-${challenge.challengeId}`;
+
             if (agent) {
-                const existingChallengeInAgent = agent.challenges.find((c: { challengeId?: string | null }) => c.challengeId && c.challengeId === challenge.challengeId);
-                if (existingChallengeInAgent) {
-                    const partialCode = getPartialCode(agentProgress.unlockedFragments, challenge.finalCode);
-                    existingChallengeInAgent.complete = agentProgress.complete;
-                    existingChallengeInAgent.partialCode = partialCode;
-                    existingChallengeInAgent.unlockedFragments = agentProgress.unlockedFragments;
-                    existingChallengeInAgent.progress = agentProgress;
+                const agentChallenge = agent.challenges.find(
+                    (c: any) => c.challengeId === challenge.challengeId
+                );
+
+                if (agentChallenge) {
+                    // Trouver l'emblème correspondant (selon le rewardId du challenge)
+                    const targetEmblem = agentChallenge.emblems.find(
+                        (e: any) => e.emblemId === challenge.rewardId
+                    );
+
+                    // Si pas encore dans le challenge → on le crée
+                    if (!targetEmblem) {
+                        agentChallenge.emblems.push({
+                            emblemId: rewardId,
+                            totalFragments: challenge.challenges.length * 3,
+                            unlockedFragments: [...currentChallenge.fragmentId],
+                            isComplete: hasAllFragments,
+                            completedAt: hasAllFragments ? new Date() : undefined
+                        });
+                    } else {
+                        for (const frag of currentChallenge.fragmentId) {
+                            if (!targetEmblem.unlockedFragments.includes(frag)) {
+                                targetEmblem.unlockedFragments.push(frag);
+                            }
+                        }
+                        if (
+                            targetEmblem.unlockedFragments.length >= targetEmblem.totalFragments &&
+                            !targetEmblem.isComplete
+                        ) {
+                            targetEmblem.isComplete = true;
+                            targetEmblem.completedAt = new Date();
+                        }
+                    }
+
+                    agentChallenge.lastUpdatedAt = new Date();
+                } else {
+                    agent.challenges.push({
+                        challengeMongoId: challenge._id,
+                        challengeId: challenge.challengeId,
+                        title: challenge.title,
+                        emblems: [
+                            {
+                                emblemId: rewardId,
+                                totalFragments: challenge.challenges.length * 3,
+                                unlockedFragments: [...currentChallenge.fragmentId],
+                                isComplete: hasAllFragments,
+                                completedAt: hasAllFragments ? new Date() : undefined
+                            }
+                        ]
+                    });
                 }
+
                 agent.lastActivity = new Date();
                 await agent.save();
-            }
 
+                await agentStatsService.syncAgentStats(agent._id.toString());
+            }
             const fragmentsData = getFragmentsData(currentChallenge.fragmentId, challenge.finalCode);
 
             return res.status(200).json({

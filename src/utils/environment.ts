@@ -94,7 +94,7 @@ class EnvironmentManager {
 
         return {
             port: parseInt(process.env.PORT || '3031', 10),
-            frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
+            frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3031',
             corsOrigins
         };
     }

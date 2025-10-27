@@ -3,6 +3,7 @@ import { agentService } from '../services/agentservice';
 import { Agent } from '../models/agent.model';
 import { formatForUser } from '../utils';
 import { findAgentByIdentifier } from '../utils/verifyAgent.helper';
+import { agentStatsService } from '../services/agentStats';
 
 export const getProfilAgent = async (req: Request, res: Response) => {
     try {
@@ -45,7 +46,8 @@ export const getProfilAgent = async (req: Request, res: Response) => {
                 hasSeenRecruitment: agent.protocol.hasSeenRecruitment,
                 protocolJoinedAt: agent.protocol.protocolJoinedAt,
                 group: agent.protocol.group,
-                settings: agent.protocol.settings
+                settings: agent.protocol.settings,
+                stats: agent.protocol.stats
             },
             lastActivity: agent.lastActivity,
             createdAt: agent.createdAt,
@@ -431,5 +433,25 @@ export const DeactivateOwnAccount = async (req: Request, res: Response) => {
             success: false,
             error: 'Internal server error'
         });
+    }
+};
+
+
+export const syncAgentStats = async (req: Request, res: Response) => {
+    try {
+        const agentId = req.user?.agentId;
+        if (!agentId)
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+
+        const stats = await agentStatsService.syncAgentStats(agentId);
+
+        return res.json({
+            success: true,
+            message: "Agent stats synchronized",
+            data: stats
+        });
+    } catch (error) {
+        console.error("Stats sync error:", error);
+        return res.status(500).json({ success: false, message: "Internal error" });
     }
 };

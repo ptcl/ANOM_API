@@ -54,11 +54,18 @@ const AgentBadgeSchema = new Schema({
 }, { _id: false });
 
 const AgentStatsSchema = new Schema({
-  timelinesCompleted: { type: Number, default: 0 },
-  challengesSolved: { type: Number, default: 0 },
+  totalChallenges: { type: Number, default: 0 },
+  totalEmblemsAvailable: { type: Number, default: 0 },
+  emblemsUnlocked: { type: Number, default: 0 },
+  completedEmblems: { type: Number, default: 0 },
+  activeEmblems: { type: Number, default: 0 },
+
   fragmentsCollected: { type: Number, default: 0 },
-  loreUnlocked: { type: Number, default: 0 },
-  lastRewardedAt: Date
+  totalFragments: { type: Number, default: 0 },
+
+  lastFragmentUnlockedAt: Date,
+  lastEmblemUnlockedAt: Date,
+  lastSyncAt: Date
 }, { _id: false });
 
 const AgentHistorySchema = new Schema({
@@ -132,21 +139,23 @@ const AgentSchema = new Schema({
   ],
   challenges: [
     {
-      challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge" },
-      challengeId: { type: String },
+      challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge", required: true },
+      challengeId: { type: String, required: true },
       title: { type: String },
-      complete: { type: Boolean, default: false },
       accessedAt: { type: Date, default: Date.now },
-      completedAt: { type: Date },
-      partialCode: { type: String },
-      unlockedFragments: [{ type: String }],
-      progress: { type: mongoose.Schema.Types.Mixed }
+      lastUpdatedAt: { type: Date, default: Date.now },
+      emblems: [
+        {
+          emblemId: { type: String, required: true },
+          totalFragments: { type: Number, default: 9 },
+          unlockedFragments: [{ type: String }],
+          isComplete: { type: Boolean, default: false },
+          completedAt: { type: Date }
+        }
+      ]
     }
   ],
 
-
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
 /* -------------------------------------------------------------------------- */
@@ -157,7 +166,6 @@ AgentSchema.index({ bungieId: 1 }, { unique: true, background: true });
 AgentSchema.index({ "protocol.roles": 1 });
 AgentSchema.index({ "protocol.group": 1 });
 AgentSchema.index({ "protocol.badges.badgeId": 1 });
-AgentSchema.index({ "protocol.stats.timelinesCompleted": -1 });
 AgentSchema.index({ isActive: 1 });
 AgentSchema.index({ deactivatedAt: -1 });
 /* -------------------------------------------------------------------------- */

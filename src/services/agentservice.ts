@@ -10,7 +10,16 @@ const MAX_CUSTOM_NAME_LENGTH = 50;
 const MIN_CLEARANCE_LEVEL = 0;
 const MAX_CLEARANCE_LEVEL = 10;
 const ACTIVE_AGENT_THRESHOLD_DAYS = 30;
-
+const DEFAULT_STATS = {
+    totalChallenges: 0,
+    totalEmblemsAvailable: 0,
+    emblemsUnlocked: 0,
+    completedEmblems: 0,
+    activeEmblems: 0,
+    fragmentsCollected: 0,
+    totalFragments: 0,
+    lastSyncAt: new Date()
+};
 export interface IAgentService {
     createOrUpdateAgent(agent: IAgent, tokens: BungieTokenResponse): Promise<IAgentDocument>;
     getAgentById(agentId: string): Promise<IAgentDocument | null>;
@@ -25,10 +34,7 @@ export interface IAgentService {
     repairIncompleteProfile(agentId: string): Promise<boolean>;
 }
 class AgentService implements IAgentService {
-    async createOrUpdateAgent(
-        agent: IAgent,
-        tokens: BungieTokenResponse
-    ): Promise<IAgentDocument> {
+    async createOrUpdateAgent(agent: IAgent, tokens: BungieTokenResponse): Promise<IAgentDocument> {
         try {
             if (!agent || typeof agent !== 'object') {
                 throw new Error('Profil d\'agent invalide');
@@ -102,7 +108,6 @@ class AgentService implements IAgentService {
                         }
                     });
 
-                    // ✅ Utiliser set() au lieu d'une assignation directe
                     existingPlayer.set('destinyMemberships', mergedMemberships);
                 }
 
@@ -158,7 +163,6 @@ class AgentService implements IAgentService {
                             cachedBungieGlobalDisplayNameCode: agent.bungieUser.cachedBungieGlobalDisplayNameCode || existingBungieUser.cachedBungieGlobalDisplayNameCode || 0
                         };
                     } else {
-                        // Profil complet existant : mise à jour sélective (préserver les données existantes si nouvelles données vides)
                         existingPlayer.bungieUser = {
                             membershipId: agent.bungieUser.membershipId || existingBungieUser.membershipId,
                             uniqueName: (agent.bungieUser.uniqueName?.trim() && agent.bungieUser.uniqueName.trim().length > 0)
@@ -170,7 +174,6 @@ class AgentService implements IAgentService {
                             profilePicture: typeof agent.bungieUser.profilePicture === 'number'
                                 ? agent.bungieUser.profilePicture
                                 : (typeof existingBungieUser.profilePicture === 'number' ? existingBungieUser.profilePicture : 0),
-                            // Préserver les autres champs existants
                             about: agent.bungieUser.about || existingBungieUser.about || '',
                             firstAccess: agent.bungieUser.firstAccess || existingBungieUser.firstAccess,
                             lastAccess: agent.bungieUser.lastAccess || existingBungieUser.lastAccess,
@@ -189,7 +192,6 @@ class AgentService implements IAgentService {
                         };
                     }
 
-                    // Log après mise à jour
                     console.log('🖼️ ProfilePicture Final Values:', {
                         agentId: existingPlayer._id?.toString(),
                         finalProfilePicture: existingPlayer.bungieUser.profilePicture,
@@ -206,7 +208,9 @@ class AgentService implements IAgentService {
 
                 existingPlayer.lastActivity = now;
                 existingPlayer.updatedAt = now;
-
+                if (!existingPlayer.protocol?.stats) {
+                    existingPlayer.set('protocol.stats', { ...DEFAULT_STATS });
+                }
                 try {
                     await existingPlayer.save();
                     return existingPlayer as unknown as IAgentDocument;
@@ -285,7 +289,8 @@ class AgentService implements IAgentService {
                             publicProfile: true,
                             protocolOSTheme: 'DEFAULT',
                             protocolSounds: true
-                        }
+                        },
+                        stats: { ...DEFAULT_STATS }
                     },
                     lastActivity: now,
                     createdAt: now,
