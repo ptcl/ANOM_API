@@ -73,8 +73,8 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
 
       const serverConfig = getServerConfig();
-      const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/?error=missing_code`);
+      const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3001';
+      return res.redirect(`${frontendUrl}/login?error=missing_code`);
     }
 
     if (!state || typeof state !== 'string') {
@@ -85,8 +85,8 @@ export const handleCallback = async (req: Request, res: Response) => {
       });
 
       const serverConfig = getServerConfig();
-      const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/?error=invalid_state`);
+      const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3001';
+      return res.redirect(`${frontendUrl}/login?error=invalid_state`);
     }
 
     if (code.length > AUTH_CONSTANTS.MAX_CODE_LENGTH) {
@@ -175,30 +175,60 @@ export const handleCallback = async (req: Request, res: Response) => {
       timestamp: formatForUser()
     });
 
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,          // ⚠️ en local => toujours false
+      sameSite: 'none' as const, // ⚠️ cross-port => obligatoire
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+      domain: getServerConfig().cookieDomain
+    }
+
+    // ✅ Pose les cookies
+    res.cookie('auth_token', jwtToken, cookieOptions)
+
+    if (tokens.access_token) {
+      res.cookie('bungie_token', tokens.access_token, {
+        ...cookieOptions,
+        maxAge: 60 * 60 * 1000
+      })
+    }
+
+    if (tokens.refresh_token) {
+      res.cookie('bungie_refresh_token', tokens.refresh_token, {
+        ...cookieOptions,
+        maxAge: 90 * 24 * 60 * 60 * 1000
+      })
+    }
+
+    console.log('✅ Cookies envoyés au navigateur')
+
+    // 🔥 MODE SANDBOX : Retourne JSON (pour tests)
     if (isSandbox()) {
       return res.json({
         success: true,
         data: {
-          token: jwtToken,
           agent: formatAgentResponse(agent, true)
         },
         message: 'Authentification réussie'
       });
-    } else {
-      const serverConfig = getServerConfig();
-      const frontendUrl = serverConfig.frontendUrl;
-
-      if (!frontendUrl || (!frontendUrl.startsWith('https://') && !frontendUrl.startsWith('http://localhost'))) {
-        console.error('URL frontend invalide configurée:', frontendUrl);
-        return ApiResponseBuilder.error(res, 500, {
-          message: 'Configuration serveur invalide',
-          error: 'invalid_frontend_url'
-        });
-      }
-
-      const encodedToken = encodeURIComponent(jwtToken);
-      return res.redirect(`${frontendUrl}/identity/bungie/callback?token=${encodedToken}`);
     }
+
+    // 🔥 MODE PRODUCTION : Redirige vers le frontend (sans token dans l'URL)
+    const serverConfig = getServerConfig();
+    const frontendUrl = serverConfig.frontendUrl;
+
+    if (!frontendUrl || (!frontendUrl.startsWith('https://') && !frontendUrl.startsWith('http://localhost'))) {
+      console.error('URL frontend invalide configurée:', frontendUrl);
+      return ApiResponseBuilder.error(res, 500, {
+        message: 'Configuration serveur invalide',
+        error: 'invalid_frontend_url'
+      });
+    }
+
+    // ✅ NOUVEAU : Redirige SANS le token dans l'URL
+    return res.redirect(`${frontendUrl}/identity/bungie/callback?success=true`);
+
   } catch (error: any) {
     console.error('Échec du callback Bungie:', {
       error: error.message,
@@ -225,8 +255,111 @@ export const handleCallback = async (req: Request, res: Response) => {
         error: 'callback_processing_failed'
       });
     } else {
-      return res.redirect(`${frontendUrl}/?error=authentication_failed`);
+      return res.redirect(`${frontendUrl}/login?error=authentication_failed`);
     }
+  }
+};
+
+// ✅ NOUVEAU : Endpoint pour vérifier l'auth depuis Next.js
+export const verifyAuth = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+      return res.json({
+        success: false,
+        data: { authenticated: false },
+        message: 'Non authentifié'
+      });
+    }
+
+    const validation = validateJWTFormat(token);
+    if (!validation.valid) {
+      return res.json({
+        success: false,
+        data: { authenticated: false },
+        message: 'Token invalide'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = verifyJWT(token);
+    } catch (jwtError) {
+      return res.json({
+        success: false,
+        data: { authenticated: false },
+        message: 'Token expiré'
+      });
+    }
+
+    if (!decoded || !decoded.agentId) {
+      return res.json({
+        success: false,
+        data: { authenticated: false },
+        message: 'Token invalide'
+      });
+    }
+
+    const agent = await agentService.getAgentById(decoded.agentId);
+
+    if (!agent) {
+      return res.json({
+        success: false,
+        data: { authenticated: false },
+        message: 'Agent non trouvé'
+      });
+    }
+
+    // Mise à jour de la dernière activité
+    try {
+      await agentService.updateLastActivity(agent._id!.toString());
+    } catch (updateError) {
+      console.error('Failed to update last activity:', updateError);
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        authenticated: true,
+        agent: formatAgentResponse(agent)
+      },
+      message: 'Authentifié'
+    });
+
+  } catch (error: any) {
+    console.error('Erreur lors de la vérification auth:', error);
+    return res.json({
+      success: false,
+      data: { authenticated: false },
+      message: 'Erreur serveur'
+    });
+  }
+};
+
+// ✅ NOUVEAU : Endpoint de logout
+export const logout = async (req: Request, res: Response) => {
+  try {
+    // Supprime tous les cookies d'auth
+    res.clearCookie('auth_token', { path: '/' });
+    res.clearCookie('bungie_token', { path: '/' });
+    res.clearCookie('bungie_refresh_token', { path: '/' });
+
+    console.log('User logged out:', {
+      ip: req.ip,
+      timestamp: formatForUser()
+    });
+
+    return res.json({
+      success: true,
+      message: 'Déconnexion réussie'
+    });
+  } catch (error: any) {
+    console.error('Erreur lors de la déconnexion:', error);
+    return ApiResponseBuilder.error(res, 500, {
+      message: 'Erreur lors de la déconnexion',
+      error: 'logout_failed'
+    });
   }
 };
 
@@ -320,7 +453,15 @@ export const verifyToken = async (req: Request, res: Response) => {
 
 export const refreshToken = async (req: Request, res: Response) => {
   try {
-    const { token } = req.body;
+    // ✅ MODIFIÉ : Lit le token depuis les cookies
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+      return ApiResponseBuilder.error(res, 401, {
+        message: 'Aucun token fourni',
+        error: 'missing_token'
+      });
+    }
 
     const validation = validateJWTFormat(token);
     if (!validation.valid) {
@@ -398,6 +539,18 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
+    // ✅ NOUVEAU : Stocke le nouveau token dans le cookie
+    const cookieOptions = {
+      httpOnly: true,
+      secure: !isDev(),
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+      path: '/',
+      domain: isDev() ? undefined : getServerConfig().cookieDomain
+    };
+
+    res.cookie('auth_token', newToken, cookieOptions);
+
     try {
       await agentService.updateLastActivity(agent._id!.toString());
     } catch (updateError: any) {
@@ -418,7 +571,6 @@ export const refreshToken = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       data: {
-        token: newToken,
         agent: formatAgentResponse(agent)
       },
       message: 'Token renouvelé avec succès'

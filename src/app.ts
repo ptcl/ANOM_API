@@ -8,6 +8,7 @@ import './docs';
 import { routes } from './routes/index';
 import rateLimit from 'express-rate-limit';
 import { formatForUser } from './utils';
+import cookieParser from 'cookie-parser';
 
 
 const limiter = rateLimit({
@@ -39,7 +40,7 @@ const createApp = (): express.Application => {
         },
         crossOriginEmbedderPolicy: false
     }));
-
+    app.use(cookieParser());
     app.use(cors({
         origin: serverConfig.corsOrigins,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ApiResponseBuilder } from '../utils/apiresponse';
 import { AppInfoService } from '../services/appinfoservice';
-import { handleCallback, initiateLogin, refreshToken, verifyToken } from '../controllers/identity.controller';
+import { handleCallback, initiateLogin, logout, refreshToken, verifyAuth, verifyToken } from '../controllers/identity.controller';
 import { formatForUser } from '../utils';
 
 const router = Router();
@@ -9,9 +9,10 @@ const router = Router();
 
 router.get('/bungie/login', initiateLogin);
 router.get('/bungie/callback', handleCallback);
-
-router.post('/verify', verifyToken);
-router.post('/refresh', refreshToken);
+router.get('/auth/verify', verifyAuth);
+router.post('/auth/logout', logout);
+// router.post('/auth/token/verify', verifyToken);
+router.post('/auth/refresh', refreshToken);
 
 router.get('/status', (req, res) => {
     const appInfoService = AppInfoService.getInstance();

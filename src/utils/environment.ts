@@ -95,6 +95,7 @@ class EnvironmentManager {
         return {
             port: parseInt(process.env.PORT || '3031', 10),
             frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3031',
+            cookieDomain: process.env.COOKIE_DOMAIN || undefined,
             corsOrigins
         };
     }
@@ -106,7 +107,10 @@ class EnvironmentManager {
 }
 
 const environmentManager = EnvironmentManager.getInstance();
-
+export const isLocalhost = () => {
+    const host = process.env.FRONTEND_URL || ''
+    return host.includes('localhost') || host.includes('127.0.0.1')
+}
 export const env = environmentManager;
 export const isDev = () => environmentManager.isDevelopment();
 export const isProd = () => environmentManager.isProduction();
