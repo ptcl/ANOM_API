@@ -181,7 +181,6 @@ export const handleCallback = async (req: Request, res: Response) => {
       sameSite: 'none' as const, // ⚠️ cross-port => obligatoire
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
-      domain: getServerConfig().cookieDomain
     }
 
     // ✅ Pose les cookies
