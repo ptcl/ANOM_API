@@ -175,14 +175,25 @@ export const handleCallback = async (req: Request, res: Response) => {
       timestamp: formatForUser()
     });
 
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isDevelopment = !isProduction;
+
     const cookieOptions = {
       httpOnly: true,
-      secure: true,          // ⚠️ en local => toujours false
-      sameSite: 'none' as const, // ⚠️ cross-port => obligatoire
+      secure: isProduction, // ✅ false en dev, true en prod
+      sameSite: (isProduction ? 'lax' : 'none') as 'lax' | 'none' | 'strict',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+      // ✅ IMPORTANT : En dev, pas de domain pour permettre localhost
+      ...(isProduction && { domain: getServerConfig().cookieDomain })
     }
-
+    console.log('🍪 Configuration des cookies:', {
+      environment: isProduction ? 'production' : 'development',
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      domain: cookieOptions.domain || 'none (localhost)',
+      timestamp: formatForUser()
+    });
     // ✅ Pose les cookies
     res.cookie('auth_token', jwtToken, cookieOptions)
 
@@ -200,7 +211,11 @@ export const handleCallback = async (req: Request, res: Response) => {
       })
     }
 
-    console.log('✅ Cookies envoyés au navigateur')
+    console.log('✅ Cookies envoyés au navigateur:', {
+      auth_token: '***',
+      bungie_token: tokens.access_token ? '***' : 'non envoyé',
+      bungie_refresh_token: tokens.refresh_token ? '***' : 'non envoyé'
+    })
 
     // 🔥 MODE SANDBOX : Retourne JSON (pour tests)
     if (isSandbox()) {
