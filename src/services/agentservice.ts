@@ -1,10 +1,10 @@
 import { BungieTokenResponse } from '../types/bungie';
-import { IAgent, IAgentDocument, IDestinyMembership } from '../types/agent';
+import { IAgent, IAgentDocument } from '../types/agent';
 import { Agent } from '../models/agent.model';
 import { ValidationResult, AgentServiceStats } from '../types/services';
 import { formatForUser } from '../utils';
 
-const TOKEN_EXPIRY_BUFFER_SECONDS = 300; // 5 minutes de buffer
+const TOKEN_EXPIRY_BUFFER_SECONDS = 300;
 const MAX_AGENT_NAME_LENGTH = 50;
 const MAX_CUSTOM_NAME_LENGTH = 50;
 const MIN_CLEARANCE_LEVEL = 0;

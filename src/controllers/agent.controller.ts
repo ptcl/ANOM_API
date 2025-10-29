@@ -56,11 +56,9 @@ export const getProfilAgent = async (req: Request, res: Response) => {
 
         return res.json({
             success: true,
-            data: {
-                agent: formattedAgent
-            },
+            data: formattedAgent,
             message: 'Profile retrieved successfully'
-        });
+        })
     } catch (error: any) {
         console.error('Profile fetch error:', {
             timestamp: formatForUser(),

@@ -1,6 +1,5 @@
 import { Types, Document } from "mongoose";
 import { IBadge } from "./badge";
-import { IContract } from "./contract";
 
 export interface IBungieToken {
     accessToken: string;

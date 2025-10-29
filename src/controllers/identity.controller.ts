@@ -3,10 +3,9 @@ import { generateState, generateJWT, verifyJWT, createJWTPayload, validateJWTFor
 import { bungieService } from '../services';
 import { agentService } from '../services/agentservice';
 import { ApiResponseBuilder } from '../utils/apiresponse';
-import { isDev, getServerConfig, isSandbox } from '../utils/environment';
+import { isDev, getServerConfig } from '../utils/environment';
 import { formatForUser } from '../utils';
 import { formatAgentResponse } from '../utils/formatters';
-import { AUTH_CONSTANTS } from '../utils/constants';
 
 export const initiateLogin = async (req: Request, res: Response) => {
   try {
@@ -65,212 +64,59 @@ export const handleCallback = async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
 
-    if (!code || typeof code !== 'string' || code.trim().length === 0) {
-      console.warn('Tentative de callback sans code valide:', {
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        timestamp: formatForUser()
-      });
-
-      const serverConfig = getServerConfig();
-      const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3001';
-      return res.redirect(`${frontendUrl}/login?error=missing_code`);
-    }
-
-    if (!state || typeof state !== 'string') {
-      console.warn('Tentative de callback sans state valide:', {
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        timestamp: formatForUser()
-      });
-
-      const serverConfig = getServerConfig();
-      const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3001';
-      return res.redirect(`${frontendUrl}/login?error=invalid_state`);
-    }
-
-    if (code.length > AUTH_CONSTANTS.MAX_CODE_LENGTH) {
+    if (!code || typeof code !== 'string' || !state || typeof state !== 'string') {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Mauvais code de validation',
-        error: 'validation_error'
+        message: 'Code ou state manquant',
+        error: 'invalid_oauth_params'
       });
     }
 
-    console.log('OAuth callback received:', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      hasCode: !!code,
-      hasState: !!state,
-      timestamp: formatForUser()
-    });
+    console.log('🔁 OAuth callback reçu:', { code, ip: req.ip });
 
     const tokens = await bungieService.exchangeCodeForTokens(code);
-
-    if (!tokens || !tokens.access_token) {
+    if (!tokens?.access_token) {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Échec de l\'échange de tokens',
+        message: 'Échec de l\'échange de tokens Bungie',
         error: 'token_exchange_failed'
       });
     }
 
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
-
-    if (!userProfile || !userProfile.bungieId) {
-      console.error('Profil Bungie invalide reçu:', {
-        hasProfile: !!userProfile,
-        hasBungieId: !!(userProfile?.bungieId),
-        ip: req.ip,
-        timestamp: formatForUser()
-      });
-
+    if (!userProfile?.bungieId) {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Profil Bungie invalide ou incomplet',
+        message: 'Profil Bungie invalide',
         error: 'invalid_bungie_profile'
       });
     }
 
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
-
-    if (!agent || !agent._id) {
-      console.error('Échec de la création/mise à jour de l\'agent:', {
-        bungieId: userProfile.bungieId,
-        timestamp: formatForUser()
-      });
-
+    if (!agent?._id) {
       return ApiResponseBuilder.error(res, 500, {
-        message: 'Échec de la création du profil d\'agent',
+        message: 'Impossible de créer ou mettre à jour l\'agent',
         error: 'agent_creation_failed'
-      });
-    }
-
-    if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.roles) {
-      console.error('Données d\'agent incomplètes:', {
-        agentId: agent._id,
-        hasProtocol: !!agent.protocol,
-        hasAgentName: !!(agent.protocol?.agentName),
-        hasRoles: !!(agent.protocol?.roles),
-        timestamp: formatForUser()
-      });
-
-      return ApiResponseBuilder.error(res, 500, {
-        message: 'Profil d\'agent incomplet',
-        error: 'incomplete_agent_profile'
       });
     }
 
     const jwtToken = generateJWT(createJWTPayload(agent));
 
-    if (!jwtToken) {
-      return ApiResponseBuilder.error(res, 500, {
-        message: 'Échec de la génération du token',
-        error: 'token_generation_failed'
-      });
-    }
-
-    console.log('Authentication successful:', {
+    console.log('✅ Auth réussie:', {
       agentId: agent._id.toString(),
-      bungieId: agent.bungieId,
       agentName: agent.protocol.agentName,
-      ip: req.ip,
-      timestamp: formatForUser()
+      bungieId: agent.bungieId,
     });
 
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isDevelopment = !isProduction;
-
-    const cookieOptions = {
-      httpOnly: true,
-      secure: isProduction, // ✅ false en dev, true en prod
-      sameSite: (isProduction ? 'lax' : 'none') as 'lax' | 'none' | 'strict',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
-      // ✅ IMPORTANT : En dev, pas de domain pour permettre localhost
-      ...(isProduction && { domain: getServerConfig().cookieDomain })
-    }
-    console.log('🍪 Configuration des cookies:', {
-      environment: isProduction ? 'production' : 'development',
-      secure: cookieOptions.secure,
-      sameSite: cookieOptions.sameSite,
-      domain: cookieOptions.domain || 'none (localhost)',
-      timestamp: formatForUser()
-    });
-    // ✅ Pose les cookies
-    res.cookie('auth_token', jwtToken, cookieOptions)
-
-    if (tokens.access_token) {
-      res.cookie('bungie_token', tokens.access_token, {
-        ...cookieOptions,
-        maxAge: 60 * 60 * 1000
-      })
-    }
-
-    if (tokens.refresh_token) {
-      res.cookie('bungie_refresh_token', tokens.refresh_token, {
-        ...cookieOptions,
-        maxAge: 90 * 24 * 60 * 60 * 1000
-      })
-    }
-
-    console.log('✅ Cookies envoyés au navigateur:', {
-      auth_token: '***',
-      bungie_token: tokens.access_token ? '***' : 'non envoyé',
-      bungie_refresh_token: tokens.refresh_token ? '***' : 'non envoyé'
-    })
-
-    // 🔥 MODE SANDBOX : Retourne JSON (pour tests)
-    if (isSandbox()) {
-      return res.json({
-        success: true,
-        data: {
-          agent: formatAgentResponse(agent, true)
-        },
-        message: 'Authentification réussie'
-      });
-    }
-
-    // 🔥 MODE PRODUCTION : Redirige vers le frontend (sans token dans l'URL)
     const serverConfig = getServerConfig();
-    const frontendUrl = serverConfig.frontendUrl;
+    const redirectUrl = `${serverConfig.frontendUrl}/identity/bungie/callback?token=${jwtToken}&success=true`;
 
-    if (!frontendUrl || (!frontendUrl.startsWith('https://') && !frontendUrl.startsWith('http://localhost'))) {
-      console.error('URL frontend invalide configurée:', frontendUrl);
-      return ApiResponseBuilder.error(res, 500, {
-        message: 'Configuration serveur invalide',
-        error: 'invalid_frontend_url'
-      });
-    }
-
-    // ✅ NOUVEAU : Redirige SANS le token dans l'URL
-    return res.redirect(`${frontendUrl}/identity/bungie/callback?success=true`);
+    console.log('✅ Redirecting to frontend:', redirectUrl);
+    return res.redirect(redirectUrl);
 
   } catch (error: any) {
-    console.error('Échec du callback Bungie:', {
-      error: error.message,
-      stack: error.stack,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      timestamp: formatForUser()
+    console.error('❌ Erreur callback Bungie:', error);
+    return ApiResponseBuilder.error(res, 500, {
+      message: 'Erreur interne lors de l\'authentification Bungie',
+      error: 'callback_failed'
     });
-
-    if (error.response) {
-      console.error('Détails de la réponse d\'erreur:', {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        timestamp: formatForUser()
-      });
-    }
-
-    const serverConfig = getServerConfig();
-    const frontendUrl = serverConfig.frontendUrl || 'http://localhost:3001';
-
-    if (isDev()) {
-      return ApiResponseBuilder.error(res, 500, {
-        message: 'Échec du traitement du callback Bungie',
-        error: 'callback_processing_failed'
-      });
-    } else {
-      return res.redirect(`${frontendUrl}/login?error=authentication_failed`);
-    }
   }
 };
 

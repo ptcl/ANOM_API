@@ -10,36 +10,29 @@ export function generateState(): string {
 
 export function generateJWT(
     payload: string | object | Buffer,
-    expiresIn: string | number = AUTH_CONSTANTS.TOKEN_EXPIRY
+    expiresIn: string | number = process.env.JWT_EXPIRES_IN || '24h'
 ): string {
     const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        throw new Error('JWT_SECRET not configured');
-    }
-
-    return jwt.sign(payload, secret, { expiresIn: expiresIn as any });
+    if (!secret) throw new Error('JWT_SECRET not configured');
+    return jwt.sign(payload, secret, { expiresIn: expiresIn as SignOptions['expiresIn'] });
 }
 
 export function verifyJWT(token: string): any {
     const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        throw new Error('JWT_SECRET not configured');
+    if (!secret) throw new Error('JWT_SECRET not configured');
+    try {
+        return jwt.verify(token, secret);
+    } catch (err: any) {
+        if (err.name === 'TokenExpiredError') throw new Error('TOKEN_EXPIRED');
+        throw new Error('TOKEN_INVALID');
     }
-    return jwt.verify(token, secret);
 }
 
 export const createJWTPayload = (agent: IAgentDocument) => {
-    if (!agent._id) {
-        throw new Error('Agent ID missing');
-    }
-
-    if (!agent.protocol?.agentName || !agent.protocol?.roles) {
-        throw new Error('Agent protocol incomplete');
-    }
-
+    if (!agent._id) throw new Error('Agent ID missing');
     return {
         agentId: agent._id.toString(),
-        bungieId: agent.bungieId
+        bungieId: agent.bungieId,
     };
 };
 
