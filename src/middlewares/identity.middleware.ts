@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJWT } from '../utils/auth';
-import { agentService } from '../services/agentservice';
-import { formatForUser } from '../utils';
+import { agentService } from '../services/agent.service';
+import logger from '../utils/logger';
 
 declare global {
   namespace Express {
@@ -11,7 +11,8 @@ declare global {
         bungieId: string;
         protocol?: {
           agentName: string;
-          role: string;
+          roles: string[];
+          clearanceLevel: number;
         };
       };
     }
@@ -21,17 +22,14 @@ declare global {
 export const IdentityMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const authHeader = req.headers.authorization;
-
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized'
       });
     }
-
     const token = authHeader.split(' ')[1];
 
-    // Validation de base du token
     if (!token || token.length > 2048) {
       return res.status(401).json({
         success: false,
@@ -42,13 +40,9 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
     try {
       const decoded = verifyJWT(token);
 
-      // Validation de la structure du payload JWT
       if (!decoded ||
         typeof decoded.agentId !== 'string' ||
-        typeof decoded.bungieId !== 'string' ||
-        !decoded.protocol ||
-        typeof decoded.protocol.agentName !== 'string' ||
-        typeof decoded.protocol.role !== 'string') {
+        typeof decoded.bungieId !== 'string') {
         return res.status(401).json({
           success: false,
           error: 'Unauthorized'
@@ -56,6 +50,7 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
       }
 
       const agent = await agentService.getAgentById(decoded.agentId);
+
       if (!agent) {
         // Ne pas révéler si l'agent existe ou non
         return res.status(401).json({
@@ -64,45 +59,48 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
         });
       }
 
-      // Assigner les données utilisateur seulement après validation complète
+      if (!agent.protocol ||
+        typeof agent.protocol.agentName !== 'string' ||
+        !Array.isArray(agent.protocol.roles) ||
+        typeof agent.protocol.clearanceLevel !== 'number') {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized'
+        });
+      }
+
       req.user = {
-        agentId: decoded.agentId,
-        bungieId: decoded.bungieId,
+        agentId: agent._id.toString(),
+        bungieId: agent.bungieId,
         protocol: {
-          agentName: decoded.protocol.agentName,
-          role: decoded.protocol.role
+          agentName: agent.protocol.agentName,
+          roles: agent.protocol.roles,
+          clearanceLevel: agent.protocol.clearanceLevel
         }
       };
 
-      // Mise à jour de l'activité en arrière-plan pour éviter les race conditions
       agentService.updateLastActivity(decoded.agentId).catch((error) => {
-        console.error('Failed to update last activity:', { agentId: decoded.agentId });
+        logger.warn('Failed to update last activity', { agentId: decoded.agentId });
       });
 
       return next();
-    } catch (error) {
-      console.error('JWT verification failed:', {
-        timestamp: formatForUser(),
-        ip: req.ip
-      });
 
+    } catch (error) {
+      logger.debug('JWT verification failed', { ip: req.ip });
       return res.status(401).json({
         success: false,
         error: 'Unauthorized'
       });
     }
   } catch (error: any) {
-    // Log sécurisé pour les erreurs système
-    console.error('Auth middleware system error:', {
-      timestamp: formatForUser(),
+    logger.error('Auth middleware system error', {
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      error: error.message
     });
-
     return res.status(500).json({
       success: false,
       error: 'Internal server error'
     });
   }
 };
-

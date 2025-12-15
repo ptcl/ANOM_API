@@ -2,302 +2,400 @@
  * @swagger
  * components:
  *   schemas:
+ *     AgentSettings:
+ *       type: object
+ *       properties:
+ *         notifications:
+ *           type: boolean
+ *           example: true
+ *         publicProfile:
+ *           type: boolean
+ *           example: true
+ *         protocolOSTheme:
+ *           type: string
+ *           enum: [DEFAULT, DARKNESS]
+ *           example: DEFAULT
+ *         protocolSounds:
+ *           type: boolean
+ *           example: true
+ *         language:
+ *           type: string
+ *           example: "en"
+ *
+ *     AgentProtocol:
+ *       type: object
+ *       properties:
+ *         agentName:
+ *           type: string
+ *           example: "Shadow-7"
+ *         customName:
+ *           type: string
+ *           nullable: true
+ *           example: "The Wanderer"
+ *         uniqueName:
+ *           type: string
+ *           example: "shadow-7#1234"
+ *         species:
+ *           type: string
+ *           enum: [HUMAN, EXO, AWOKEN]
+ *           example: HUMAN
+ *         roles:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["AGENT", "ECHO"]
+ *         clearanceLevel:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 10
+ *           example: 3
+ *         division:
+ *           type: string
+ *           nullable: true
+ *           example: "ALPHA-TEAM"
+ *         hasSeenRecruitment:
+ *           type: boolean
+ *           example: true
+ *         protocolJoinedAt:
+ *           type: string
+ *           format: date-time
+ *         settings:
+ *           $ref: '#/components/schemas/AgentSettings'
+ *
  *     Agent:
  *       type: object
  *       properties:
  *         _id:
  *           type: string
- *           description: Identifiant unique de l'agent (MongoDB ObjectId)
- *           example: "64f5a7b2c8d4e1f2a3b4c5d6"
+ *           example: "507f1f77bcf86cd799439011"
  *         bungieId:
  *           type: string
- *           description: Identifiant Bungie unique de l'agent
- *           example: "12345678"
- *         bungieTokens:
- *           type: object
- *           description: Tokens d'authentification Bungie
- *           properties:
- *             accessToken:
- *               type: string
- *               description: Token d'accès Bungie
- *             refreshToken:
- *               type: string
- *               description: Token de rafraîchissement Bungie
- *             expiresAt:
- *               type: string
- *               format: date-time
- *               description: Date d'expiration du token
- *           required:
- *             - accessToken
- *             - refreshToken
- *             - expiresAt
- *         destinyMemberships:
- *           type: array
- *           description: Liste des memberships Destiny de l'agent
- *           items:
- *             type: object
- *             properties:
- *               crossSaveOverride:
- *                 type: number
- *                 description: Override pour le cross-save
- *               applicableMembershipTypes:
- *                 type: array
- *                 description: Types de membership applicables
- *                 items:
- *                   type: number
- *               isPublic:
- *                 type: boolean
- *                 description: Indique si le profil est public
- *               membershipType:
- *                 type: number
- *                 description: Type de membership (1=Xbox, 2=PSN, 3=Steam, etc.)
- *               membershipId:
- *                 type: string
- *                 description: Identifiant du membership
- *               displayName:
- *                 type: string
- *                 description: Nom d'affichage sur la plateforme
- *               bungieGlobalDisplayName:
- *                 type: string
- *                 description: Nom d'affichage global Bungie
- *               bungieGlobalDisplayNameCode:
- *                 type: number
- *                 description: Code du nom d'affichage global Bungie
+ *           example: "4611686018467431789"
  *         bungieUser:
  *           type: object
- *           description: Informations détaillées de l'utilisateur Bungie
  *           properties:
- *             membershipId:
- *               type: number
- *               description: Identifiant du membership Bungie
- *             uniqueName:
- *               type: string
- *               description: Nom unique de l'utilisateur
  *             displayName:
  *               type: string
- *               description: Nom d'affichage de l'utilisateur
- *             profilePicture:
- *               type: number
- *               description: Identifiant de l'image de profil
- *             about:
+ *               example: "Guardian#1234"
+ *             membershipId:
  *               type: string
- *               description: Description "À propos" de l'utilisateur
- *             firstAccess:
- *               type: string
- *               format: date-time
- *               description: Date du premier accès
- *             lastAccess:
- *               type: string
- *               format: date-time
- *               description: Date du dernier accès
- *             psnDisplayName:
- *               type: string
- *               description: Nom d'affichage PlayStation
- *             showActivity:
- *               type: boolean
- *               description: Indique si l'activité est visible
- *             locale:
- *               type: string
- *               description: Localisation de l'utilisateur
- *             localeInheritDefault:
- *               type: boolean
- *               description: Indique si la localisation par défaut est héritée
- *             profilePicturePath:
- *               type: string
- *               description: Chemin vers l'image de profil
- *             profileThemeName:
- *               type: string
- *               description: Nom du thème de profil
- *             steamDisplayName:
- *               type: string
- *               description: Nom d'affichage Steam
- *             twitchDisplayName:
- *               type: string
- *               description: Nom d'affichage Twitch
- *             cachedBungieGlobalDisplayName:
- *               type: string
- *               description: Nom d'affichage global Bungie en cache
- *             cachedBungieGlobalDisplayNameCode:
- *               type: number
- *               description: Code du nom d'affichage global Bungie en cache
  *         protocol:
- *           type: object
- *           description: Informations spécifiques au Protocol
- *           properties:
- *             agentName:
- *               type: string
- *               description: Nom de l'agent dans le Protocol
- *               example: "Agent-001"
- *             customName:
- *               type: string
- *               description: Nom personnalisé de l'agent
- *               example: "Gardien de la Lumière"
- *             species:
- *               type: string
- *               enum: [HUMAN, EXO, AWOKEN]
- *               description: Espèce de l'agent
- *               example: "HUMAN"
- *             role:
- *               type: string
- *               enum: [AGENT, SPECIALIST, FOUNDER]
- *               description: Rôle de l'agent dans le Protocol
- *               default: "AGENT"
- *               example: "AGENT"
- *             clearanceLevel:
- *               type: number
- *               enum: [1, 2, 3]
- *               description: Niveau d'habilitation de l'agent (1=Basique, 2=Élevé, 3=Maximum)
- *               example: 1
- *             hasSeenRecruitment:
- *               type: boolean
- *               description: Si l'agent a terminé le processus de recrutement
- *               default: false
- *               example: true
- *             protocolJoinedAt:
- *               type: string
- *               format: date-time
- *               description: Date d'intégration au Protocol
- *               example: "2024-01-15T10:30:00Z"
- *             group:
- *               type: string
- *               enum: [PROTOCOL, AURORA, ZENITH]
- *               description: Groupe d'affectation de l'agent
- *               example: "PROTOCOL"
- *             settings:
- *               type: object
- *               description: Paramètres personnels de l'agent
- *               properties:
- *                 notifications:
- *                   type: boolean
- *                   description: Activer les notifications
- *                   default: true
- *                 publicProfile:
- *                   type: boolean
- *                   description: Profil public visible
- *                   default: false
- *                 protocolOSTheme:
- *                   type: string
- *                   enum: [DEFAULT, DARKNESS]
- *                   description: Thème de l'interface Protocol OS
- *                   default: "DEFAULT"
- *                 protocolSounds:
- *                   type: boolean
- *                   description: Activer les sons du Protocol
- *                   default: true
- *           required:
- *             - agentName
- *             - species
- *             - clearanceLevel
- *         contracts:
- *           type: array
- *           description: Contrats assignés à l'agent
- *           items:
- *             type: object
- *             properties:
- *               contractMongoId:
- *                 type: string
- *                 description: Référence MongoDB vers le contrat
- *                 example: "64f5a7b2c8d4e1f2a3b4c5d7"
- *               contractId:
- *                 type: string
- *                 description: Identifiant du contrat
- *                 example: "CONTRACT-001"
- *         challenges:
- *           type: array
- *           description: Défis assignés à l'agent
- *           items:
- *             type: object
- *             properties:
- *               challengeMongoId:
- *                 type: string
- *                 description: Référence MongoDB vers le défi
- *                 example: "64f5a7b2c8d4e1f2a3b4c5d8"
- *               challengeId:
- *                 type: string
- *                 description: Identifiant du défi
- *                 example: "CHALLENGE-001"
- *               title:
- *                 type: string
- *                 description: Titre du défi
- *                 example: "Mission de reconnaissance"
- *               complete:
- *                 type: boolean
- *                 description: Indique si le défi est terminé
- *                 default: false
- *               accessedAt:
- *                 type: string
- *                 format: date-time
- *                 description: Date d'accès au défi
- *               completedAt:
- *                 type: string
- *                 format: date-time
- *                 description: Date de completion du défi
- *               partialCode:
- *                 type: string
- *                 description: Code partiel du défi
- *               unlockedFragments:
- *                 type: array
- *                 description: Fragments débloqués
- *                 items:
- *                   type: string
- *               progress:
- *                 type: object
- *                 description: Progression du défi (format flexible)
- *                 additionalProperties: true
- *         lastActivity:
- *           type: string
- *           format: date-time
- *           description: Date de dernière activité de l'agent
- *           example: "2024-01-20T14:30:00Z"
+ *           $ref: '#/components/schemas/AgentProtocol'
+ *         isActive:
+ *           type: boolean
+ *           example: true
  *         createdAt:
  *           type: string
  *           format: date-time
- *           description: Date de création du compte
- *           example: "2024-01-10T09:15:00Z"
  *         updatedAt:
  *           type: string
  *           format: date-time
- *           description: Date de dernière mise à jour du compte
- *           example: "2024-01-20T14:30:00Z"
- *       required:
- *         - bungieId
- *         - bungieTokens
- *         - protocol
- *       example:
- *         _id: "64f5a7b2c8d4e1f2a3b4c5d6"
- *         bungieId: "12345678"
- *         bungieTokens:
- *           accessToken: "eyJhbGciOiJSUzI1NiJ9..."
- *           refreshToken: "refresh_token_here"
- *           expiresAt: "2024-01-21T10:30:00Z"
- *         destinyMemberships:
- *           - membershipType: 3
- *             membershipId: "4611686018467322167"
- *             displayName: "Guardian#1234"
- *             bungieGlobalDisplayName: "Guardian"
- *             bungieGlobalDisplayNameCode: 1234
- *             isPublic: true
- *         bungieUser:
- *           membershipId: 12345678
- *           displayName: "Guardian#1234"
- *           profilePicturePath: "/common/destiny2_content/icons/profile_pic.jpg"
- *         protocol:
- *           agentName: "Agent-001"
- *           customName: "Gardien de la Lumière"
- *           species: "HUMAN"
- *           role: "AGENT"
- *           clearanceLevel: 1
- *           hasSeenRecruitment: true
- *           protocolJoinedAt: "2024-01-15T10:30:00Z"
- *           group: "PROTOCOL"
- *           settings:
- *             notifications: true
- *             publicProfile: false
- *             protocolOSTheme: "DEFAULT"
- *             protocolSounds: true
- *         contracts: []
- *         challenges: []
- *         lastActivity: "2024-01-20T14:30:00Z"
- *         createdAt: "2024-01-10T09:15:00Z"
- *         updatedAt: "2024-01-20T14:30:00Z"
+ *
+ * /agent/profile:
+ *   get:
+ *     tags: [Agents]
+ *     summary: Get current agent profile
+ *     description: Returns the authenticated agent's full profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Agent profile retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     agent:
+ *                       $ref: '#/components/schemas/Agent'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *
+ *   patch:
+ *     tags: [Agents]
+ *     summary: Update current agent profile
+ *     description: Update settings and preferences for the authenticated agent
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               protocol:
+ *                 type: object
+ *                 properties:
+ *                   customName:
+ *                     type: string
+ *                     maxLength: 50
+ *                     nullable: true
+ *                   species:
+ *                     type: string
+ *                     enum: [HUMAN, EXO, AWOKEN]
+ *                   hasSeenRecruitment:
+ *                     type: boolean
+ *                   settings:
+ *                     $ref: '#/components/schemas/AgentSettings'
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *
+ * /agent/sync-stats:
+ *   post:
+ *     tags: [Agents]
+ *     summary: Sync agent statistics
+ *     description: Synchronize agent stats with Bungie API
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Stats synchronized
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *
+ * /agent/deactivate:
+ *   get:
+ *     tags: [Agents]
+ *     summary: Deactivate own account
+ *     description: Deactivate the authenticated agent's account
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deactivated
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *
+ * /founder/agents/deactivated:
+ *   get:
+ *     tags: [Founder]
+ *     summary: Get all deactivated agents
+ *     description: Retrieve list of all deactivated agents
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Deactivated agents list
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /founder/agents/statistics:
+ *   get:
+ *     tags: [Founder]
+ *     summary: Get agent statistics
+ *     description: Retrieve global agent statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /founder/agent/{agentId}:
+ *   patch:
+ *     tags: [Founder]
+ *     summary: Update agent
+ *     description: Update any agent's profile (admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         description: Agent ID (MongoDB, Bungie ID, or unique name)
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               protocol:
+ *                 type: object
+ *                 properties:
+ *                   agentName:
+ *                     type: string
+ *                   customName:
+ *                     type: string
+ *                     nullable: true
+ *                   species:
+ *                     type: string
+ *                     enum: [HUMAN, EXO, AWOKEN]
+ *                   clearanceLevel:
+ *                     type: integer
+ *                     minimum: 0
+ *                     maximum: 10
+ *     responses:
+ *       200:
+ *         description: Agent updated
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *
+ *   delete:
+ *     tags: [Founder]
+ *     summary: Delete agent
+ *     description: Permanently delete an agent
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               confirm:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Agent deleted
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /founder/agent/{agentId}/repair:
+ *   post:
+ *     tags: [Founder]
+ *     summary: Repair agent profile
+ *     description: Repair/sync agent profile with Bungie
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Profile repaired
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /founder/agent/{agentId}/deactivate:
+ *   patch:
+ *     tags: [Founder]
+ *     summary: Deactivate agent
+ *     description: Deactivate an agent's account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 maxLength: 500
+ *     responses:
+ *       200:
+ *         description: Agent deactivated
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /founder/agent/{agentId}/reactivate:
+ *   patch:
+ *     tags: [Founder]
+ *     summary: Reactivate agent
+ *     description: Reactivate a deactivated agent
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Agent reactivated
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /founder/agent/{agentId}/promote:
+ *   post:
+ *     tags: [Founder]
+ *     summary: Promote agent
+ *     description: Add a role to an agent
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [roleId]
+ *             properties:
+ *               roleId:
+ *                 type: string
+ *                 example: "ECHO"
+ *     responses:
+ *       200:
+ *         description: Agent promoted
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /founder/agent/{agentId}/demote:
+ *   post:
+ *     tags: [Founder]
+ *     summary: Demote agent
+ *     description: Remove a role from an agent
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [roleId]
+ *             properties:
+ *               roleId:
+ *                 type: string
+ *                 example: "ECHO"
+ *     responses:
+ *       200:
+ *         description: Agent demoted
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  */

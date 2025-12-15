@@ -26,7 +26,7 @@ export class ApiResponseBuilder {
     static success<T = any>(res: Response, options: ApiResponseOptions<T> = {}): Response {
         const response: ApiResponse<T> = {
             success: true,
-            message: options.message || 'Opération réussie',
+            message: options.message || 'Success',
             timestamp: options.timestamp || new Date().toISOString()
         };
 
@@ -47,7 +47,7 @@ export class ApiResponseBuilder {
     ): Response {
         const response: ApiResponse = {
             success: false,
-            message: options.message || 'Une erreur est survenue',
+            message: options.message || 'Error',
             error: options.error || 'unknown_error',
             timestamp: options.timestamp || formatForUser()
         };
@@ -68,7 +68,7 @@ export class ApiResponseBuilder {
         options: ApiResponseOptions = {}
     ): Response {
         return this.error(res, 404, {
-            message: options.message || 'Ressource non trouvée',
+            message: options.message || 'Not found',
             error: options.error || 'not_found',
             details: options.details,
             code: options.code
@@ -80,7 +80,7 @@ export class ApiResponseBuilder {
         options: ApiResponseOptions = {}
     ): Response {
         return this.error(res, 400, {
-            message: options.message || 'Requête invalide',
+            message: options.message || 'Bad request',
             error: options.error || 'bad_request',
             details: options.details,
             code: options.code
@@ -92,7 +92,7 @@ export class ApiResponseBuilder {
         options: ApiResponseOptions = {}
     ): Response {
         return this.error(res, 401, {
-            message: options.message || 'Non autorisé',
+            message: options.message || 'Unauthorized',
             error: options.error || 'unauthorized',
             details: options.details,
             code: options.code
@@ -104,7 +104,7 @@ export class ApiResponseBuilder {
         options: ApiResponseOptions = {}
     ): Response {
         return this.error(res, 403, {
-            message: options.message || 'Accès interdit',
+            message: options.message || 'Forbidden',
             error: options.error || 'forbidden',
             details: options.details,
             code: options.code

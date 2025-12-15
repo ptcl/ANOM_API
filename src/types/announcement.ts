@@ -11,10 +11,7 @@ export interface IAnnouncement {
     priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
     status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
     tags?: string[];
-    readBy: Array<{
-        agentId: Types.ObjectId | string;
-        readAt: Date;
-    }>;
-    visibility: 'ALL' | 'FOUNDERS' | 'SPECIALISTS' | 'GROUP';
-    targetGroup?: 'PROTOCOL' | 'AURORA' | 'ZENITH';
+    readBy: Array<{ agentId: Types.ObjectId | string; readAt: Date; }>;
+    visibility: 'ALL' | "AGENT" | "ECHO" | "ORACLE" | "ARCHITECT" | "FOUNDER" | "EMISSARY" | 'GROUP';
+    targetGroup?: string;
 }

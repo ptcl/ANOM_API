@@ -6,7 +6,10 @@ const EmblemSchema = new mongoose.Schema({
     description: { type: String },
     image: { type: String },
     code: { type: String },
-    status: { type: String, enum: ["available", "unavailable"], default: "available" }
+    rarity: { type: String, enum: ["COMMON", "UNCOMMON", "RARE", "LEGENDARY", "EXOTIC"], default: "COMMON", set: (v: string) => v.toUpperCase() },
+    status: { type: String, enum: ["AVAILABLE", "UNAVAILABLE", "REVOKED", "REJECTED"], default: "UNAVAILABLE", set: (v: string) => v.toUpperCase() },
+    deletedAt: { type: Date }
 }, { timestamps: true });
 
 export const EmblemModel = mongoose.models.Emblem || mongoose.model("Emblem", EmblemSchema);
+

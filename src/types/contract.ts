@@ -4,9 +4,11 @@ export interface IEmblem {
     emblemId: string;
     name: string;
     code: string;
-    status: 'available' | 'redeemed' | 'revoked';
+    status: 'AVAILABLE' | 'REDEEMED' | 'REVOKED' | 'REJECTED';
     redeemedBy?: Types.ObjectId | string;
     redeemedDate?: Date;
+    rejectedAt?: Date;
+    deletedAt?: Date;
 }
 
 export interface IRevocationRequest {
@@ -14,7 +16,7 @@ export interface IRevocationRequest {
     effectiveDate?: Date;
     emblemCodes: string[];
     isPartial: boolean;
-    status: 'pending' | 'processed' | 'cancelled';
+    status: 'PENDING' | 'PROCESSED' | 'CANCELLED';
 }
 
 export interface IContractMedia {
@@ -32,27 +34,21 @@ export interface IContract {
     _id?: Types.ObjectId | string;
     contractId: string;
     contractDate: Date;
-    status: 'pending' | 'validated' | 'cancelled' | 'revoked';
-
+    status: 'PENDING' | 'VALIDATED' | 'CANCELLED' | 'REVOKED' | 'PARTIAL';
     validationDeadline?: Date;
+    validationPeriod?: 7 | 14;
     isExpired: boolean;
-
-    contributor: IContributor;
-
+    contributors: IContributor[];
     emblems: IEmblem[];
-
     totalCodes: number;
     availableCodes: number;
-
     revocationRequests: IRevocationRequest[];
-
     media: IContractMedia[];
-
     signedDocumentPath?: string;
     isSigned: boolean;
-
     createdAt?: Date;
     updatedAt?: Date;
 }
 
 export interface IContractDocument extends Omit<IContract, '_id'>, Document { }
+

@@ -1,23 +1,31 @@
-import { AgentModel } from "../models/agent.model";
+import { Agent } from "../models/agent.model";
 import { ContractModel } from "../models/contract.model";
 
-export const checkContractAccess = async (contractId: string, userBungieId: string, userRole: string | any) => {
+export const checkContractAccess = async (contractId: string, userBungieId: string, userRoles?: string[]) => {
     const contract = await ContractModel.findOne({ contractId });
+
     if (!contract) {
-        return { contract: null, hasAccess: false, error: "Contrat non trouvé" };
+        return { contract: null, hasAccess: false, error: "Contract not found" };
     }
 
-    if (userRole === 'FOUNDER') {
+    const privilegedRoles = ["FOUNDER"];
+    const hasPrivilege = userRoles?.some((r) => privilegedRoles.includes(r.toUpperCase())) ?? false;
+
+    if (hasPrivilege) {
         return { contract, hasAccess: true, error: null };
     }
 
-    const agent = await AgentModel.findOne({
+    const agent = await Agent.findOne({
         bungieId: userBungieId,
-        'contracts.contractId': contractId
+        "contracts.contractId": contractId
     });
 
     if (!agent) {
-        return { contract: null, hasAccess: false, error: "Accès refusé - Ce contrat ne vous appartient pas" };
+        return {
+            contract: null,
+            hasAccess: false,
+            error: "Access denied — this contract doesn't belong to you"
+        };
     }
 
     return { contract, hasAccess: true, error: null };
