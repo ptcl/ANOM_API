@@ -3,84 +3,77 @@ import { generateUniqueId } from '../utils/generate';
 import { EmblemModel } from '../models/emblem.model';
 import { IEmblem } from '../types/emblem';
 import { ApiResponseBuilder } from '../utils/apiresponse';
-import { formatForUser } from '../utils';
+import { logger } from '../utils';
 
 const codePattern = /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}$/;
 
 
 export const createEmblem = async (req: Request, res: Response) => {
     try {
-        // Validation des données d'entrée
-        const { name, description, image, code, status } = req.body;
+        const { name, description, image, code, rarity, status } = req.body;
 
-        // Validation du nom (obligatoire)
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Le nom de l\'emblème est obligatoire',
+                message: 'Emblem name is required.',
                 error: 'validation_error'
             });
         }
 
         if (name.length > 100) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Le nom ne peut pas dépasser 100 caractères',
+                message: 'Name cannot exceed 100 characters.',
                 error: 'validation_error'
             });
         }
 
-        // Validation de la description (optionnelle)
         if (description && (typeof description !== 'string' || description.length > 500)) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'La description ne peut pas dépasser 500 caractères',
+                message: 'Description cannot exceed 500 characters.',
                 error: 'validation_error'
             });
         }
 
-        // Validation de l'URL d'image (optionnelle)
         if (image && typeof image !== 'string') {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'L\'URL de l\'image doit être une chaîne de caractères',
+                message: 'Image URL must be a string.',
                 error: 'validation_error'
             });
         }
 
-        // Validation du code (optionnel mais format strict)
         if (code) {
             if (typeof code !== 'string' || !codePattern.test(code)) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'Le code doit être au format XXX-XXX-XXX (lettres ou chiffres majuscules)',
+                    message: 'Code must be in the format XXX-XXX-XXX (uppercase letters or digits)',
                     error: 'validation_error'
                 });
             }
         }
 
-        // Validation du statut
         const allowedStatuses: Array<IEmblem['status']> = ['AVAILABLE', 'UNAVAILABLE'];
         if (!status || !allowedStatuses.includes(status)) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Le statut doit être "AVAILABLE" ou "UNAVAILABLE"',
+                message: 'Status must be "AVAILABLE" or "UNAVAILABLE"',
                 error: 'validation_error'
             });
         }
 
-        // Vérification de l'unicité du code
         if (code) {
             const existingEmblem = await EmblemModel.findOne({ code });
             if (existingEmblem) {
                 return ApiResponseBuilder.error(res, 409, {
-                    message: 'Un emblème avec ce code existe déjà',
+                    message: 'An emblem with this code already exists',
                     error: 'duplicate_code'
                 });
             }
         }
 
-        // Préparation des données sécurisées
         const emblemData: Partial<IEmblem> = {
             emblemId: generateUniqueId('EMBLEM'),
             name: name.trim(),
             description: description?.trim() || undefined,
             image: image || undefined,
-            code: code || undefined, // Ne pas modifier le code
+            code: code || undefined,
+            rarity: rarity || 'COMMON',
             status
         };
 
@@ -88,19 +81,18 @@ export const createEmblem = async (req: Request, res: Response) => {
 
         return res.status(201).json({
             success: true,
-            message: 'Emblème créé avec succès',
+            message: 'Emblem created successfully',
             data: newEmblem
         });
 
     } catch (error: any) {
-        console.error('Erreur lors de la création de l\'emblème:', {
+        logger.error('Error creating emblem:', {
             error: error.message,
             stack: error.stack,
-            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne du serveur',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -109,77 +101,69 @@ export const createEmblem = async (req: Request, res: Response) => {
 export const updateEmblem = async (req: Request, res: Response) => {
     try {
         const { emblemId } = req.params;
-        const { name, description, image, code, status } = req.body;
+        const { name, description, image, code, rarity, status } = req.body;
 
-        // Validation de l'emblemId
         if (!emblemId || typeof emblemId !== 'string') {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'ID d\'emblème invalide',
+                message: 'Invalid emblem ID',
                 error: 'validation_error'
             });
         }
 
-        // Vérification que l'emblème existe
         const existingEmblem = await EmblemModel.findOne({ emblemId });
         if (!existingEmblem) {
             return ApiResponseBuilder.error(res, 404, {
-                message: 'Emblème non trouvé',
+                message: 'Emblem not found',
                 error: 'not_found'
             });
         }
 
-        // Préparation des données de mise à jour
         const updateData: Partial<IEmblem> = {};
 
-        // Validation du nom (si fourni)
         if (name !== undefined) {
             if (typeof name !== 'string' || name.trim().length === 0) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'Le nom de l\'emblème ne peut pas être vide',
+                    message: 'Emblem name cannot be empty',
                     error: 'validation_error'
                 });
             }
             if (name.length > 100) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'Le nom ne peut pas dépasser 100 caractères',
+                    message: 'Name cannot exceed 100 characters.',
                     error: 'validation_error'
                 });
             }
             updateData.name = name.trim();
         }
 
-        // Validation de la description (si fournie)
         if (description !== undefined) {
             if (description && (typeof description !== 'string' || description.length > 500)) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'La description ne peut pas dépasser 500 caractères',
+                    message: 'Description cannot exceed 500 characters.',
                     error: 'validation_error'
                 });
             }
             updateData.description = description?.trim() || undefined;
         }
 
-        // Validation de l'URL d'image (si fournie)
         if (image !== undefined) {
             if (image && typeof image !== 'string') {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'L\'URL de l\'image doit être une chaîne de caractères',
+                    message: 'Image URL must be a string.',
                     error: 'validation_error'
                 });
             }
             updateData.image = image || undefined;
         }
 
-        // Validation du code (si fourni) - CRITIQUE: ne pas modifier
         if (code !== undefined) {
             if (code && (typeof code !== 'string' || !codePattern.test(code))) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'Le code doit être au format XXX-XXX-XXX (lettres ou chiffres majuscules)',
+                    message: 'Code must be in the format XXX-XXX-XXX (uppercase letters or digits)',
                     error: 'validation_error'
                 });
             }
 
-            // Vérification de l'unicité du code (si différent de l'actuel)
             if (code && code !== existingEmblem.code) {
                 const duplicateEmblem = await EmblemModel.findOne({
                     code,
@@ -187,28 +171,37 @@ export const updateEmblem = async (req: Request, res: Response) => {
                 });
                 if (duplicateEmblem) {
                     return ApiResponseBuilder.error(res, 409, {
-                        message: 'Un emblème avec ce code existe déjà',
+                        message: 'An emblem with this code already exists',
                         error: 'duplicate_code'
                     });
                 }
             }
 
-            updateData.code = code; // Pas de trim sur le code
+            updateData.code = code;
         }
 
-        // Validation du statut (si fourni)
+        if (rarity !== undefined) {
+            const allowedRarities: Array<IEmblem['rarity']> = ['COMMON', 'RARE', 'LEGENDARY', 'EXOTIC'];
+            if (!allowedRarities.includes(rarity)) {
+                return ApiResponseBuilder.error(res, 400, {
+                    message: 'Rarity must be "COMMON", "RARE", "LEGENDARY", or "EXOTIC"',
+                    error: 'validation_error'
+                });
+            }
+            updateData.rarity = rarity;
+        }
+
         if (status !== undefined) {
             const allowedStatuses: Array<IEmblem['status']> = ['AVAILABLE', 'UNAVAILABLE'];
             if (!allowedStatuses.includes(status)) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'Le statut doit être "AVAILABLE" ou "UNAVAILABLE"',
+                    message: 'Status must be "AVAILABLE" or "UNAVAILABLE"',
                     error: 'validation_error'
                 });
             }
             updateData.status = status;
         }
 
-        // Mise à jour sécurisée
         const updatedEmblem = await EmblemModel.findOneAndUpdate(
             { emblemId },
             { $set: updateData },
@@ -217,20 +210,19 @@ export const updateEmblem = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Emblème mis à jour avec succès',
+            message: 'Emblem updated successfully',
             data: updatedEmblem
         });
 
     } catch (error: any) {
-        console.error('Erreur lors de la mise à jour de l\'emblème:', {
+        logger.error('Error updating emblem:', {
             emblemId: req.params.emblemId,
             error: error.message,
             stack: error.stack,
-            timestamp: formatForUser()
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne du serveur',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -240,49 +232,43 @@ export const deleteEmblem = async (req: Request, res: Response) => {
     try {
         const { emblemId } = req.params;
 
-        // Validation de l'emblemId
         if (!emblemId || typeof emblemId !== 'string') {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'ID d\'emblème invalide',
+                message: 'Invalid emblem ID',
                 error: 'validation_error'
             });
         }
 
-        // Vérification de l'existence avant suppression
         const existingEmblem = await EmblemModel.findOne({ emblemId });
         if (!existingEmblem) {
             return ApiResponseBuilder.error(res, 404, {
-                message: 'Emblème non trouvé',
+                message: 'Emblem not found',
                 error: 'not_found'
             });
         }
 
-        // Log de sécurité pour la suppression
-        console.log('Suppression d\'emblème:', {
+        logger.info('Deleting emblemOMICS', {
             emblemId,
             emblemName: existingEmblem.name,
-            deletedBy: (req as any).user?.agentId || 'unknown',
-            timestamp: formatForUser()
+            deletedBy: (req as any).user?.agentId || 'unknown'
         });
 
-        // Suppression sécurisée
         await EmblemModel.findOneAndDelete({ emblemId });
 
         return res.status(200).json({
             success: true,
-            message: 'Emblème supprimé avec succès'
+            message: 'Emblem deleted successfully'
         });
 
     } catch (error: any) {
-        console.error('Erreur lors de la suppression de l\'emblème:', {
+        logger.error('Error deleting emblem:', {
             emblemId: req.params.emblemId,
             error: error.message,
-            stack: error.stack,
-            timestamp: formatForUser()
+            stack: error.stack
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne du serveur',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -290,24 +276,34 @@ export const deleteEmblem = async (req: Request, res: Response) => {
 
 export const getAllEmblems = async (req: Request, res: Response) => {
     try {
-        // Support de pagination et filtrage
         const page = parseInt(req.query.page as string) || 1;
-        const limit = Math.min(parseInt(req.query.limit as string) || 50, 100); // Max 100 par page
+        const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
         const status = req.query.status as IEmblem['status'];
 
-        // Construction du filtre
+        const roles = req.user?.protocol?.roles || [];
+        const isFounder = roles.some((role: any) => {
+            const roleName = typeof role === 'string' ? role : role.roleName || role.name;
+            return roleName?.toUpperCase() === 'FOUNDER';
+        });
+
         const filter: any = {};
-        if (status && ['available', 'unavailable'].includes(status)) {
+        if (status && ['AVAILABLE', 'UNAVAILABLE'].includes(status)) {
             filter.status = status;
         }
 
-        // Calcul de la pagination
+        if (!isFounder) {
+            filter.status = 'AVAILABLE';
+        }
+
         const skip = (page - 1) * limit;
 
-        // Récupération sécurisée avec pagination
+        const selectFields = isFounder
+            ? 'emblemId name description image code rarity status createdAt updatedAt'
+            : 'emblemId name description image rarity status createdAt updatedAt';
+
         const [emblems, total] = await Promise.all([
             EmblemModel.find(filter)
-                .select('emblemId name description image code status createdAt updatedAt')
+                .select(selectFields)
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -315,7 +311,6 @@ export const getAllEmblems = async (req: Request, res: Response) => {
             EmblemModel.countDocuments(filter)
         ]);
 
-        // Métadonnées de pagination
         const pagination = {
             page,
             limit,
@@ -327,20 +322,19 @@ export const getAllEmblems = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Emblèmes récupérés avec succès',
+            message: 'Emblems retrieved successfully',
             data: emblems,
             pagination
         });
 
     } catch (error: any) {
-        console.error('Erreur lors de la récupération des emblèmes:', {
+        logger.error('Error retrieving emblems:', {
             error: error.message,
-            stack: error.stack,
-            timestamp: formatForUser()
+            stack: error.stack
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne du serveur',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -350,42 +344,56 @@ export const getEmblemById = async (req: Request, res: Response) => {
     try {
         const { emblemId } = req.params;
 
-        // Validation de l'emblemId
         if (!emblemId || typeof emblemId !== 'string') {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'ID d\'emblème invalide',
+                message: 'Invalid emblem ID',
                 error: 'validation_error'
             });
         }
 
-        // Récupération sécurisée avec projection
+        const roles = req.user?.protocol?.roles || [];
+        const isFounder = roles.some((role: any) => {
+            const roleName = typeof role === 'string' ? role : role.roleName || role.name;
+            return roleName?.toUpperCase() === 'FOUNDER';
+        });
+
+        const selectFields = isFounder
+            ? 'emblemId name description image code rarity status createdAt updatedAt'
+            : 'emblemId name description image rarity status createdAt updatedAt';
+
         const emblem = await EmblemModel.findOne({ emblemId })
-            .select('emblemId name description image code status createdAt updatedAt')
+            .select(selectFields)
             .lean();
 
         if (!emblem) {
             return ApiResponseBuilder.error(res, 404, {
-                message: 'Emblème non trouvé',
+                message: 'Emblem not found',
+                error: 'not_found'
+            });
+        }
+
+        if (!isFounder && emblem.status !== 'AVAILABLE') {
+            return ApiResponseBuilder.error(res, 404, {
+                message: 'Emblem not found',
                 error: 'not_found'
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: 'Emblème récupéré avec succès',
+            message: 'Emblem retrieved successfully',
             data: emblem
         });
 
     } catch (error: any) {
-        console.error('Erreur lors de la récupération de l\'emblème:', {
+        logger.error('Error retrieving emblem:', {
             emblemId: req.params.emblemId,
             error: error.message,
-            stack: error.stack,
-            timestamp: formatForUser()
+            stack: error.stack
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne du serveur',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }

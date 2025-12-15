@@ -83,7 +83,7 @@ export const getDestinyProfile = async (req: Request, res: Response) => {
     //         }
     //     });
     // } catch (error: any) {
-    //     console.error('❌ Erreur lors de la récupération du profil Destiny2:', error);
+    //     logger.error('Erreur lors de la récupération du profil Destiny2:', error);
     //     return res.status(500).json({
     //         success: false,
     //         message: 'Erreur lors de la récupération du profil Destiny2',
@@ -164,7 +164,7 @@ export const getCharacters = async (req: Request, res: Response) => {
     //         }
     //     });
     // } catch (error: any) {
-    //     console.error('❌ Erreur lors de la récupération des personnages Destiny2:', error);
+    //     logger.error('Erreur lors de la récupération des personnages Destiny2:', error);
     //     return res.status(500).json({
     //         success: false,
     //         message: 'Erreur lors de la récupération des personnages Destiny2',

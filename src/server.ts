@@ -1,11 +1,14 @@
-import { env, getServerConfig } from './utils/environment';
+import { getServerConfig } from './utils/environment';
 import { connectDB, dbHealthCheck, closeDB } from './config/database';
 import { connectMongoose, closeMongoose } from './config/mongoose';
+import { seedSystemRoles } from './services/role.service';
+import { seedSystemDivisions } from './services/division.service';
 import app from './app';
+import logger from './utils/logger';
 
 const startServer = async () => {
     try {
-        console.log('🚀 Starting AN0M-ARCHIVES API...');
+        logger.info('Starting AN0M-ARCHIVES API...');
 
         await connectDB();
         await connectMongoose();
@@ -15,30 +18,38 @@ const startServer = async () => {
             throw new Error('Database health check failed');
         }
 
+        await seedSystemRoles();
+        await seedSystemDivisions();
+
         const serverConfig = getServerConfig();
 
-        const server = app.listen(serverConfig.port);
+        const server = app.listen(serverConfig.port, () => {
+            logger.info(`Server started`, {
+                port: serverConfig.port,
+                env: process.env.NODE_ENV || 'development'
+            });
+        });
 
         const gracefulShutdown = async (signal: string) => {
-            console.log(`\n📴 ${signal} received, shutting down gracefully...`);
+            logger.warn(`${signal} received, shutting down gracefully...`);
 
             server.close(async () => {
-                console.log('🔒 HTTP server closed');
+                logger.info('HTTP server closed');
 
                 try {
                     await closeMongoose();
                     await closeDB();
-                    console.log('📴 Database connection closed');
-                    console.log('✅ Graceful shutdown completed');
+                    logger.info('Database connections closed');
+                    logger.info('Graceful shutdown completed');
                     process.exit(0);
-                } catch (error) {
-                    console.error('❌ Error during shutdown:', error);
+                } catch (error: any) {
+                    logger.error('Error during shutdown', { error: error.message });
                     process.exit(1);
                 }
             });
 
             setTimeout(() => {
-                console.error('⚠️  Forced shutdown after 10 seconds');
+                logger.error('Forced shutdown after 10 seconds');
                 process.exit(1);
             }, 10000);
         };
@@ -47,17 +58,17 @@ const startServer = async () => {
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
         process.on('uncaughtException', (error) => {
-            console.error('💥 Uncaught Exception:', error);
+            logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
             gracefulShutdown('UNCAUGHT_EXCEPTION');
         });
 
-        process.on('unhandledRejection', (reason, promise) => {
-            console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+        process.on('unhandledRejection', (reason: any, promise) => {
+            logger.error('Unhandled Rejection', { reason: reason?.message || reason });
             gracefulShutdown('UNHANDLED_REJECTION');
         });
 
-    } catch (error) {
-        console.error('❌ Failed to start server:', error);
+    } catch (error: any) {
+        logger.error('Failed to start server', { error: error.message, stack: error.stack });
         process.exit(1);
     }
 };

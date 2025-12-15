@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJWT } from '../utils/auth';
-import { agentService } from '../services/agentservice';
-import { formatForUser } from '../utils';
+import { agentService } from '../services/agent.service';
+import logger from '../utils/logger';
 
 declare global {
   namespace Express {
@@ -80,26 +80,23 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
       };
 
       agentService.updateLastActivity(decoded.agentId).catch((error) => {
-        console.error('Failed to update last activity:', { agentId: decoded.agentId });
+        logger.warn('Failed to update last activity', { agentId: decoded.agentId });
       });
 
       return next();
 
     } catch (error) {
-      console.error('JWT verification failed:', {
-        timestamp: formatForUser(),
-        ip: req.ip
-      });
+      logger.debug('JWT verification failed', { ip: req.ip });
       return res.status(401).json({
         success: false,
         error: 'Unauthorized'
       });
     }
   } catch (error: any) {
-    console.error('Auth middleware system error:', {
-      timestamp: formatForUser(),
+    logger.error('Auth middleware system error', {
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      error: error.message
     });
     return res.status(500).json({
       success: false,

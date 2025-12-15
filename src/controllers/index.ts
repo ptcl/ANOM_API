@@ -6,4 +6,7 @@ export * from './agent.controller';
 export * from './contract.controller';
 export * from './announcement.controller';
 export * from './emblem.controller';
-export * from './challenge.controller';
+export * from './timeline.controller';
+export * from './badge.controller';
+export * from './rewardCode.controller';
+export * from './lore.controller';

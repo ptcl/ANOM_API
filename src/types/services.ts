@@ -1,5 +1,5 @@
-export { IAgentService } from '../services/agentservice';
-export { IAppInfoService } from '../services/appinfoservice';
+export { IAgentService } from '../services/agent.service';
+export { IAppInfoService } from '../services/appinfo.service';
 
 export interface ServiceResponse<T> {
     success: boolean;

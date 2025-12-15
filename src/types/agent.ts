@@ -52,11 +52,10 @@ export interface IAgentBadge {
 }
 
 export interface IAgentStats {
-    timelinesCompleted: number;
-    challengesSolved: number;
+    completedTimelines: number;
     fragmentsCollected: number;
-    loreUnlocked: number;
-    lastRewardedAt?: Date;
+    lastFragmentUnlockedAt?: Date;
+    lastSyncAt?: Date;
 }
 
 export interface IAgentHistory {
@@ -67,8 +66,14 @@ export interface IAgentHistory {
     meta?: Record<string, any>;
 }
 
-export type AgentRole = "AGENT" | "ECHO" | "ORACLE" | "ARCHITECT" | "FOUNDER" | "EMISSARY";
-export type AgentGroup = "PROTOCOL" | "AURORA" | "ZENITH";
+export interface IAgentTimelineLocalization {
+    currentTimelineId?: string | null;
+    currentTimelineEntryId?: string | null;
+    lastSyncedAt?: Date;
+}
+
+export type AgentRole = string;
+export type AgentDivision = string;
 export type AgentSpecies = "HUMAN" | "EXO" | "AWOKEN";
 
 export interface IProtocolProfile {
@@ -80,11 +85,13 @@ export interface IProtocolProfile {
     clearanceLevel: number;
     hasSeenRecruitment: boolean;
     protocolJoinedAt?: Date;
-    group: AgentGroup;
+    division: AgentDivision;
     settings: IAgentSettings;
     stats: IAgentStats;
+    timelineLocalization?: IAgentTimelineLocalization;
     history: IAgentHistory[];
 }
+
 export interface IAgentContractLink {
     contractMongoId: Types.ObjectId;
     contractId: string;
@@ -94,16 +101,33 @@ export interface IAgentContractLink {
     lastSyncedAt: Date;
 }
 
+export interface IAgentTimelineLink {
+    timelineMongoId: Types.ObjectId;
+    timelineId: string;
+    title?: string;
+    accessedAt: Date;
+    lastUpdatedAt: Date;
+    currentEntryId?: string;
+    fragmentsFound: string[];
+    fragmentsCollected: number;
+    keysFound: string[];
+    entriesResolved: string[];
+    completed: boolean;
+    completedAt?: Date;
+}
+
 export interface IAgent {
+    _id?: Types.ObjectId | string;
     bungieId: string;
     bungieTokens?: IBungieToken;
     destinyMemberships?: IDestinyMembership[];
     bungieUser: IBungieUser;
     protocol: IProtocolProfile;
-    contracts?: IAgentContractLink[];
 
-    activeTimeline?: string;
-    completedTimelines?: string[];
+    contracts?: IAgentContractLink[];
+    timelines?: IAgentTimelineLink[];
+
+    lastActivity?: Date;
 
     isActive?: boolean;
     deactivatedAt?: Date;
@@ -112,14 +136,12 @@ export interface IAgent {
     reactivatedAt?: Date;
     reactivatedBy?: string;
 
-    lastActivity?: Date;
-
     createdAt?: Date;
     updatedAt?: Date;
 }
 
+export interface IAgentDocument extends Omit<IAgent, '_id'>, Document<Types.ObjectId> { }
 
-export interface IAgentDocument extends IAgent, Document<Types.ObjectId> { }
 export interface IAgentPopulated extends Omit<IAgent, "protocol"> {
     protocol: Omit<IProtocolProfile, "badges"> & {
         badges: Array<{

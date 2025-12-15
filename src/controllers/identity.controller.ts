@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { generateState, generateJWT, verifyJWT, createJWTPayload, validateJWTFormat } from '../utils/auth';
-import { bungieService } from '../services';
-import { agentService } from '../services/agentservice';
+import { bungieService } from '../services/index';
+import { agentService } from '../services/index';
 import { ApiResponseBuilder } from '../utils/apiresponse';
 import { isDev, getServerConfig } from '../utils/environment';
-import { formatForUser } from '../utils';
+import { logger } from '../utils';
 import { formatAgentResponse } from '../utils/formatters';
 
 export const initiateLogin = async (req: Request, res: Response) => {
@@ -15,22 +15,21 @@ export const initiateLogin = async (req: Request, res: Response) => {
     const { direct } = req.query;
     if (direct !== undefined && typeof direct !== 'string') {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Paramètre direct invalide',
+        message: 'Invalid direct parameter',
         error: 'validation_error'
       });
     }
 
-    console.log('Login initiation request:', {
+    logger.info('Login initiation request:', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      direct: direct === 'true',
-      timestamp: formatForUser()
+      direct: direct === 'true'
     });
 
     if (direct === 'true') {
       if (!authUrl || !authUrl.startsWith('https://www.bungie.net')) {
         return ApiResponseBuilder.error(res, 500, {
-          message: 'URL d\'autorisation invalide',
+          message: 'Invalid authorization URL generated',
           error: 'invalid_auth_url'
         });
       }
@@ -38,7 +37,7 @@ export const initiateLogin = async (req: Request, res: Response) => {
     }
 
     return ApiResponseBuilder.success(res, {
-      message: 'URL d\'autorisation Bungie générée',
+      message: 'Bungie authorization URL generated successfully',
       data: {
         authUrl,
         state
@@ -46,15 +45,14 @@ export const initiateLogin = async (req: Request, res: Response) => {
     });
 
   } catch (error: any) {
-    console.error('Erreur lors de l\'initiation de la connexion Bungie:', {
+    logger.error('Error while initiating the Bungie connection:', {
       error: error.message,
       stack: error.stack,
-      timestamp: formatForUser(),
       ip: req.ip
     });
 
     return ApiResponseBuilder.error(res, 500, {
-      message: 'Échec de l\'initialisation du processus de connexion',
+      message: 'Error during login initialization',
       error: 'login_initialization_failed'
     });
   }
@@ -66,17 +64,17 @@ export const handleCallback = async (req: Request, res: Response) => {
 
     if (!code || typeof code !== 'string' || !state || typeof state !== 'string') {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Code ou state manquant',
+        message: 'Missing code or state in OAuth callback',
         error: 'invalid_oauth_params'
       });
     }
 
-    console.log('🔁 OAuth callback reçu:', { code, ip: req.ip });
+    logger.info('OAuth callback received:', { code, ip: req.ip });
 
     const tokens = await bungieService.exchangeCodeForTokens(code);
     if (!tokens?.access_token) {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Échec de l\'échange de tokens Bungie',
+        message: 'Failed to exchange Bungie tokens',
         error: 'token_exchange_failed'
       });
     }
@@ -84,7 +82,7 @@ export const handleCallback = async (req: Request, res: Response) => {
     const userProfile = await bungieService.getCurrentUser(tokens.access_token);
     if (!userProfile?.bungieId) {
       return ApiResponseBuilder.error(res, 400, {
-        message: 'Profil Bungie invalide',
+        message: 'Invalid Bungie profile',
         error: 'invalid_bungie_profile'
       });
     }
@@ -92,14 +90,14 @@ export const handleCallback = async (req: Request, res: Response) => {
     const agent = await agentService.createOrUpdateAgent(userProfile, tokens);
     if (!agent?._id) {
       return ApiResponseBuilder.error(res, 500, {
-        message: 'Impossible de créer ou mettre à jour l\'agent',
+        message: 'Unable to create or update agent',
         error: 'agent_creation_failed'
       });
     }
 
     const jwtToken = generateJWT(createJWTPayload(agent));
 
-    console.log('✅ Auth réussie:', {
+    logger.info('Auth successful:', {
       agentId: agent._id.toString(),
       agentName: agent.protocol.agentName,
       bungieId: agent.bungieId,
@@ -108,19 +106,18 @@ export const handleCallback = async (req: Request, res: Response) => {
     const serverConfig = getServerConfig();
     const redirectUrl = `${serverConfig.frontendUrl}/identity/bungie/callback?token=${jwtToken}&success=true`;
 
-    console.log('✅ Redirecting to frontend:', redirectUrl);
+    logger.info('Redirecting to frontend:', redirectUrl);
     return res.redirect(redirectUrl);
 
   } catch (error: any) {
-    console.error('❌ Erreur callback Bungie:', error);
+    logger.error('Error in Bungie callback:', error);
     return ApiResponseBuilder.error(res, 500, {
-      message: 'Erreur interne lors de l\'authentification Bungie',
+      message: 'Internal error during Bungie authentication callback',
       error: 'callback_failed'
     });
   }
 };
 
-// ✅ NOUVEAU : Endpoint pour vérifier l'auth depuis Next.js
 export const verifyAuth = async (req: Request, res: Response) => {
   try {
     const token = req.cookies.auth_token;
@@ -129,7 +126,7 @@ export const verifyAuth = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         data: { authenticated: false },
-        message: 'Non authentifié'
+        message: 'Not authenticated'
       });
     }
 
@@ -138,7 +135,7 @@ export const verifyAuth = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         data: { authenticated: false },
-        message: 'Token invalide'
+        message: 'Invalid token'
       });
     }
 
@@ -149,7 +146,7 @@ export const verifyAuth = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         data: { authenticated: false },
-        message: 'Token expiré'
+        message: 'Token expired'
       });
     }
 
@@ -157,7 +154,7 @@ export const verifyAuth = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         data: { authenticated: false },
-        message: 'Token invalide'
+        message: 'Invalid token'
       });
     }
 
@@ -167,15 +164,14 @@ export const verifyAuth = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         data: { authenticated: false },
-        message: 'Agent non trouvé'
+        message: 'Agent not found'
       });
     }
 
-    // Mise à jour de la dernière activité
     try {
       await agentService.updateLastActivity(agent._id!.toString());
     } catch (updateError) {
-      console.error('Failed to update last activity:', updateError);
+      logger.error('Failed to update last activity:', updateError);
     }
 
     return res.json({
@@ -184,40 +180,37 @@ export const verifyAuth = async (req: Request, res: Response) => {
         authenticated: true,
         agent: formatAgentResponse(agent)
       },
-      message: 'Authentifié'
+      message: 'Authenticated successfully'
     });
 
   } catch (error: any) {
-    console.error('Erreur lors de la vérification auth:', error);
+    logger.error('Error during auth verification:', error);
     return res.json({
       success: false,
       data: { authenticated: false },
-      message: 'Erreur serveur'
+      message: 'Server error during authentication verification'
     });
   }
 };
 
-// ✅ NOUVEAU : Endpoint de logout
 export const logout = async (req: Request, res: Response) => {
   try {
-    // Supprime tous les cookies d'auth
     res.clearCookie('auth_token', { path: '/' });
     res.clearCookie('bungie_token', { path: '/' });
     res.clearCookie('bungie_refresh_token', { path: '/' });
 
-    console.log('User logged out:', {
-      ip: req.ip,
-      timestamp: formatForUser()
+    logger.info('User logged out:', {
+      ip: req.ip
     });
 
     return res.json({
       success: true,
-      message: 'Déconnexion réussie'
+      message: 'Logout successful'
     });
   } catch (error: any) {
-    console.error('Erreur lors de la déconnexion:', error);
+    logger.error('Error during logout:', error);
     return ApiResponseBuilder.error(res, 500, {
-      message: 'Erreur lors de la déconnexion',
+      message: 'Error during logout',
       error: 'logout_failed'
     });
   }
@@ -230,7 +223,7 @@ export const verifyToken = async (req: Request, res: Response) => {
     const validation = validateJWTFormat(token);
     if (!validation.valid) {
       return ApiResponseBuilder.error(res, 400, {
-        message: validation.message || 'Token invalide',
+        message: validation.message || 'Invalid token',
         error: validation.error!
       });
     }
@@ -239,16 +232,15 @@ export const verifyToken = async (req: Request, res: Response) => {
     try {
       decoded = verifyJWT(token);
     } catch (jwtError: any) {
-      console.log('Token verification failed:', {
+      logger.info('Token verification failed:', {
         error: jwtError.message,
-        ip: req.ip,
-        timestamp: formatForUser()
+        ip: req.ip
       });
 
       return res.json({
         success: false,
         data: { valid: false },
-        message: 'Token invalide ou expiré'
+        message: 'Invalid or expired token'
       });
     }
 
@@ -263,26 +255,24 @@ export const verifyToken = async (req: Request, res: Response) => {
     const agent = await agentService.getAgentById(decoded.agentId);
 
     if (!agent) {
-      console.log('Agent not found for token:', {
+      logger.info('Agent not found for token:', {
         agentId: decoded.agentId,
-        ip: req.ip,
-        timestamp: formatForUser()
+        ip: req.ip
       });
 
       return res.json({
         success: false,
         data: { valid: false },
-        message: 'Agent non trouvé'
+        message: 'Agent not found'
       });
     }
 
     try {
       await agentService.updateLastActivity(agent._id!.toString());
     } catch (updateError: any) {
-      console.error('Failed to update last activity:', {
+      logger.error('Failed to update last activity:', {
         agentId: agent._id?.toString(),
         error: updateError.message,
-        timestamp: formatForUser()
       });
     }
 
@@ -292,33 +282,31 @@ export const verifyToken = async (req: Request, res: Response) => {
         valid: true,
         agent: formatAgentResponse(agent)
       },
-      message: 'Token valide'
+      message: 'Valid token'
     });
 
   } catch (error: any) {
-    console.error('Erreur lors de la vérification du token:', {
+    logger.error('Error during token verification:', {
       error: error.message,
       stack: error.stack,
-      ip: req.ip,
-      timestamp: formatForUser()
+      ip: req.ip
     });
 
     return res.json({
       success: false,
       data: { valid: false },
-      message: 'Token invalide ou expiré'
+      message: 'Invalid or expired token'
     });
   }
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
   try {
-    // ✅ MODIFIÉ : Lit le token depuis les cookies
     const token = req.cookies.auth_token;
 
     if (!token) {
       return ApiResponseBuilder.error(res, 401, {
-        message: 'Aucun token fourni',
+        message: 'No token provided',
         error: 'missing_token'
       });
     }
@@ -331,24 +319,22 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    console.log('Token refresh attempt:', {
+    logger.info('Token refresh attempt:', {
       ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      timestamp: formatForUser()
+      userAgent: req.get('User-Agent')
     });
 
     let decoded;
     try {
       decoded = verifyJWT(token);
     } catch (jwtError: any) {
-      console.log('Token refresh failed - invalid token:', {
+      logger.info('Token refresh failed - invalid token:', {
         error: jwtError.message,
-        ip: req.ip,
-        timestamp: formatForUser()
+        ip: req.ip
       });
 
       return ApiResponseBuilder.error(res, 401, {
-        message: 'Token invalide ou expiré, veuillez vous reconnecter',
+        message: 'Invalid or expired token, please log in again',
         error: 'invalid_token'
       });
     }
@@ -363,29 +349,27 @@ export const refreshToken = async (req: Request, res: Response) => {
     const agent = await agentService.getAgentById(decoded.agentId);
 
     if (!agent) {
-      console.warn('Token refresh failed - agent not found:', {
+      logger.warn('Token refresh failed - agent not found:', {
         agentId: decoded.agentId,
-        ip: req.ip,
-        timestamp: formatForUser()
+        ip: req.ip
       });
 
       return ApiResponseBuilder.error(res, 404, {
-        message: 'Agent non trouvé, veuillez vous reconnecter',
+        message: 'Agent not found, please log in again',
         error: 'agent_not_found'
       });
     }
 
     if (!agent.protocol || !agent.protocol.agentName || !agent.protocol.roles) {
-      console.error('Agent incomplete for token refresh:', {
+      logger.error('Agent incomplete for token refresh:', {
         agentId: agent._id?.toString(),
         hasProtocol: !!agent.protocol,
         hasAgentName: !!(agent.protocol?.agentName),
         hasRoles: !!(agent.protocol?.roles),
-        timestamp: formatForUser()
       });
 
       return ApiResponseBuilder.error(res, 500, {
-        message: 'Profil d\'agent incomplet',
+        message: 'Incomplete agent profile',
         error: 'incomplete_profile'
       });
     }
@@ -394,17 +378,16 @@ export const refreshToken = async (req: Request, res: Response) => {
 
     if (!newToken) {
       return ApiResponseBuilder.error(res, 500, {
-        message: 'Échec de la génération du nouveau token',
+        message: 'Failed to generate new token',
         error: 'token_generation_failed'
       });
     }
 
-    // ✅ NOUVEAU : Stocke le nouveau token dans le cookie
     const cookieOptions = {
       httpOnly: true,
       secure: !isDev(),
       sameSite: 'lax' as const,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
       domain: isDev() ? undefined : getServerConfig().cookieDomain
     };
@@ -414,18 +397,16 @@ export const refreshToken = async (req: Request, res: Response) => {
     try {
       await agentService.updateLastActivity(agent._id!.toString());
     } catch (updateError: any) {
-      console.error('Failed to update last activity during refresh:', {
+      logger.error('Failed to update last activity during refresh:', {
         agentId: agent._id?.toString(),
-        error: updateError.message,
-        timestamp: formatForUser()
+        error: updateError.message
       });
     }
 
-    console.log('Token refreshed successfully:', {
+    logger.info('Token refreshed successfully:', {
       agentId: agent._id?.toString(),
       agentName: agent.protocol.agentName,
-      ip: req.ip,
-      timestamp: formatForUser()
+      ip: req.ip
     });
 
     return res.json({
@@ -433,19 +414,18 @@ export const refreshToken = async (req: Request, res: Response) => {
       data: {
         agent: formatAgentResponse(agent)
       },
-      message: 'Token renouvelé avec succès'
+      message: 'Token refreshed successfully'
     });
 
   } catch (error: any) {
-    console.error('Erreur lors du renouvellement du token:', {
+    logger.error('Error during token refresh:', {
       error: error.message,
       stack: error.stack,
-      ip: req.ip,
-      timestamp: formatForUser()
+      ip: req.ip
     });
 
     return ApiResponseBuilder.error(res, 500, {
-      message: 'Erreur interne lors du renouvellement',
+      message: 'Internal error during token refresh',
       error: 'internal_server_error'
     });
   }

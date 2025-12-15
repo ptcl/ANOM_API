@@ -46,7 +46,7 @@ export const validateJWTFormat = (token: string): JWTValidationResult => {
     if (!token || typeof token !== 'string' || token.trim().length === 0) {
         return {
             valid: false,
-            message: 'Token requis',
+            message: 'Token required',
             error: 'missing_token'
         };
     }
@@ -54,7 +54,7 @@ export const validateJWTFormat = (token: string): JWTValidationResult => {
     if (token.length > AUTH_CONSTANTS.MAX_TOKEN_LENGTH) {
         return {
             valid: false,
-            message: 'Token trop long',
+            message: 'Token too long',
             error: 'invalid_token_length'
         };
     }
@@ -62,10 +62,10 @@ export const validateJWTFormat = (token: string): JWTValidationResult => {
     if (!token.includes('.') || token.split('.').length !== 3) {
         return {
             valid: false,
-            message: 'Format de token invalide',
+            message: 'Invalid token format',
             error: 'invalid_token_format'
         };
     }
 
-    return { valid: true, message: 'Token valide' };
+    return { valid: true, message: 'Token valid' };
 };

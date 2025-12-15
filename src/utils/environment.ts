@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import logger from './logger';
 dotenv.config();
 
 export type Environment = 'development' | 'production' | 'sandbox';
@@ -10,7 +11,7 @@ class EnvironmentManager {
     private constructor() {
         const nodeEnv = process.env.NODE_ENV as Environment;
         if (!['development', 'production', 'sandbox'].includes(nodeEnv)) {
-            console.warn(`⚠️  Unknown NODE_ENV="${process.env.NODE_ENV}", defaulting to "development"`);
+            logger.warn(`Unknown NODE_ENV="${process.env.NODE_ENV}", defaulting to "development"`);
             this.env = 'development';
         } else {
             this.env = nodeEnv;
@@ -26,31 +27,28 @@ class EnvironmentManager {
     }
 
     private validateEnvironment(): void {
-        console.log(`🌍 Environment: ${this.env}`);
+        logger.info(`Environment: ${this.env}`);
 
         const requiredVars = [
             'JWT_SECRET',
             'BUNGIE_API_KEY',
             'BUNGIE_CLIENT_ID',
             'BUNGIE_CLIENT_SECRET',
-            'BUNGIE_REDIRECT_URI'
+            'BUNGIE_REDIRECT_URI',
+            'MONGO_URL'
         ];
 
-        if (this.isDevelopment()) {
-            requiredVars.push('MONGO_URL', 'MONGO_DB_NAME_DEV');
-        } else if (this.isProduction()) {
-            requiredVars.push('MONGO_URL_PROD', 'MONGO_DB_NAME_PROD', 'CORS_ORIGINS');
-        } else if (this.isSandbox()) {
-            requiredVars.push('MONGO_URL_SANDBOX', 'MONGO_DB_NAME_SANDBOX');
+        if (this.isProduction()) {
+            requiredVars.push('CORS_ORIGINS');
         }
 
         const missing = requiredVars.filter(v => !process.env[v]);
         if (missing.length > 0) {
-            console.error('❌ Missing env variables:');
-            missing.forEach(v => console.error(`   - ${v}`));
+            logger.error('Missing env variables:');
+            missing.forEach(v => logger.error(`   - ${v}`));
             if (this.isProduction()) process.exit(1);
         } else {
-            console.log('✅ Env check passed');
+            logger.info('Env check passed');
         }
     }
     getBungieConfig() {
@@ -62,13 +60,9 @@ class EnvironmentManager {
         };
     }
     getMongoConfig(): { uri: string; dbName: string } {
-        if (this.isProduction()) {
-            return { uri: process.env.MONGO_URL_PROD!, dbName: process.env.MONGO_DB_NAME_PROD! };
-        } else if (this.isSandbox()) {
-            return { uri: process.env.MONGO_URL_SANDBOX!, dbName: process.env.MONGO_DB_NAME_SANDBOX! };
-        } else {
-            return { uri: process.env.MONGO_URL!, dbName: process.env.MONGO_DB_NAME_DEV! };
-        }
+        const uri = process.env.MONGO_URL || '';
+        const dbName = this.env;
+        return { uri, dbName };
     }
 
     getServerConfig() {
@@ -84,7 +78,7 @@ class EnvironmentManager {
                         new URL(o);
                         return true;
                     } catch {
-                        console.warn(`⚠️ Invalid CORS origin ignored: ${o}`);
+                        logger.warn(`Invalid CORS origin ignored: ${o}`);
                         return false;
                     }
                 });
@@ -96,7 +90,7 @@ class EnvironmentManager {
             port: parseInt(process.env.PORT || '3031', 10),
             frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3031',
             cookieDomain: process.env.COOKIE_DOMAIN || undefined,
-            corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim().replace(/\/$/, '')) : ['https://localhost:3001']
+            corsOrigins: corsOrigins.map(o => o.replace(/\/$/, ''))
         };
     }
 

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Agent } from "../models/agent.model";
-import { formatForUser } from "../utils";
+import { formatForUser, logger } from "../utils";
 
 function getDefaultObjectFromSchema(schema: any): Record<string, any> {
     const defaults: Record<string, any> = {};
@@ -57,13 +57,13 @@ export const syncAgentsDynamic = async (req: Request, res: Response) => {
         if (!roles.includes("FOUNDER")) {
             return res.status(403).json({
                 success: false,
-                message: "Accès interdit - réservé aux Founders.",
+                message: "Access forbidden - reserved for Founders.",
             });
         }
 
-        console.log("🧩 Génération dynamique du modèle Agent...");
+        logger.info("Dynamically generating the Agent model…");
         const defaultStructure = getDefaultObjectFromSchema(Agent.schema);
-        console.log("✅ Structure générée automatiquement.");
+        logger.info("Automatically generated structure.");
 
         const agents = await Agent.find().lean();
         let updatedCount = 0;
@@ -77,21 +77,20 @@ export const syncAgentsDynamic = async (req: Request, res: Response) => {
             }
         }
 
-        console.log("🧩 Synchronisation dynamique terminée :", {
+        logger.info("Dynamic synchronization completed:", {
             updatedCount,
-            timestamp: formatForUser(),
         });
 
         return res.status(200).json({
             success: true,
-            message: `Synchronisation terminée - ${updatedCount} agents réparés.`,
+            message: `Synchronization completed - ${updatedCount} agents repaired.`,
             data: { updatedCount },
         });
     } catch (error: any) {
-        console.error("❌ Erreur lors de la synchronisation dynamique:", error);
+        logger.error("❌ Error during dynamic synchronization:", error);
         return res.status(500).json({
             success: false,
-            message: "Erreur serveur pendant la synchronisation",
+            message: "Server error during synchronization",
             error: process.env.NODE_ENV === "development" ? error.message : undefined,
         });
     }

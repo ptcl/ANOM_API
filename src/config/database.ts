@@ -1,5 +1,6 @@
 import { MongoClient, Db } from 'mongodb';
 import { getMongoConfig, isProd, isSandbox, isDev } from '../utils/environment';
+import { logger } from '../utils';
 
 class DatabaseService {
     private static instance: DatabaseService;
@@ -20,7 +21,7 @@ class DatabaseService {
         const envLabel = isProd() ? 'Production' : isSandbox() ? 'Sandbox' : 'Development';
         const maskedUri = uri.replace(/\/\/.*@/, '//***@');
 
-        console.log(`🔌 MongoDB → ${envLabel} | ${dbName}`);
+        logger.info(`MongoDB → ${envLabel} | ${dbName}`);
 
         try {
             this.client = new MongoClient(uri, {
@@ -33,9 +34,9 @@ class DatabaseService {
             await this.client.connect();
             this.db = this.client.db(dbName);
 
-            console.log(`✅ Connected to MongoDB (${dbName})`);
+            logger.info(`Connected to MongoDB (${dbName})`);
         } catch (err) {
-            console.error('❌ MongoDB connection error:', err);
+            logger.error('MongoDB connection error:', err);
             throw err;
         }
     }
@@ -50,7 +51,7 @@ class DatabaseService {
             await this.client.close();
             this.client = null;
             this.db = null;
-            console.log('📴 MongoDB connection closed');
+            logger.info('MongoDB connection closed');
         }
     }
 

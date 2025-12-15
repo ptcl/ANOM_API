@@ -1,7 +1,5 @@
 import mongoose, { Schema, model } from "mongoose";
 
-type RoleType = "AGENT" | "ECHO" | "ORACLE" | "ARCHITECT" | "FOUNDER" | "EMISSARY";
-
 
 const BungieTokenSchema = new Schema({
   accessToken: String,
@@ -54,17 +52,10 @@ const AgentBadgeSchema = new Schema({
 }, { _id: false });
 
 const AgentStatsSchema = new Schema({
-  totalChallenges: { type: Number, default: 0 },
-  totalEmblemsAvailable: { type: Number, default: 0 },
-  emblemsUnlocked: { type: Number, default: 0 },
-  completedEmblems: { type: Number, default: 0 },
-  activeEmblems: { type: Number, default: 0 },
-
+  completedTimelines: { type: Number, default: 0 },
   fragmentsCollected: { type: Number, default: 0 },
-  totalFragments: { type: Number, default: 0 },
 
   lastFragmentUnlockedAt: Date,
-  lastEmblemUnlockedAt: Date,
   lastSyncAt: Date
 }, { _id: false });
 
@@ -76,42 +67,28 @@ const AgentHistorySchema = new Schema({
   meta: { type: Schema.Types.Mixed }
 }, { _id: false });
 
+const AgentTimelineLocalizationSchema = new Schema({
+  currentTimelineId: { type: String, default: null },
+  currentTimelineEntryId: { type: String, default: null },
+  lastSyncedAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const ProtocolSchema = new Schema({
   agentName: { type: String, required: true },
   customName: String,
   species: { type: String, enum: ["HUMAN", "EXO", "AWOKEN"], default: "HUMAN", set: (v: string) => v.toUpperCase() },
-  roles: { type: [String], enum: ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"], default: ["AGENT"], set: (v: string[] | string) => Array.isArray(v) ? v.map((r) => r.toUpperCase()) : [v.toUpperCase()] },
+  roles: { type: [String], default: ["AGENT"], set: (v: string[] | string) => Array.isArray(v) ? v.map((r) => r.toUpperCase()) : [v.toUpperCase()] },
   clearanceLevel: { type: Number, default: 1 },
   hasSeenRecruitment: { type: Boolean, default: false },
   protocolJoinedAt: { type: Date, default: Date.now },
-  group: { type: String, enum: ["PROTOCOL", "AURORA", "ZENITH"], default: "PROTOCOL", set: (v: string) => v.toUpperCase() },
+  division: { type: String, default: "PROTOCOL", set: (v: string) => v.toUpperCase() },
   settings: AgentSettingsSchema,
   badges: [AgentBadgeSchema],
   stats: AgentStatsSchema,
+  timelineLocalization: AgentTimelineLocalizationSchema,
   history: [AgentHistorySchema]
 }, { _id: false });
 
-const roleHierarchy: Record<RoleType, RoleType[]> = {
-  AGENT: [],
-  ECHO: ["AGENT"],
-  ORACLE: ["AGENT"],
-  ARCHITECT: ["ECHO", "AGENT"],
-  FOUNDER: ["ARCHITECT", "ECHO", "AGENT"],
-  EMISSARY: ["AGENT"]
-};
-ProtocolSchema.pre("save", function (next) {
-  const baseRoles = this.roles || (["AGENT"] as RoleType[]);
-  const fullHierarchy = new Set<RoleType>();
-
-  for (const role of baseRoles) {
-    fullHierarchy.add(role as RoleType);
-    const inherited = roleHierarchy[role as RoleType] || [];
-    inherited.forEach((r) => fullHierarchy.add(r));
-  }
-
-  this.roles = Array.from(fullHierarchy);
-  next();
-});
 const AgentSchema = new Schema({
   bungieId: { type: String, required: true },
 
@@ -137,37 +114,32 @@ const AgentSchema = new Schema({
       lastSyncedAt: { type: Date, default: Date.now }
     }
   ],
-  challenges: [
+
+  timelines: [
     {
-      challengeMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "EmblemChallenge", required: true },
-      challengeId: { type: String, required: true },
+      timelineMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "Timeline", required: true },
+      timelineId: { type: String, required: true },
       title: { type: String },
       accessedAt: { type: Date, default: Date.now },
       lastUpdatedAt: { type: Date, default: Date.now },
-      emblems: [
-        {
-          emblemId: { type: String, required: true },
-          totalFragments: { type: Number, default: 9 },
-          unlockedFragments: [{ type: String }],
-          isComplete: { type: Boolean, default: false },
-          completedAt: { type: Date }
-        }
-      ]
+      currentEntryId: { type: String },
+      fragmentsFound: { type: [String], default: [] },
+      fragmentsCollected: { type: Number, default: 0 },
+      keysFound: { type: [String], default: [] },
+      entriesResolved: { type: [String], default: [] },
+      completed: { type: Boolean, default: false },
+      completedAt: { type: Date }
     }
   ],
 
 }, { timestamps: true });
 
-/* -------------------------------------------------------------------------- */
-/*                                   INDEXES                                  */
-/* -------------------------------------------------------------------------- */
-
 AgentSchema.index({ bungieId: 1 }, { unique: true, background: true });
 AgentSchema.index({ "protocol.roles": 1 });
-AgentSchema.index({ "protocol.group": 1 });
+AgentSchema.index({ "protocol.division": 1 });
 AgentSchema.index({ "protocol.badges.badgeId": 1 });
 AgentSchema.index({ isActive: 1 });
 AgentSchema.index({ deactivatedAt: -1 });
-/* -------------------------------------------------------------------------- */
+AgentSchema.index({ "timelines.timelineId": 1 });
 
 export const Agent = model("Agent", AgentSchema);

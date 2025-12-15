@@ -1,20 +1,56 @@
-import { IFinalCode, ValidationResult } from "../types/challenge";
 import { generateUniqueId } from "./generate";
+
+export interface ValidationResult {
+    isValid: boolean;
+    message?: string;
+}
+
+export interface ICodeFragment {
+    A1: string;
+    A2: string;
+    A3: string;
+}
+
+export interface IBCodeFragment {
+    B1: string;
+    B2: string;
+    B3: string;
+}
+
+export interface ICCodeFragment {
+    C1: string;
+    C2: string;
+    C3: string;
+}
+
+export interface IDCodeFragment {
+    D1: string;
+    D2: string;
+    D3: string;
+}
+
+export interface IFinalCode {
+    AAA: ICodeFragment;
+    BBB: IBCodeFragment;
+    CCC: ICCodeFragment;
+    DDD?: IDCodeFragment;
+}
 
 export const validateTargetCode = (code: string): ValidationResult => {
     if (!code || typeof code !== 'string') {
         return {
             isValid: false,
-            message: "Le code ne peut pas être vide."
+            message: "the code can't be empty"
         };
     }
 
-    const codePattern = /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}$/;
+    const codePattern3 = /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}$/;
+    const codePattern4 = /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}$/;
 
-    if (!codePattern.test(code)) {
+    if (!codePattern3.test(code) && !codePattern4.test(code)) {
         return {
             isValid: false,
-            message: "Le targetCode doit être au format AAA-BBB-CCC (lettres majuscules uniquement avec tirets)."
+            message: "the code must be in the format AAA-BBB-CCC or AAA-BBB-CCC-DDD."
         };
     }
 
@@ -26,35 +62,34 @@ export const validateTargetCode = (code: string): ValidationResult => {
 export const splitTargetCodeToFinalCode = (targetCode: string): IFinalCode => {
     const validation = validateTargetCode(targetCode);
     if (!validation.isValid) {
-        throw new Error(`Code invalide: ${validation.message}`);
+        throw new Error(`Invalid code: ${validation.message}`);
     }
 
     const segments = targetCode.split('-');
-    const [aaa, bbb, ccc] = segments;
+    const [aaa, bbb, ccc, ddd] = segments;
 
-    return {
-        AAA: {
-            A1: aaa[0], // Premier caractère de AAA
-            A2: aaa[1], // Deuxième caractère de AAA
-            A3: aaa[2]  // Troisième caractère de AAA
-        },
-        BBB: {
-            B1: bbb[0], // Premier caractère de BBB
-            B2: bbb[1], // Deuxième caractère de BBB
-            B3: bbb[2]  // Troisième caractère de BBB
-        },
-        CCC: {
-            C1: ccc[0], // Premier caractère de CCC
-            C2: ccc[1], // Deuxième caractère de CCC
-            C3: ccc[2]  // Troisième caractère de CCC
-        }
+    const finalCode: IFinalCode = {
+        AAA: { A1: aaa[0], A2: aaa[1], A3: aaa[2] },
+        BBB: { B1: bbb[0], B2: bbb[1], B3: bbb[2] },
+        CCC: { C1: ccc[0], C2: ccc[1], C3: ccc[2] }
     };
+
+    if (ddd) {
+        finalCode.DDD = { D1: ddd[0], D2: ddd[1], D3: ddd[2] };
+    }
+
+    return finalCode;
 };
 
 export const buildTargetCodeFromFinalCode = (finalCode: IFinalCode): string => {
     const aaa = finalCode.AAA.A1 + finalCode.AAA.A2 + finalCode.AAA.A3;
     const bbb = finalCode.BBB.B1 + finalCode.BBB.B2 + finalCode.BBB.B3;
     const ccc = finalCode.CCC.C1 + finalCode.CCC.C2 + finalCode.CCC.C3;
+
+    if (finalCode.DDD) {
+        const ddd = finalCode.DDD.D1 + finalCode.DDD.D2 + finalCode.DDD.D3;
+        return `${aaa}-${bbb}-${ccc}-${ddd}`;
+    }
 
     return `${aaa}-${bbb}-${ccc}`;
 };
@@ -63,16 +98,17 @@ export const validateCodeFormat = (format: string): ValidationResult => {
     if (!format || typeof format !== 'string') {
         return {
             isValid: false,
-            message: "Le format ne peut pas être vide."
+            message: "the format can't be empty."
         };
     }
 
-    const formatPattern = /^[A-Z]{3}-[A-Z]{3}-[A-Z]{3}$/;
+    const formatPattern3 = /^[A-Z]{3}-[A-Z]{3}-[A-Z]{3}$/;
+    const formatPattern4 = /^[A-Z]{3}-[A-Z]{3}-[A-Z]{3}-[A-Z]{3}$/;
 
-    if (!formatPattern.test(format)) {
+    if (!formatPattern3.test(format) && !formatPattern4.test(format)) {
         return {
             isValid: false,
-            message: "Le codeFormat doit être au format XXX-XXX-XXX."
+            message: "the codeFormat must be in the format XXX-XXX-XXX or XXX-XXX-XXX-XXX."
         };
     }
 
@@ -85,15 +121,16 @@ export const validateAccessCode = (accessCode: string): ValidationResult => {
     if (!accessCode || typeof accessCode !== 'string') {
         return {
             isValid: false,
-            message: "Le code d'accès ne peut pas être vide."
+            message: "the access code can't be empty."
         };
     }
-    const accessCodePattern = /^[A-Za-z0-9_-]{3,20}$/;
+
+    const accessCodePattern = /^[A-Za-z0-9_-]{3,50}$/;
 
     if (!accessCodePattern.test(accessCode)) {
         return {
             isValid: false,
-            message: "Le code d'accès doit contenir entre 3 et 20 caractères (lettres, chiffres, tirets et underscores autorisés)."
+            message: "the access code must contain between 3 and 50 characters (letters, numbers, dashes and underscores are allowed)."
         };
     }
 
@@ -108,7 +145,7 @@ export const codeMatchesFormat = (code: string, format: string): boolean => {
         code.split('-').length === format.split('-').length;
 };
 
-export function determineFinalCode(autoGenerated: any, provided: any) {
+export function determineFinalCode(autoGenerated: any, provided: any): IFinalCode {
     if (autoGenerated) return autoGenerated;
     if (provided) return provided;
 
@@ -119,43 +156,46 @@ export function determineFinalCode(autoGenerated: any, provided: any) {
     };
 }
 
-export function validateAndProcessChallenges(challenges: any[]): string | null {
-    for (let i = 0; i < challenges.length; i++) {
-        const challenge = challenges[i];
+export function validateAndProcessEntries(entries: any[]): string | null {
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
 
-        if (!challenge.challengeType || !challenge.expectedOutput) {
-            return `Challenge ${i + 1}: challengeType et expectedOutput sont requis.`;
+        if (!entry.name) {
+            return `Entry ${i + 1}: name is required.`;
         }
 
-        challenge.rewardId = generateUniqueId('REWARDID');
-
-        if (!challenge.groups?.length) {
-            return `Challenge ${i + 1}: au moins un groupe est requis.`;
+        if (!entry.accessCode) {
+            return `Entry ${i + 1}: accessCode is required.`;
         }
 
-        for (let j = 0; j < challenge.groups.length; j++) {
-            const group = challenge.groups[j];
+        const accessCodeValidation = validateAccessCode(entry.accessCode);
+        if (!accessCodeValidation.isValid) {
+            return `Entry ${i + 1}: ${accessCodeValidation.message}`;
+        }
 
-            if (!group.accessCode || !group.promptLines?.length) {
-                return `Challenge ${i + 1}, Groupe ${j + 1}: accessCode et promptLines sont requis.`;
-            }
+        if (!entry.entryId) {
+            entry.entryId = generateUniqueId('ENTRY');
+        }
 
-            const accessCodeValidation = validateAccessCode(group.accessCode);
-            if (!accessCodeValidation.isValid) {
-                return `Challenge ${i + 1}, Groupe ${j + 1}: ${accessCodeValidation.message}`;
+        if (entry.subEntries && entry.subEntries.length > 0) {
+            const subError = validateAndProcessEntries(entry.subEntries);
+            if (subError) {
+                return `Entry ${i + 1} > ${subError}`;
             }
         }
     }
     return null;
 }
 
-export function getPartialCode(unlockedFragments: string[], finalCode: any): string {
-    const codeParts = [
-        ['A1', 'A2', 'A3'],
-        ['B1', 'B2', 'B3'],
-        ['C1', 'C2', 'C3']
-    ];
-    const sections = ['AAA', 'BBB', 'CCC'];
+export function getPartialCode(unlockedFragments: string[], finalCode: any, format: "AAA-BBB-CCC" | "AAA-BBB-CCC-DDD" = "AAA-BBB-CCC"): string {
+    const sections = format === "AAA-BBB-CCC-DDD"
+        ? ['AAA', 'BBB', 'CCC', 'DDD']
+        : ['AAA', 'BBB', 'CCC'];
+
+    const codeParts = format === "AAA-BBB-CCC-DDD"
+        ? [['A1', 'A2', 'A3'], ['B1', 'B2', 'B3'], ['C1', 'C2', 'C3'], ['D1', 'D2', 'D3']]
+        : [['A1', 'A2', 'A3'], ['B1', 'B2', 'B3'], ['C1', 'C2', 'C3']];
+
     return codeParts.map((fragments, i) => {
         return fragments.map(frag => {
             if (unlockedFragments.includes(frag)) {
@@ -165,25 +205,31 @@ export function getPartialCode(unlockedFragments: string[], finalCode: any): str
         }).join('');
     }).join('-');
 }
-// export function getFragmentsData(fragmentIds: string[], finalCode: any): string[] {
-//     const result: string[] = [];
-//     for (const frag of fragmentIds) {
-//         if (finalCode.AAA && finalCode.AAA[frag]) result.push(finalCode.AAA[frag]);
-//         else if (finalCode.BBB && finalCode.BBB[frag]) result.push(finalCode.BBB[frag]);
-//         else if (finalCode.CCC && finalCode.CCC[frag]) result.push(finalCode.CCC[frag]);
-//         else result.push("");
-//     }
-//     return result;
-// }
 
 export function getFragmentData(fragmentId: string, finalCode: any): string | null {
     if (finalCode.AAA && finalCode.AAA[fragmentId]) return finalCode.AAA[fragmentId];
     if (finalCode.BBB && finalCode.BBB[fragmentId]) return finalCode.BBB[fragmentId];
     if (finalCode.CCC && finalCode.CCC[fragmentId]) return finalCode.CCC[fragmentId];
+    if (finalCode.DDD && finalCode.DDD[fragmentId]) return finalCode.DDD[fragmentId];
     return null;
 }
 
-
 export function getFragmentsData(fragmentIds: string[], finalCode: any): (string | null)[] {
     return fragmentIds.map(frag => getFragmentData(frag, finalCode));
+}
+
+export function isSectionComplete(section: 'AAA' | 'BBB' | 'CCC' | 'DDD', unlockedFragments: string[]): boolean {
+    const sectionFragments: Record<string, string[]> = {
+        'AAA': ['A1', 'A2', 'A3'],
+        'BBB': ['B1', 'B2', 'B3'],
+        'CCC': ['C1', 'C2', 'C3'],
+        'DDD': ['D1', 'D2', 'D3']
+    };
+
+    return sectionFragments[section].every(frag => unlockedFragments.includes(frag));
+}
+
+export function calculateCompletionPercentage(unlockedFragments: string[], format: "AAA-BBB-CCC" | "AAA-BBB-CCC-DDD" = "AAA-BBB-CCC"): number {
+    const totalFragments = format === "AAA-BBB-CCC-DDD" ? 12 : 9;
+    return Math.round((unlockedFragments.length / totalFragments) * 100);
 }

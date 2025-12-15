@@ -2,93 +2,49 @@ import { Request, Response } from 'express';
 import { AnnouncementModel } from '../models/announcement.model';
 import { generateUniqueId } from '../utils/generate';
 import { IAnnouncement } from '../types/announcement';
-import { formatForUser } from '../utils';
-
-const VALID_PRIORITIES: IAnnouncement['priority'][] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
-const VALID_STATUSES: IAnnouncement['status'][] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
-const VALID_VISIBILITIES: IAnnouncement['visibility'][] = ['ALL', "AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY", 'GROUP'];
-
-const VALID_TARGET_GROUPS: NonNullable<IAnnouncement['targetGroup']>[] = ['PROTOCOL', 'AURORA', 'ZENITH'];
-
-const MAX_TITLE_LENGTH = 200;
-const MAX_CONTENT_LENGTH = 5000;
-
-const validateAnnouncementData = (title?: string, content?: string): { isValid: boolean; error?: string } => {
-    if (title !== undefined) {
-        if (typeof title !== 'string' || title.trim().length === 0 || title.length > MAX_TITLE_LENGTH) {
-            return { isValid: false, error: 'Invalid title' };
-        }
-    }
-
-    if (content !== undefined) {
-        if (typeof content !== 'string' || content.trim().length === 0 || content.length > MAX_CONTENT_LENGTH) {
-            return { isValid: false, error: 'Invalid content' };
-        }
-    }
-
-    return { isValid: true };
-};
+import { logger } from '../utils';
+import { CreateAnnouncementInput, UpdateAnnouncementInput } from '../schemas/announcement.schema';
 
 export const createAnnouncement = async (req: Request, res: Response) => {
     try {
-        const { title, content, priority, status, visibility, targetGroup, tags, expiresAt } = req.body;
+        const data = req.body as CreateAnnouncementInput;
 
-        if (!title || !content) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields'
-            });
-        }
-
-        const validation = validateAnnouncementData(title, content);
-        if (!validation.isValid) {
-            return res.status(400).json({
-                success: false,
-                error: validation.error
-            });
-        }
-
-        let parsedExpiresAt = null;
-        if (expiresAt) {
-            parsedExpiresAt = new Date(expiresAt);
-            if (isNaN(parsedExpiresAt.getTime()) || parsedExpiresAt <= new Date()) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid expiration date'
-                });
+        let expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        if (data.expiresAt) {
+            const parsed = new Date(data.expiresAt);
+            if (parsed > new Date()) {
+                expiresAt = parsed;
             }
         }
 
-        const sanitizedData: Partial<IAnnouncement> = {
+        const newAnnouncement = await AnnouncementModel.create({
             announcementId: generateUniqueId(),
-            title: title.trim(),
-            content: content.trim(),
-            priority: VALID_PRIORITIES.includes(priority) ? priority : 'MEDIUM',
-            status: VALID_STATUSES.includes(status) ? status : 'PUBLISHED',
-            visibility: VALID_VISIBILITIES.includes(visibility) ? visibility : 'ALL',
-            targetGroup: targetGroup && VALID_TARGET_GROUPS.includes(targetGroup) ? targetGroup : undefined,
-            tags: Array.isArray(tags) ? tags.filter(tag => typeof tag === 'string' && tag.trim().length > 0).slice(0, 10) : [],
-            expiresAt: parsedExpiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours par défaut
+            title: data.title.trim(),
+            content: data.content.trim(),
+            priority: data.priority,
+            status: data.status,
+            visibility: data.visibility,
+            targetGroup: data.targetGroup?.trim(),
+            tags: data.tags?.filter(tag => tag.trim().length > 0) || [],
+            expiresAt,
             createdBy: req.user?.agentId || '',
-            createdAt: new Date(),
-            updatedAt: new Date(),
             readBy: []
-        };
+        });
 
-        const newAnnouncement = await AnnouncementModel.create(sanitizedData);
+        logger.info('Announcement created', {
+            announcementId: newAnnouncement.announcementId,
+            createdBy: req.user?.agentId
+        });
 
         return res.status(201).json({
             success: true,
-            data: {
-                announcement: newAnnouncement
-            },
+            data: { announcement: newAnnouncement },
             message: 'Announcement created successfully'
         });
     } catch (error: any) {
-        console.error('Announcement creation error:', {
-            timestamp: formatForUser(),
-            creatorId: req.user?.agentId,
-            ip: req.ip
+        logger.error('Announcement creation error', {
+            error: error.message,
+            creatorId: req.user?.agentId
         });
 
         return res.status(500).json({
@@ -101,16 +57,9 @@ export const createAnnouncement = async (req: Request, res: Response) => {
 export const updateAnnouncement = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { title, content, priority, status, visibility, targetGroup, tags, expiresAt } = req.body;
+        const data = req.body as UpdateAnnouncementInput;
 
-        if (!id || typeof id !== 'string') {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid announcement ID'
-            });
-        }
-
-        const existingAnnouncement = await AnnouncementModel.findById(id);
+        const existingAnnouncement = await AnnouncementModel.findOne({ announcementId: id });
         if (!existingAnnouncement) {
             return res.status(404).json({
                 success: false,
@@ -118,51 +67,18 @@ export const updateAnnouncement = async (req: Request, res: Response) => {
             });
         }
 
-        const updateData: Partial<IAnnouncement> = {
-            updatedAt: new Date()
-        };
+        const updateData: Partial<IAnnouncement> = {};
 
-        const validation = validateAnnouncementData(title, content);
-        if (!validation.isValid) {
-            return res.status(400).json({
-                success: false,
-                error: validation.error
-            });
-        }
-
-        if (title !== undefined) {
-            updateData.title = title.trim();
-        }
-
-        if (content !== undefined) {
-            updateData.content = content.trim();
-        }
-
-        if (priority !== undefined && VALID_PRIORITIES.includes(priority)) {
-            updateData.priority = priority;
-        }
-
-        if (status !== undefined && VALID_STATUSES.includes(status)) {
-            updateData.status = status;
-        }
-
-        if (visibility !== undefined && VALID_VISIBILITIES.includes(visibility)) {
-            updateData.visibility = visibility;
-        }
-
-        if (targetGroup !== undefined && VALID_TARGET_GROUPS.includes(targetGroup)) {
-            updateData.targetGroup = targetGroup;
-        }
-
-        if (tags !== undefined && Array.isArray(tags)) {
-            updateData.tags = tags.filter(tag => typeof tag === 'string' && tag.trim().length > 0).slice(0, 10);
-        }
-
-        if (expiresAt !== undefined) {
-            const parsedExpiresAt = new Date(expiresAt);
-            if (!isNaN(parsedExpiresAt.getTime()) && parsedExpiresAt > new Date()) {
-                updateData.expiresAt = parsedExpiresAt;
-            }
+        if (data.title) updateData.title = data.title.trim();
+        if (data.content) updateData.content = data.content.trim();
+        if (data.priority) updateData.priority = data.priority;
+        if (data.status) updateData.status = data.status;
+        if (data.visibility) updateData.visibility = data.visibility;
+        if (data.targetGroup) updateData.targetGroup = data.targetGroup.trim();
+        if (data.tags) updateData.tags = data.tags.filter(tag => tag.trim().length > 0);
+        if (data.expiresAt) {
+            const parsed = new Date(data.expiresAt);
+            if (parsed > new Date()) updateData.expiresAt = parsed;
         }
 
         const updatedAnnouncement = await AnnouncementModel.findOneAndUpdate(
@@ -171,19 +87,18 @@ export const updateAnnouncement = async (req: Request, res: Response) => {
             { new: true }
         );
 
+        logger.info('Announcement updated', { announcementId: id, updatedBy: req.user?.agentId });
+
         return res.json({
             success: true,
-            data: {
-                announcement: updatedAnnouncement
-            },
+            data: { announcement: updatedAnnouncement },
             message: 'Announcement updated successfully'
         });
     } catch (error: any) {
-        console.error('Announcement update error:', {
-            timestamp: formatForUser(),
-            updaterId: req.user?.agentId,
+        logger.error('Announcement update error', {
+            error: error.message,
             announcementId: req.params.id,
-            ip: req.ip
+            updaterId: req.user?.agentId
         });
 
         return res.status(500).json({
@@ -213,8 +128,7 @@ export const deleteAnnouncement = async (req: Request, res: Response) => {
             });
         }
 
-        console.log('Announcement deleted:', {
-            timestamp: formatForUser(),
+        logger.info('Announcement deleted:', {
             deleterId: req.user?.agentId,
             announcementId: id,
             title: announcement.title
@@ -225,8 +139,7 @@ export const deleteAnnouncement = async (req: Request, res: Response) => {
             message: 'Announcement deleted successfully'
         });
     } catch (error: any) {
-        console.error('Announcement deletion error:', {
-            timestamp: formatForUser(),
+        logger.error('Announcement deletion error:', {
             deleterId: req.user?.agentId,
             announcementId: req.params.id,
             ip: req.ip
@@ -270,8 +183,7 @@ export const getAllAnnouncements = async (req: Request, res: Response) => {
             message: 'Public announcements retrieved successfully'
         });
     } catch (error: any) {
-        console.error('Public announcements fetch error:', {
-            timestamp: formatForUser(),
+        logger.error('Public announcements fetch error:', {
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
@@ -298,8 +210,7 @@ export const getAllAnnouncementsForFounders = async (req: Request, res: Response
             message: 'All announcements retrieved successfully'
         });
     } catch (error: any) {
-        console.error('Founder announcements fetch error:', {
-            timestamp: formatForUser(),
+        logger.error('Founder announcements fetch error:', {
             founderId: req.user?.agentId,
             ip: req.ip
         });
@@ -330,7 +241,7 @@ export const markAnnouncementAsRead = async (req: Request, res: Response) => {
             });
         }
 
-        const announcement = await AnnouncementModel.findById(id);
+        const announcement = await AnnouncementModel.findOne({ announcementId: id });
         if (!announcement) {
             return res.status(404).json({
                 success: false,
@@ -338,17 +249,20 @@ export const markAnnouncementAsRead = async (req: Request, res: Response) => {
             });
         }
 
-        const alreadyRead = announcement.readBy.some((read: any) => read.agentId.toString() === agentId);
+        const alreadyRead = announcement.readBy?.some((read: any) => read.agentId === agentId) ?? false;
 
         if (!alreadyRead) {
-            await AnnouncementModel.findByIdAndUpdate(id, {
-                $push: {
-                    readBy: {
-                        agentId: agentId,
-                        readAt: new Date()
+            await AnnouncementModel.findOneAndUpdate(
+                { announcementId: id },
+                {
+                    $push: {
+                        readBy: {
+                            agentId: agentId,
+                            readAt: new Date()
+                        }
                     }
                 }
-            });
+            );
         }
 
         return res.json({
@@ -356,8 +270,7 @@ export const markAnnouncementAsRead = async (req: Request, res: Response) => {
             message: 'Announcement marked as read'
         });
     } catch (error: any) {
-        console.error('Mark as read error:', {
-            timestamp: formatForUser(),
+        logger.error('Mark as read error:', {
             agentId: req.user?.agentId,
             announcementId: req.params.id,
             ip: req.ip

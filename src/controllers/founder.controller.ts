@@ -1,36 +1,21 @@
 import { Request, Response } from 'express';
-import { agentService } from '../services/agentservice';
+import { agentService } from '../services/agent.service';
 import { IAgent } from '../types/agent';
 import { ApiResponseBuilder } from '../utils/apiresponse';
-import { formatForUser } from '../utils';
-import { findAgentByIdentifier, validateIdentifier } from '../utils/verifyAgent.helper';
+import { logger } from '../utils';
 import { Agent } from '../models/agent.model';
+import * as roleService from '../services/role.service';
+
 
 export const FounderUpdateAgent = async (req: Request, res: Response) => {
     try {
-        const { agentId } = req.params;
+        const existingAgent = req.resolvedAgent!;
         const updateData = req.body;
-
-        const validation = validateIdentifier(agentId);
-        if (!validation.isValid) {
-            return ApiResponseBuilder.error(res, 400, {
-                message: validation.error || 'ID d\'agent invalide ou manquant',
-                error: 'validation_error'
-            });
-        }
 
         if (!updateData || typeof updateData !== 'object') {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Données de mise à jour invalides',
+                message: 'Invalid update data',
                 error: 'validation_error'
-            });
-        }
-
-        const existingAgent = await findAgentByIdentifier(agentId);
-        if (!existingAgent) {
-            return ApiResponseBuilder.error(res, 404, {
-                message: 'Profil d\'agent non trouvé',
-                error: 'not_found'
             });
         }
 
@@ -39,7 +24,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
         if (updateData.protocol && typeof updateData.protocol === 'object') {
             if (!existingAgent.protocol) {
                 return ApiResponseBuilder.error(res, 400, {
-                    message: 'L\'agent n\'a pas de protocole configuré',
+                    message: 'Agent has no protocol configured',
                     error: 'invalid_state'
                 });
             }
@@ -49,13 +34,13 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             if (updateData.protocol.agentName !== undefined) {
                 if (typeof updateData.protocol.agentName !== 'string' || updateData.protocol.agentName.trim().length === 0) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Le nom d\'agent ne peut pas être vide',
+                        message: 'Agent name cannot be empty',
                         error: 'validation_error'
                     });
                 }
                 if (updateData.protocol.agentName.length > 50) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Le nom d\'agent ne peut pas dépasser 50 caractères',
+                        message: 'Agent name cannot exceed 50 characters',
                         error: 'validation_error'
                     });
                 }
@@ -65,7 +50,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             if (updateData.protocol.customName !== undefined) {
                 if (updateData.protocol.customName && (typeof updateData.protocol.customName !== 'string' || updateData.protocol.customName.length > 50)) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Le nom personnalisé ne peut pas dépasser 50 caractères',
+                        message: 'Custom name cannot exceed 50 characters',
                         error: 'validation_error'
                     });
                 }
@@ -76,7 +61,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 const allowedSpecies = ['HUMAN', 'EXO', 'AWOKEN'];
                 if (!allowedSpecies.includes(updateData.protocol.species)) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Espèce invalide. Doit être HUMAN, EXO ou AWOKEN',
+                        message: 'Invalid species. Must be HUMAN, EXO, or AWOKEN',
                         error: 'validation_error'
                     });
                 }
@@ -87,7 +72,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 const allowedRoles = ["AGENT", "ECHO", "ORACLE", "ARCHITECT", "FOUNDER", "EMISSARY"];
                 if (!allowedRoles.includes(updateData.protocol.role)) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Rôle invalide. Doit être AGENT ou FOUNDER',
+                        message: 'Invalid role. Must be AGENT or FOUNDER',
                         error: 'validation_error'
                     });
                 }
@@ -97,7 +82,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             if (updateData.protocol.clearanceLevel !== undefined) {
                 if (typeof updateData.protocol.clearanceLevel !== 'number' || updateData.protocol.clearanceLevel < 0 || updateData.protocol.clearanceLevel > 10) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Niveau d\'autorisation invalide (0-10)',
+                        message: 'Clearance level must be a number between 0 and 10',
                         error: 'validation_error'
                     });
                 }
@@ -107,7 +92,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
             if (updateData.protocol.hasSeenRecruitment !== undefined) {
                 if (typeof updateData.protocol.hasSeenRecruitment !== 'boolean') {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'hasSeenRecruitment doit être un booléen',
+                        message: 'hasSeenRecruitment must be a boolean',
                         error: 'validation_error'
                     });
                 }
@@ -118,22 +103,15 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 const joinDate = new Date(updateData.protocol.protocolJoinedAt);
                 if (isNaN(joinDate.getTime())) {
                     return ApiResponseBuilder.error(res, 400, {
-                        message: 'Date d\'adhésion au protocole invalide',
+                        message: 'Invalid protocol join date',
                         error: 'validation_error'
                     });
                 }
                 protocolUpdates.protocolJoinedAt = joinDate;
             }
 
-            if (updateData.protocol.group !== undefined) {
-                const allowedGroups = ['PROTOCOL', 'AURORA', 'ZENITH'];
-                if (!allowedGroups.includes(updateData.protocol.group)) {
-                    return ApiResponseBuilder.error(res, 400, {
-                        message: 'Groupe invalide. Doit être PROTOCOL, AURORA ou ZENITH',
-                        error: 'validation_error'
-                    });
-                }
-                protocolUpdates.group = updateData.protocol.group;
+            if (updateData.protocol.division !== undefined) {
+                protocolUpdates.division = updateData.protocol.division;
             }
 
             if (updateData.protocol.settings && typeof updateData.protocol.settings === 'object') {
@@ -142,7 +120,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 if (updateData.protocol.settings.notifications !== undefined) {
                     if (typeof updateData.protocol.settings.notifications !== 'boolean') {
                         return ApiResponseBuilder.error(res, 400, {
-                            message: 'notifications doit être un booléen',
+                            message: 'notifications must be a boolean',
                             error: 'validation_error'
                         });
                     }
@@ -152,7 +130,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 if (updateData.protocol.settings.publicProfile !== undefined) {
                     if (typeof updateData.protocol.settings.publicProfile !== 'boolean') {
                         return ApiResponseBuilder.error(res, 400, {
-                            message: 'publicProfile doit être un booléen',
+                            message: 'publicProfile must be a boolean',
                             error: 'validation_error'
                         });
                     }
@@ -163,7 +141,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                     const allowedThemes = ['DEFAULT', 'DARKNESS'];
                     if (!allowedThemes.includes(updateData.protocol.settings.protocolOSTheme)) {
                         return ApiResponseBuilder.error(res, 400, {
-                            message: 'Thème invalide. Doit être DEFAULT ou DARKNESS',
+                            message: 'Invalid theme. Must be DEFAULT or DARKNESS',
                             error: 'validation_error'
                         });
                     }
@@ -173,7 +151,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                 if (updateData.protocol.settings.protocolSounds !== undefined) {
                     if (typeof updateData.protocol.settings.protocolSounds !== 'boolean') {
                         return ApiResponseBuilder.error(res, 400, {
-                            message: 'protocolSounds doit être un booléen',
+                            message: 'protocolSounds must be a boolean',
                             error: 'validation_error'
                         });
                     }
@@ -198,7 +176,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
 
         if (Object.keys(sanitizedData).length === 0) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Aucune donnée valide à mettre à jour',
+                message: 'No valid data to update',
                 error: 'no_changes'
             });
         }
@@ -226,21 +204,20 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
         const updatedAgent = await agentService.updateAgentProfile(existingAgent._id!.toString(), flattenedData);
 
         if (!updatedAgent) {
-            console.error('Failed to update agent profile:', {
+            logger.error('Failed to update agent profile:', {
                 agentId: existingAgent._id?.toString(),
-                sanitizedData,
-                timestamp: formatForUser()
+                sanitizedData
             });
 
             return ApiResponseBuilder.error(res, 500, {
-                message: 'Échec de la mise à jour du profil d\'agent',
+                message: 'Failed to update agent profile',
                 error: 'update_failed'
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: `Profil de l'agent ${updatedAgent.protocol?.agentName || agentId} mis à jour avec succès`,
+            message: `Agent profile ${updatedAgent.protocol?.agentName || existingAgent._id} successfully updated`,
             data: {
                 agent: {
                     _id: updatedAgent._id,
@@ -253,7 +230,7 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                         clearanceLevel: updatedAgent.protocol?.clearanceLevel,
                         hasSeenRecruitment: updatedAgent.protocol?.hasSeenRecruitment,
                         protocolJoinedAt: updatedAgent.protocol?.protocolJoinedAt,
-                        group: updatedAgent.protocol?.group,
+                        division: updatedAgent.protocol?.division,
                         settings: updatedAgent.protocol?.settings
                     },
                     lastActivity: updatedAgent.lastActivity,
@@ -263,15 +240,14 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        console.error('Erreur lors de la mise à jour de l\'agent par le founder:', {
+        logger.error('Error while updating the agent by the founder:', {
             agentId: req.params.agentId,
             error: error.message,
-            stack: error.stack,
-            timestamp: formatForUser()
+            stack: error.stack
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne du serveur',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -279,48 +255,30 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
 
 export const FounderDeleteAgent = async (req: Request, res: Response) => {
     try {
-        const { agentId } = req.params;
+        const agentToDelete = req.resolvedAgent!;
         const { confirm } = req.body;
-
-        const validation = validateIdentifier(agentId);
-        if (!validation.isValid) {
-            return ApiResponseBuilder.error(res, 400, {
-                message: validation.error || 'ID d\'agent invalide ou manquant',
-                error: 'validation_error'
-            });
-        }
-
-        const agentToDelete = await findAgentByIdentifier(agentId);
-        if (!agentToDelete) {
-            return ApiResponseBuilder.error(res, 404, {
-                message: 'Profil d\'agent non trouvé',
-                error: 'not_found'
-            });
-        }
 
         const founderAgentId = (req as any).user?.agentId;
         if (founderAgentId && agentToDelete._id?.toString() === founderAgentId) {
-            console.warn('Founder attempted to delete own account:', {
-                founderAgentId,
-                timestamp: formatForUser()
+            logger.warn('Founder attempted to delete own account:', {
+                founderAgentId
             });
 
             return ApiResponseBuilder.error(res, 403, {
-                message: 'Vous ne pouvez pas supprimer votre propre compte',
+                message: 'You cannot delete your own account',
                 error: 'self_deletion_forbidden'
             });
         }
 
         if (agentToDelete.protocol?.roles.includes('FOUNDER')) {
-            console.warn('Attempt to delete another FOUNDER account:', {
+            logger.warn('Attempt to delete another FOUNDER account:', {
                 targetAgentId: agentToDelete._id?.toString(),
                 targetAgentName: agentToDelete.protocol?.agentName,
-                requestedBy: founderAgentId,
-                timestamp: formatForUser()
+                requestedBy: founderAgentId
             });
 
             return ApiResponseBuilder.error(res, 403, {
-                message: 'Vous ne pouvez pas supprimer un compte FOUNDER',
+                message: 'You cannot delete a FOUNDER account',
                 error: 'founder_deletion_forbidden'
             });
         }
@@ -329,7 +287,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             return res.status(200).json({
                 success: false,
                 requiresConfirmation: true,
-                message: 'Suppression nécessite une confirmation',
+                message: 'Deletion requires confirmation',
                 data: {
                     agent: {
                         _id: agentToDelete._id,
@@ -341,7 +299,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
                         stats: agentToDelete.protocol?.stats
                     }
                 },
-                instructions: 'Pour confirmer la suppression, renvoyez la requête avec { "confirm": true } dans le body'
+                instructions: 'To confirm deletion, resend the request with { "confirm": true } in the body'
             });
         }
 
@@ -353,7 +311,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
             displayName: agentToDelete.bungieUser?.displayName,
             roles: agentToDelete.protocol?.roles,
             clearanceLevel: agentToDelete.protocol?.clearanceLevel,
-            group: agentToDelete.protocol?.group,
+            division: agentToDelete.protocol?.division,
             joinedAt: agentToDelete.protocol?.protocolJoinedAt,
             totalBadges: agentToDelete.protocol?.badges?.length || 0,
             stats: agentToDelete.protocol?.stats,
@@ -363,7 +321,7 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
         await Agent.findByIdAndDelete(agentToDelete._id);
         return res.status(200).json({
             success: true,
-            message: `Agent ${deletedAgentInfo.agentName || deletedAgentInfo.bungieId} supprimé avec succès`,
+            message: `Agent ${deletedAgentInfo.agentName || deletedAgentInfo.bungieId} successfully deleted`,
             data: {
                 deletedAgent: deletedAgentInfo,
                 deletedAt: new Date(),
@@ -372,16 +330,15 @@ export const FounderDeleteAgent = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        console.error('❌ Erreur lors de la suppression de l\'agent:', {
+        logger.error('Error deleting agent:', {
             agentId: req.params.agentId,
             error: error.message,
             stack: error.stack,
-            deletedBy: (req as any).user?.agentId,
-            timestamp: formatForUser()
+            deletedBy: (req as any).user?.agentId || 'unknown'
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne du serveur',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -402,8 +359,7 @@ export const FounderAgentStatistics = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        console.error('Agent statistics error:', {
-            timestamp: formatForUser(),
+        logger.error('Agent statistics error:', {
             founderId: req.user?.agentId,
             error: error.message,
             ip: req.ip
@@ -419,7 +375,7 @@ export const FounderAgentStatistics = async (req: Request, res: Response) => {
 export const FounderRepairProfile = async (req: Request, res: Response) => {
     try {
         const requesterId = req.user?.agentId;
-        const targetAgentId = req.params.agentId || requesterId;
+        const targetAgent = req.resolvedAgent;
         const isFounder = req.user?.protocol?.roles.includes('FOUNDER');
 
         if (!requesterId) {
@@ -429,21 +385,21 @@ export const FounderRepairProfile = async (req: Request, res: Response) => {
             });
         }
 
-        if (!targetAgentId) {
+        if (!targetAgent) {
             return res.status(400).json({
                 success: false,
                 error: 'Agent ID required'
             });
         }
 
-        if (targetAgentId !== requesterId && !isFounder) {
+        if (targetAgent._id?.toString() !== requesterId && !isFounder) {
             return res.status(403).json({
                 success: false,
                 error: 'Forbidden - Can only repair own profile'
             });
         }
 
-        const success = await agentService.repairIncompleteProfile(targetAgentId);
+        const success = await agentService.repairIncompleteProfile(targetAgent._id!.toString());
 
         if (success) {
             return res.json({
@@ -458,8 +414,7 @@ export const FounderRepairProfile = async (req: Request, res: Response) => {
         }
 
     } catch (error: any) {
-        console.error('Profile repair error:', {
-            timestamp: formatForUser(),
+        logger.error('Profile repair error:', {
             requesterId: req.user?.agentId,
             targetAgentId: req.params.agentId,
             error: error.message,
@@ -475,28 +430,12 @@ export const FounderRepairProfile = async (req: Request, res: Response) => {
 
 export const FounderDeactivateAgent = async (req: Request, res: Response) => {
     try {
-        const { agentId } = req.params;
+        const agent = req.resolvedAgent!;
         const { reason } = req.body;
-
-        const validation = validateIdentifier(agentId);
-        if (!validation.isValid) {
-            return ApiResponseBuilder.error(res, 400, {
-                message: validation.error || 'ID d\'agent invalide',
-                error: 'validation_error'
-            });
-        }
-
-        const agent = await findAgentByIdentifier(agentId);
-        if (!agent) {
-            return ApiResponseBuilder.error(res, 404, {
-                message: 'Agent non trouvé',
-                error: 'not_found'
-            });
-        }
 
         if (agent.isActive === false) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Cet agent est déjà désactivé',
+                message: 'This agent is already deactivated',
                 error: 'already_deactivated',
                 data: {
                     agentName: agent.protocol?.agentName,
@@ -510,7 +449,7 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
 
             if (agent._id?.toString() !== founderAgentId) {
                 return ApiResponseBuilder.error(res, 403, {
-                    message: 'Impossible de désactiver un compte FOUNDER',
+                    message: 'You cannot deactivate a FOUNDER agent',
                     error: 'founder_deactivation_forbidden'
                 });
             }
@@ -532,14 +471,14 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
 
         if (!updatedAgent) {
             return ApiResponseBuilder.error(res, 500, {
-                message: 'Échec de la désactivation',
+                message: 'Failed to deactivate agent',
                 error: 'deactivation_failed'
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: `Agent ${updatedAgent.protocol?.agentName || agentId} désactivé avec succès`,
+            message: `Agent ${updatedAgent.protocol?.agentName || agent._id} successfully deactivated`,
             data: {
                 agent: {
                     _id: updatedAgent._id,
@@ -553,14 +492,13 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        console.error('❌ Error deactivating agent:', {
+        logger.error('Error deactivating agent:', {
             agentId: req.params.agentId,
-            error: error.message,
-            timestamp: formatForUser()
+            error: error.message
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -568,35 +506,11 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
 
 export const FounderReactivateAgent = async (req: Request, res: Response) => {
     try {
-        const { agentId } = req.params;
-
-        // Validation de l'agentId
-        const validation = validateIdentifier(agentId);
-        if (!validation.isValid) {
-            return ApiResponseBuilder.error(res, 400, {
-                message: validation.error || 'ID d\'agent invalide',
-                error: 'validation_error'
-            });
-        }
-
-        const agent = await Agent.findOne({
-            $or: [
-                { _id: /^[0-9a-fA-F]{24}$/.test(agentId) ? agentId : null },
-                { bungieId: agentId },
-                { 'bungieUser.uniqueName': { $regex: new RegExp(`^${agentId}$`, 'i') } }
-            ]
-        });
-
-        if (!agent) {
-            return ApiResponseBuilder.error(res, 404, {
-                message: 'Agent non trouvé',
-                error: 'not_found'
-            });
-        }
+        const agent = req.resolvedAgent!;
 
         if (agent.isActive !== false) {
             return ApiResponseBuilder.error(res, 400, {
-                message: 'Cet agent est déjà actif',
+                message: 'This agent is already active',
                 error: 'already_active'
             });
         }
@@ -621,14 +535,14 @@ export const FounderReactivateAgent = async (req: Request, res: Response) => {
 
         if (!updatedAgent) {
             return ApiResponseBuilder.error(res, 500, {
-                message: 'Échec de la réactivation',
+                message: 'Failed to reactivate agent',
                 error: 'reactivation_failed'
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: `Agent ${updatedAgent.protocol?.agentName || agentId} réactivé avec succès`,
+            message: `Agent ${updatedAgent.protocol?.agentName || agent._id} successfully reactivated`,
             data: {
                 agent: {
                     _id: updatedAgent._id,
@@ -641,14 +555,13 @@ export const FounderReactivateAgent = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        console.error('❌ Error reactivating agent:', {
+        logger.error('❌ Error reactivating agent:', {
             agentId: req.params.agentId,
-            error: error.message,
-            timestamp: formatForUser()
+            error: error.message
         });
 
         return ApiResponseBuilder.error(res, 500, {
-            message: 'Erreur interne',
+            message: 'Internal server error',
             error: 'internal_server_error'
         });
     }
@@ -687,9 +600,118 @@ export const GetDeactivatedAgents = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        console.error('Error retrieving deactivated agents:', {
-            error: error.message,
-            timestamp: formatForUser()
+        logger.error('Error retrieving deactivated agents:', {
+            error: error.message
+        });
+
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+};
+
+export const promoteAgent = async (req: Request, res: Response) => {
+    try {
+        const agent = req.resolvedAgent!;
+        const { roleId } = req.body;
+
+        if (!roleId) {
+            return ApiResponseBuilder.error(res, 400, {
+                message: 'roleId is required',
+                error: 'validation_error'
+            });
+        }
+        const targetRole = await roleService.getRoleById(roleId);
+        if (!targetRole) {
+            return ApiResponseBuilder.error(res, 404, {
+                message: `RRole ${roleId} not found`,
+                error: 'not_found'
+            });
+        }
+
+        const currentRoles = agent.protocol?.roles || ['AGENT'];
+        const roleToAdd = roleId.toUpperCase();
+
+        if (currentRoles.includes(roleToAdd)) {
+            return ApiResponseBuilder.error(res, 400, {
+                message: `The agent already has the role ${roleToAdd}`,
+                error: 'already_has_role'
+            });
+        }
+
+        await Agent.findByIdAndUpdate(agent._id, {
+            $addToSet: { 'protocol.roles': roleToAdd }
+        });
+
+        return res.json({
+            success: true,
+            message: `Role ${roleToAdd} added to agent`,
+            data: {
+                agentId: agent._id,
+                addedRole: roleToAdd,
+                roles: [...currentRoles, roleToAdd]
+            }
+        });
+
+    } catch (error: any) {
+        logger.error('Error promoting agent:', {
+            error: error.message
+        });
+
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+};
+
+export const demoteAgent = async (req: Request, res: Response) => {
+    try {
+        const agent = req.resolvedAgent!;
+        const { roleId } = req.body;
+
+        if (!roleId) {
+            return ApiResponseBuilder.error(res, 400, {
+                message: 'roleId is required',
+                error: 'validation_error'
+            });
+        }
+
+        const currentRoles = agent.protocol?.roles || ['AGENT'];
+        const roleToRemove = roleId.toUpperCase();
+
+        if (!currentRoles.includes(roleToRemove)) {
+            return ApiResponseBuilder.error(res, 400, {
+                message: `The agent does not have the role ${roleToRemove}`,
+                error: 'does_not_have_role'
+            });
+        }
+
+        if (currentRoles.length === 1) {
+            return ApiResponseBuilder.error(res, 400, {
+                message: 'Cannot remove the last role from the agent',
+                error: 'cannot_remove_last_role'
+            });
+        }
+
+        await Agent.findByIdAndUpdate(agent._id, {
+            $pull: { 'protocol.roles': roleToRemove }
+        });
+
+        return res.json({
+            success: true,
+            message: `RRole ${roleToRemove} removed from agent`,
+            data: {
+                agentId: agent._id,
+                removedRole: roleToRemove,
+                roles: currentRoles.filter(r => r !== roleToRemove)
+            }
+        });
+
+    } catch (error: any) {
+        logger.error('Error demoting agent:', {
+            error: error.message
         });
 
         return res.status(500).json({

@@ -1,4 +1,4 @@
-import {IAgentDocument } from "../types/agent";
+import { IAgentDocument } from "../types/agent";
 
 export const formatAgentResponse = (agent: IAgentDocument, includeDestiny = false) => {
     const response: any = {
@@ -11,7 +11,7 @@ export const formatAgentResponse = (agent: IAgentDocument, includeDestiny = fals
             clearanceLevel: agent.protocol.clearanceLevel || 1,
             hasSeenRecruitment: agent.protocol.hasSeenRecruitment || false,
             protocolJoinedAt: agent.protocol.protocolJoinedAt,
-            group: agent.protocol.group,
+            division: agent.protocol.division,
             settings: agent.protocol.settings
         },
         createdAt: agent.createdAt,

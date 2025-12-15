@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { agentService } from '../services/agentservice';
+import { agentService } from '../services/agent.service';
 import { Agent } from '../models/agent.model';
-import { formatForUser } from '../utils';
+import { logger } from '../utils';
 import { findAgentByIdentifier } from '../utils/verifyAgent.helper';
-import { agentStatsService } from '../services/agentStats';
+import { agentMigrationService, agentStatsService } from '../services/agentStat.service';
 
 export const getProfilAgent = async (req: Request, res: Response) => {
     try {
@@ -23,7 +23,7 @@ export const getProfilAgent = async (req: Request, res: Response) => {
                 select: "badgeId name description rarity icon obtainable"
             })
             .lean();
-
+        await agentStatsService.syncAgentStats(agentId);
         if (!agent || !agent.protocol) {
             return res.status(404).json({
                 success: false,
@@ -45,10 +45,11 @@ export const getProfilAgent = async (req: Request, res: Response) => {
                 clearanceLevel: agent.protocol.clearanceLevel,
                 hasSeenRecruitment: agent.protocol.hasSeenRecruitment,
                 protocolJoinedAt: agent.protocol.protocolJoinedAt,
-                group: agent.protocol.group,
+                division: agent.protocol.division,
                 settings: agent.protocol.settings,
                 stats: agent.protocol.stats
             },
+            timelines: agent.timelines,
             lastActivity: agent.lastActivity,
             createdAt: agent.createdAt,
             updatedAt: agent.updatedAt
@@ -60,8 +61,7 @@ export const getProfilAgent = async (req: Request, res: Response) => {
             message: 'Profile retrieved successfully'
         })
     } catch (error: any) {
-        console.error('Profile fetch error:', {
-            timestamp: formatForUser(),
+        logger.error('Profile fetch error:', {
             agentId: req.user?.agentId,
             ip: req.ip
         });
@@ -116,14 +116,10 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                     flattenedData['protocol.customName'] = undefined;
                 }
             }
-
-            // species
             if (updateData.protocol.species !== undefined &&
                 ['HUMAN', 'EXO', 'AWOKEN'].includes(updateData.protocol.species)) {
                 flattenedData['protocol.species'] = updateData.protocol.species;
             }
-
-            // settings
             if (updateData.protocol.settings) {
                 if (updateData.protocol.settings.notifications !== undefined) {
                     flattenedData['protocol.settings.notifications'] = !!updateData.protocol.settings.notifications;
@@ -157,13 +153,11 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
             });
         }
 
-        console.log('Agent profile update:', {
+        logger.info('Agent profile update:', {
             agentId: existingAgent._id?.toString(),
-            fields: Object.keys(flattenedData),
-            timestamp: formatForUser()
+            fields: Object.keys(flattenedData)
         });
 
-        // ✅ Utiliser le vrai MongoDB _id pour l'update
         const updatedAgent = await agentService.updateAgentProfile(
             existingAgent._id!.toString(),
             flattenedData
@@ -197,8 +191,7 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
             message: 'Profile updated successfully'
         });
     } catch (error: any) {
-        console.error('Profile update error:', {
-            timestamp: formatForUser(),
+        logger.error('Profile update error:', {
             agentId: req.user?.agentId,
             error: error.message,
             ip: req.ip
@@ -234,8 +227,8 @@ export const DeleteOwnAccount = async (req: Request, res: Response) => {
         if (agent.protocol?.roles.includes('FOUNDER')) {
             return res.status(403).json({
                 success: false,
-                error: 'Les comptes FOUNDER ne peuvent pas être supprimés',
-                message: 'Contactez un administrateur pour supprimer votre compte'
+                error: 'FOUNDER accounts cannot be deleted',
+                message: 'Contact an administrator to delete your account'
             });
         }
 
@@ -243,16 +236,15 @@ export const DeleteOwnAccount = async (req: Request, res: Response) => {
             return res.status(200).json({
                 success: false,
                 requiresConfirmation: true,
-                message: 'Pour confirmer la suppression de votre compte, renvoyez { "confirm": "DELETE_MY_ACCOUNT" }',
-                warning: 'Cette action est irréversible. Toutes vos données seront perdues.'
+                message: 'Confirm your account deletion by sending { "confirm": "DELETE_MY_ACCOUNT" }',
+                warning: 'This action is irreversible and will permanently delete your account and all associated data.'
             });
         }
 
-        console.log('⚠️ Self-deletion initiated:', {
+        logger.info('⚠️ Self-deletion initiated:', {
             agentId: agent._id?.toString(),
             bungieId: agent.bungieId,
-            agentName: agent.protocol?.agentName,
-            timestamp: formatForUser()
+            agentName: agent.protocol?.agentName
         });
 
         const deletedInfo = {
@@ -263,24 +255,22 @@ export const DeleteOwnAccount = async (req: Request, res: Response) => {
 
         await Agent.findByIdAndDelete(agent._id);
 
-        console.log('✅ Account self-deleted:', {
-            ...deletedInfo,
-            timestamp: formatForUser()
+        logger.info('Account self-deleted:', {
+            ...deletedInfo
         });
 
         return res.status(200).json({
             success: true,
-            message: 'Votre compte a été supprimé avec succès',
+            message: 'Your account has been deleted successfully',
             data: {
                 deletedAt: new Date()
             }
         });
 
     } catch (error: any) {
-        console.error('❌ Error during self-deletion:', {
+        logger.error('Error during self-deletion:', {
             agentId: (req as any).user?.agentId,
-            error: error.message,
-            timestamp: formatForUser()
+            error: error.message
         });
 
         return res.status(500).json({
@@ -302,17 +292,17 @@ export const getAllAgents = async (req: Request, res: Response) => {
         const formattedAgents = agents.map(agent => ({
             bungieUser: {
                 bungieId: agent.bungieId,
-                uniqueName: agent.bungieUser?.uniqueName || 'Inconnu',
+                uniqueName: agent.bungieUser?.uniqueName || 'Unknown',
                 profilePicturePath: agent.bungieUser?.profilePicturePath || null
 
             },
             protocol: {
-                agentName: agent.protocol?.agentName || 'Agent Inconnu',
+                agentName: agent.protocol?.agentName || 'Agent unknown',
                 customName: agent.protocol?.customName || null,
                 badgeIds: agent.protocol?.badges || [],
                 species: agent.protocol?.species || 'UNKNOWN',
                 roles: agent.protocol?.roles || ['AGENT'],
-                group: agent.protocol?.group || null
+                division: agent.protocol?.division || null
             },
             joinedAt: agent.protocol?.protocolJoinedAt || agent.createdAt
         }));
@@ -326,8 +316,7 @@ export const getAllAgents = async (req: Request, res: Response) => {
             message: 'Protocol agents retrieved successfully'
         });
     } catch (error: any) {
-        console.error('Public agents fetch error:', {
-            timestamp: formatForUser(),
+        logger.error('Public agents fetch error:', {
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
@@ -362,16 +351,16 @@ export const DeactivateOwnAccount = async (req: Request, res: Response) => {
         if (agent.isActive === false) {
             return res.status(400).json({
                 success: false,
-                error: 'Votre compte est déjà désactivé',
-                message: 'Contactez un administrateur pour le réactiver'
+                error: 'Account already deactivated',
+                message: 'Contact an administrator to reactivate it'
             });
         }
 
         if (agent.protocol?.roles.includes('FOUNDER')) {
             return res.status(403).json({
                 success: false,
-                error: 'Les comptes FOUNDER ne peuvent pas être désactivés',
-                message: 'Contactez un autre FOUNDER si nécessaire'
+                error: 'FOUNDER accounts cannot be deactivated',
+                message: 'Contact another FOUNDER if necessary'
             });
         }
 
@@ -379,17 +368,16 @@ export const DeactivateOwnAccount = async (req: Request, res: Response) => {
             return res.status(200).json({
                 success: false,
                 requiresConfirmation: true,
-                message: 'Pour confirmer la désactivation, renvoyez { "confirm": true }',
-                info: 'Votre compte sera suspendu. Vous pourrez le réactiver en contactant un administrateur.'
+                message: 'To confirm deactivation, resend { "confirm": true }',
+                info: 'Your account will be suspended. You can reactivate it by contacting an administrator.'
             });
         }
 
-        console.log('⚠️ Self-deactivation initiated:', {
+        logger.info('⚠️ Self-deactivation initiated:', {
             agentId: agent._id?.toString(),
             bungieId: agent.bungieId,
             agentName: agent.protocol?.agentName,
             reason: reason || 'No reason provided',
-            timestamp: formatForUser()
         });
 
         const updatedAgent = await Agent.findByIdAndUpdate(
@@ -406,25 +394,23 @@ export const DeactivateOwnAccount = async (req: Request, res: Response) => {
             { new: true }
         );
 
-        console.log('✅ Account self-deactivated:', {
-            agentId: updatedAgent?._id?.toString(),
-            timestamp: formatForUser()
+        logger.info('✅ Account self-deactivated:', {
+            agentId: updatedAgent?._id?.toString()
         });
 
         return res.status(200).json({
             success: true,
-            message: 'Votre compte a été désactivé',
+            message: 'Your account has been deactivated',
             data: {
                 deactivatedAt: updatedAgent?.deactivatedAt,
-                note: 'Contactez un administrateur pour réactiver votre compte'
+                note: 'Contact an administrator to reactivate your account'
             }
         });
 
     } catch (error: any) {
-        console.error('❌ Error during self-deactivation:', {
+        logger.error('❌ Error during self-deactivation:', {
             agentId: (req as any).user?.agentId,
-            error: error.message,
-            timestamp: formatForUser()
+            error: error.message
         });
 
         return res.status(500).json({
@@ -442,6 +428,7 @@ export const syncAgentStats = async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: "Unauthorized" });
 
         const stats = await agentStatsService.syncAgentStats(agentId);
+        await agentMigrationService.cleanObsoleteFields(agentId);
 
         return res.json({
             success: true,
@@ -449,7 +436,7 @@ export const syncAgentStats = async (req: Request, res: Response) => {
             data: stats
         });
     } catch (error) {
-        console.error("Stats sync error:", error);
+        logger.error("Stats sync error:", error);
         return res.status(500).json({ success: false, message: "Internal error" });
     }
 };

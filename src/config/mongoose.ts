@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { getMongoConfig, isDev, isProd, isSandbox } from '../utils/environment';
+import { logger } from '../utils';
 
 let connection: mongoose.Connection | null = null;
 
@@ -7,9 +8,9 @@ export const connectMongoose = async (): Promise<void> => {
     try {
         const mongoConfig = getMongoConfig();
 
-        console.log('🔌 Connecting to MongoDB with Mongoose...');
-        console.log(`   Environment: ${isProd() ? 'Production' : isSandbox() ? 'Sandbox' : 'Development'}`);
-        console.log(`   Database: ${mongoConfig.dbName}`);
+        logger.info('Connecting to MongoDB with Mongoose...');
+        logger.info(`Environment: ${isProd() ? 'Production' : isSandbox() ? 'Sandbox' : 'Development'}`);
+        logger.info(`Database: ${mongoConfig.dbName}`);
         mongoose.set('strictQuery', false);
 
         const mongooseOptions = {
@@ -25,21 +26,21 @@ export const connectMongoose = async (): Promise<void> => {
         connection = mongoose.connection;
 
         connection.on('error', (err) => {
-            console.error('❌ Mongoose connection error:', err);
+            logger.error('Mongoose connection error:', err);
         });
 
         connection.on('disconnected', () => {
-            console.log('❗ Mongoose disconnected');
+            logger.info('Mongoose disconnected');
         });
 
         connection.on('reconnected', () => {
-            console.log('✅ Mongoose reconnected');
+            logger.info('Mongoose reconnected');
         });
 
-        console.log('✅ Connected to MongoDB with Mongoose successfully');
+        logger.info('Connected to MongoDB with Mongoose successfully');
 
     } catch (error) {
-        console.error('❌ Mongoose connection error:', error);
+        logger.error('Mongoose connection error:', error);
         throw new Error(`Failed to connect to MongoDB with Mongoose: ${error}`);
     }
 };
@@ -47,7 +48,7 @@ export const connectMongoose = async (): Promise<void> => {
 export const closeMongoose = async (): Promise<void> => {
     if (connection) {
         await mongoose.disconnect();
-        console.log('📴 Mongoose connection closed');
+        logger.info('Mongoose connection closed');
     }
 };
 

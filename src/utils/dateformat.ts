@@ -1,4 +1,6 @@
-export type TimestampFormat = 
+import logger from "./logger";
+
+export type TimestampFormat =
     | 'iso'           // 2024-03-15T14:30:45.123Z
     | 'readable'      // 15 mars 2024 à 14:30:45
     | 'short'         // 15/03/2024 14:30
@@ -21,7 +23,7 @@ class DateFormatter {
     private defaultLocale: string = 'fr-FR';
     private defaultTimezone: string = 'Europe/Paris';
 
-    private constructor() {}
+    private constructor() { }
 
     public static getInstance(): DateFormatter {
         if (!DateFormatter.instance) {
@@ -30,9 +32,6 @@ class DateFormatter {
         return DateFormatter.instance;
     }
 
-    /**
-     * Formate un timestamp selon les options spécifiées
-     */
     public formatTimestamp(date?: Date | string | number, options: TimestampOptions = {}): string {
         try {
             const targetDate = this.parseDate(date);
@@ -71,7 +70,7 @@ class DateFormatter {
                     return this.formatReadable(targetDate, locale, timezone, includeTime, includeSeconds);
             }
         } catch (error) {
-            console.error('Erreur lors du formatage de la date:', error);
+            logger.error('Error during date formatting', error);
             return new Date().toISOString();
         }
     }
@@ -104,12 +103,12 @@ class DateFormatter {
         if (typeof date === 'string' || typeof date === 'number') {
             const parsed = new Date(date);
             if (isNaN(parsed.getTime())) {
-                throw new Error(`Date invalide: ${date}`);
+                throw new Error(`Invalid date: ${date}`);
             }
             return parsed;
         }
 
-        throw new Error(`Type de date non supporté: ${typeof date}`);
+        throw new Error(`Unsupported date type: ${typeof date}`);
     }
 
     private formatReadable(date: Date, locale: string, timezone: string, includeTime: boolean, includeSeconds: boolean): string {
@@ -179,7 +178,6 @@ class DateFormatter {
         } else if (diffDays < 7) {
             return `il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
         } else {
-            // Pour les dates plus anciennes, afficher la date formatée
             return this.formatReadable(date, locale, 'Europe/Paris', false, false);
         }
     }
@@ -204,7 +202,6 @@ class DateFormatter {
     }
 
     private formatApi(date: Date, timezone: string): string {
-        // Format ISO avec timezone spécifique
         return date.toLocaleDateString('sv-SE', {
             timeZone: timezone,
             year: 'numeric',
@@ -239,23 +236,21 @@ class DateFormatter {
     }
 }
 
-// Instance singleton
 const dateFormatter = DateFormatter.getInstance();
 
-// Exports pour faciliter l'utilisation
-export const formatTimestamp = (date?: Date | string | number, options?: TimestampOptions): string => 
+export const formatTimestamp = (date?: Date | string | number, options?: TimestampOptions): string =>
     dateFormatter.formatTimestamp(date, options);
 
-export const formatForLog = (date?: Date | string | number): string => 
+export const formatForLog = (date?: Date | string | number): string =>
     dateFormatter.formatForLog(date);
 
-export const formatForApi = (date?: Date | string | number): string => 
+export const formatForApi = (date?: Date | string | number): string =>
     dateFormatter.formatForApi(date);
 
-export const formatForUser = (date?: Date | string | number): string => 
+export const formatForUser = (date?: Date | string | number): string =>
     dateFormatter.formatForUser(date);
 
-export const formatRelativeTime = (date?: Date | string | number): string => 
+export const formatRelativeTime = (date?: Date | string | number): string =>
     dateFormatter.formatRelativeTime(date);
 
 export { dateFormatter };

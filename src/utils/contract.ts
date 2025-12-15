@@ -5,7 +5,7 @@ export const checkContractAccess = async (contractId: string, userBungieId: stri
     const contract = await ContractModel.findOne({ contractId });
 
     if (!contract) {
-        return { contract: null, hasAccess: false, error: "Contrat non trouvé" };
+        return { contract: null, hasAccess: false, error: "Contract not found" };
     }
 
     const privilegedRoles = ["FOUNDER"];
@@ -24,7 +24,7 @@ export const checkContractAccess = async (contractId: string, userBungieId: stri
         return {
             contract: null,
             hasAccess: false,
-            error: "Accès refusé — ce contrat ne vous appartient pas"
+            error: "Access denied — this contract doesn't belong to you"
         };
     }
 

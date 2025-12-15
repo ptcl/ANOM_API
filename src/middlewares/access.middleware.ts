@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { formatForUser } from '../utils';
+import logger from '../utils/logger';
 
 const AUTHORIZED_ROLES = ['FOUNDER'] as const;
 type AuthorizedRole = typeof AUTHORIZED_ROLES[number];
@@ -43,14 +43,12 @@ export const AccessMiddleware = async (
         );
 
         if (!hasAccess) {
-            console.warn('🚫 Unauthorized access attempt:', {
-                timestamp: formatForUser(),
+            logger.warn('Unauthorized access attempt', {
                 agentId: user.agentId,
                 attemptedRoles: rawRoles,
                 normalizedRoles,
                 required: AUTHORIZED_ROLES,
                 ip: req.ip,
-                userAgent: req.get('User-Agent'),
             });
 
             return res.status(403).json({
@@ -61,10 +59,8 @@ export const AccessMiddleware = async (
 
         return next();
     } catch (error: any) {
-        console.error('❌ Access middleware system error:', {
-            timestamp: formatForUser(),
+        logger.error('Access middleware system error', {
             error: error.message,
-            stack: error.stack,
             ip: req.ip,
             userAgent: req.get('User-Agent'),
         });
@@ -75,3 +71,4 @@ export const AccessMiddleware = async (
         });
     }
 };
+
