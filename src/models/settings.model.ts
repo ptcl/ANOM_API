@@ -20,7 +20,7 @@ export interface ISettings extends Document {
 }
 
 const SettingsSchema = new Schema({
-    roleOrder: { type: [String], default: ["FOUNDER", "ORACLE", "ECHO", "SPECTRE", "AGENT"], set: (v: string) => v.toUpperCase() },
+    roleOrder: { type: [String], default: ["FOUNDER", "ORACLE", "ECHO", "SPECTRE", "AGENT"], set: (v: string[]) => v.map(role => role.toUpperCase()) },
     roleAssignments: { type: [RoleAssignmentSchema], default: [] }
 }, { timestamps: true });
 
