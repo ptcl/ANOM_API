@@ -162,8 +162,25 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                     flattenedData['protocol.settings.publicProfile'] = !!updateData.protocol.settings.publicProfile;
                 }
 
-                if (updateData.protocol.settings.themes !== undefined &&
+                // Gestion des thèmes - un seul actif à la fois
+                if (updateData.protocol.settings.activeTheme !== undefined) {
+                    const validThemes = ['protocol', 'clovisBray', 'vanguard', 'blackArmory', 'opulence'];
+                    const activeTheme = updateData.protocol.settings.activeTheme;
+
+                    if (validThemes.includes(activeTheme)) {
+                        const themes: Record<string, boolean> = {
+                            protocol: false,
+                            clovisBray: false,
+                            vanguard: false,
+                            blackArmory: false,
+                            opulence: false
+                        };
+                        themes[activeTheme] = true;
+                        flattenedData['protocol.settings.themes'] = themes;
+                    }
+                } else if (updateData.protocol.settings.themes !== undefined &&
                     typeof updateData.protocol.settings.themes === 'object') {
+                    // Fallback: accepte aussi l'objet themes complet
                     flattenedData['protocol.settings.themes'] = updateData.protocol.settings.themes;
                 }
 
