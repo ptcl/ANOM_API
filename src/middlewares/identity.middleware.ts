@@ -52,7 +52,6 @@ export const IdentityMiddleware = async (req: Request, res: Response, next: Next
       const agent = await agentService.getAgentById(decoded.agentId);
 
       if (!agent) {
-        // Ne pas révéler si l'agent existe ou non
         return res.status(401).json({
           success: false,
           error: 'Unauthorized'

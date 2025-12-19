@@ -52,7 +52,6 @@ const fileFormat = winston.format.combine(
 
 const transports: winston.transport[] = [];
 
-// Console uniquement en développement (performance en prod)
 if (process.env.NODE_ENV !== 'production') {
     transports.push(
         new winston.transports.Console({

@@ -9,7 +9,6 @@ const swaggerUiOptions = {
     customCss: '.swagger-ui .topbar { display: none }',
 };
 
-// French documentation
 router.use('/fr', swaggerUi.serveFiles(swaggerSpecFr, swaggerUiOptions) as any);
 router.get('/fr', (req: Request, res: Response) => {
     res.send(swaggerUi.generateHTML(swaggerSpecFr, {
@@ -18,7 +17,6 @@ router.get('/fr', (req: Request, res: Response) => {
     }));
 });
 
-// English documentation (default)
 router.use('/', swaggerUi.serveFiles(swaggerSpec, swaggerUiOptions) as any);
 router.get('/', (req: Request, res: Response) => {
     res.send(swaggerUi.generateHTML(swaggerSpec, {

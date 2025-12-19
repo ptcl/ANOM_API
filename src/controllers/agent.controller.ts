@@ -32,13 +32,11 @@ export const getProfilAgent = async (req: Request, res: Response) => {
             });
         }
 
-        // Récupérer les détails des rôles
         const roleIds = agent.protocol.roles || [];
         const rolesDetails = await Role.find({ roleId: { $in: roleIds.map((r: string) => r.toUpperCase()) } })
             .select('roleId name description color')
             .lean();
 
-        // Mapper les rôles avec leurs détails
         const rolesWithDetails = roleIds.map((roleId: string) => {
             const roleDetail = rolesDetails.find((r: any) => r.roleId === roleId.toUpperCase());
             return roleDetail ? {
@@ -162,7 +160,6 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                     flattenedData['protocol.settings.publicProfile'] = !!updateData.protocol.settings.publicProfile;
                 }
 
-                // Gestion des thèmes - un seul actif à la fois
                 if (updateData.protocol.settings.activeTheme !== undefined) {
                     const validThemes = ['protocol', 'clovisBray', 'vanguard', 'blackArmory', 'opulence'];
                     const activeTheme = updateData.protocol.settings.activeTheme;
@@ -180,7 +177,6 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                     }
                 } else if (updateData.protocol.settings.themes !== undefined &&
                     typeof updateData.protocol.settings.themes === 'object') {
-                    // Fallback: accepte aussi l'objet themes complet
                     flattenedData['protocol.settings.themes'] = updateData.protocol.settings.themes;
                 }
 
