@@ -38,11 +38,19 @@ export interface IBungieUser {
     cachedBungieGlobalDisplayNameCode?: number;
 }
 
+export interface IProtocolThemes {
+    protocol: boolean;
+    clovisBray: boolean;
+    vanguard: boolean;
+    blackArmory: boolean;
+    opulence: boolean;
+}
+
 export interface IAgentSettings {
     notifications: boolean;
     publicProfile: boolean;
-    protocolOSTheme?: "DEFAULT" | "DARKNESS";
-    protocolSounds?: boolean;
+    themes?: IProtocolThemes;
+    soundEffects?: boolean;
     language?: string;
 }
 
@@ -79,6 +87,7 @@ export type AgentSpecies = "HUMAN" | "EXO" | "AWOKEN";
 export interface IProtocolProfile {
     agentName: string;
     customName?: string;
+    bio?: string;
     badges: IAgentBadge[];
     species: AgentSpecies;
     roles: AgentRole[];

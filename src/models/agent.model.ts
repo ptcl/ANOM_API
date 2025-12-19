@@ -38,11 +38,19 @@ const BungieUserSchema = new Schema({
   cachedBungieGlobalDisplayNameCode: Number
 }, { _id: false });
 
+const ProtocolThemesSchema = new Schema({
+  protocol: { type: Boolean, default: true },
+  clovisBray: { type: Boolean, default: false },
+  vanguard: { type: Boolean, default: false },
+  blackArmory: { type: Boolean, default: false },
+  opulence: { type: Boolean, default: false }
+}, { _id: false });
+
 const AgentSettingsSchema = new Schema({
   notifications: { type: Boolean, default: true },
   publicProfile: { type: Boolean, default: true },
-  protocolOSTheme: { type: String, enum: ["DEFAULT", "DARKNESS"], default: "DEFAULT", set: (v: string) => v.toUpperCase() },
-  protocolSounds: { type: Boolean, default: true },
+  themes: ProtocolThemesSchema,
+  soundEffects: { type: Boolean, default: true },
   language: { type: String, default: "fr" }
 }, { _id: false });
 
@@ -76,6 +84,7 @@ const AgentTimelineLocalizationSchema = new Schema({
 const ProtocolSchema = new Schema({
   agentName: { type: String, required: true },
   customName: String,
+  bio: { type: String, maxlength: 500, trim: true },
   species: { type: String, enum: ["HUMAN", "EXO", "AWOKEN"], default: "HUMAN", set: (v: string) => v.toUpperCase() },
   roles: { type: [String], default: ["AGENT"], set: (v: string[] | string) => Array.isArray(v) ? v.map((r) => r.toUpperCase()) : [v.toUpperCase()] },
   clearanceLevel: { type: Number, default: 1 },

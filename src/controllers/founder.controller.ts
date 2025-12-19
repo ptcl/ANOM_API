@@ -137,25 +137,24 @@ export const FounderUpdateAgent = async (req: Request, res: Response) => {
                     protocolUpdates.settings.publicProfile = updateData.protocol.settings.publicProfile;
                 }
 
-                if (updateData.protocol.settings.protocolOSTheme !== undefined) {
-                    const allowedThemes = ['DEFAULT', 'DARKNESS'];
-                    if (!allowedThemes.includes(updateData.protocol.settings.protocolOSTheme)) {
+                if (updateData.protocol.settings.themes !== undefined) {
+                    if (typeof updateData.protocol.settings.themes !== 'object') {
                         return ApiResponseBuilder.error(res, 400, {
-                            message: 'Invalid theme. Must be DEFAULT or DARKNESS',
+                            message: 'themes must be an object',
                             error: 'validation_error'
                         });
                     }
-                    protocolUpdates.settings.protocolOSTheme = updateData.protocol.settings.protocolOSTheme;
+                    protocolUpdates.settings.themes = updateData.protocol.settings.themes;
                 }
 
-                if (updateData.protocol.settings.protocolSounds !== undefined) {
-                    if (typeof updateData.protocol.settings.protocolSounds !== 'boolean') {
+                if (updateData.protocol.settings.soundEffects !== undefined) {
+                    if (typeof updateData.protocol.settings.soundEffects !== 'boolean') {
                         return ApiResponseBuilder.error(res, 400, {
-                            message: 'protocolSounds must be a boolean',
+                            message: 'soundEffects must be a boolean',
                             error: 'validation_error'
                         });
                     }
-                    protocolUpdates.settings.protocolSounds = updateData.protocol.settings.protocolSounds;
+                    protocolUpdates.settings.soundEffects = updateData.protocol.settings.soundEffects;
                 }
 
                 if (updateData.protocol.settings.language !== undefined) {

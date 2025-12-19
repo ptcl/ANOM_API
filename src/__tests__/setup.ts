@@ -42,8 +42,8 @@ export const createMockAgent = (overrides = {}) => ({
         settings: {
             notifications: true,
             publicProfile: true,
-            protocolOSTheme: 'DEFAULT',
-            protocolSounds: true,
+            themes: { protocol: true, clovisBray: false, vanguard: false, blackArmory: false, opulence: false },
+            soundEffects: true,
             language: 'fr'
         },
         badges: [],

@@ -218,9 +218,9 @@ export async function leaderLeave(divisionId: string, leaderBungieId: string): P
 }
 
 const SYSTEM_DIVISIONS = [
-    { divisionId: 'PROTOCOL', name: 'Protocole', description: 'Division principale', isSystem: true },
-    { divisionId: 'AURORA', name: 'Aurora', description: 'Programme spécial', isSystem: true },
-    { divisionId: 'ZENITH', name: 'Zénith', description: 'Programme avancé', isSystem: true },
+    { divisionId: 'PROTOCOL', name: 'Protocol', description: 'division.protocol.description', color: '#626FDA', icon: 'shield', isSystem: true },
+    { divisionId: 'AURORA', name: 'Aurora', description: 'division.aurora.description', color: '#EA3E5A', icon: 'sunrise', isSystem: true },
+    { divisionId: 'ZENITH', name: 'Zénith', description: 'division.zenith.description', color: '#7B1CB0', icon: 'zap', isSystem: true },
 ];
 
 export async function seedSystemDivisions(): Promise<void> {
@@ -234,6 +234,8 @@ export async function seedSystemDivisions(): Promise<void> {
                     divisionId: divData.divisionId,
                     name: divData.name,
                     description: divData.description,
+                    color: divData.color,
+                    icon: divData.icon,
                     isSystem: true
                 });
                 created++;

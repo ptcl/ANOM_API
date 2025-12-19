@@ -33,6 +33,8 @@ export async function getMyDivision(req: Request, res: Response): Promise<void> 
                     divisionId: divisionId,
                     name: divisionId,
                     description: null,
+                    color: null,
+                    icon: null,
                     isSystem: true,
                     isLeader: false,
                     memberCount: 0,

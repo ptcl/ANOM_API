@@ -291,8 +291,8 @@ class AgentService implements IAgentService {
                         settings: {
                             notifications: true,
                             publicProfile: true,
-                            protocolOSTheme: 'DEFAULT',
-                            protocolSounds: true
+                            themes: { protocol: true, clovisBray: false, vanguard: false, blackArmory: false, opulence: false },
+                            soundEffects: true
                         },
                         stats: { ...DEFAULT_STATS }
                     },

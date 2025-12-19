@@ -11,16 +11,43 @@
  *         publicProfile:
  *           type: boolean
  *           example: true
- *         protocolOSTheme:
- *           type: string
- *           enum: [DEFAULT, DARKNESS]
- *           example: DEFAULT
- *         protocolSounds:
+ *         themes:
+ *           type: object
+ *           properties:
+ *             protocol:
+ *               type: boolean
+ *             clovisBray:
+ *               type: boolean
+ *             vanguard:
+ *               type: boolean
+ *             blackArmory:
+ *               type: boolean
+ *             opulence:
+ *               type: boolean
+ *           example: { protocol: true, clovisBray: false, vanguard: false, blackArmory: false, opulence: false }
+ *         soundEffects:
  *           type: boolean
  *           example: true
  *         language:
  *           type: string
  *           example: "en"
+ *
+ *     RoleDetail:
+ *       type: object
+ *       properties:
+ *         roleId:
+ *           type: string
+ *           example: "AGENT"
+ *         name:
+ *           type: string
+ *           example: "Agent"
+ *         description:
+ *           type: string
+ *           nullable: true
+ *           example: "Membre du protocole"
+ *         color:
+ *           type: string
+ *           example: "#C0C0C0"
  *
  *     AgentProtocol:
  *       type: object
@@ -32,9 +59,11 @@
  *           type: string
  *           nullable: true
  *           example: "The Wanderer"
- *         uniqueName:
+ *         bio:
  *           type: string
- *           example: "shadow-7#1234"
+ *           nullable: true
+ *           maxLength: 500
+ *           example: "Guardian depuis 2017, passionné par les raids"
  *         species:
  *           type: string
  *           enum: [HUMAN, EXO, AWOKEN]
@@ -42,8 +71,7 @@
  *         roles:
  *           type: array
  *           items:
- *             type: string
- *           example: ["AGENT", "ECHO"]
+ *             $ref: '#/components/schemas/RoleDetail'
  *         clearanceLevel:
  *           type: integer
  *           minimum: 0
@@ -52,7 +80,7 @@
  *         division:
  *           type: string
  *           nullable: true
- *           example: "ALPHA-TEAM"
+ *           example: "PROTOCOL"
  *         hasSeenRecruitment:
  *           type: boolean
  *           example: true

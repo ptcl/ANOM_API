@@ -49,7 +49,7 @@
  *           type: string
  *           format: date-time
  *
- * /agent/code/redeem:
+ * /agent/reward-code/redeem:
  *   post:
  *     tags: [Reward Codes]
  *     summary: Redeem a code

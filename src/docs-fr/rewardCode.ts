@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /agent/code/redeem:
+ * /agent/reward-code/redeem:
  *   post:
  *     tags: [Codes Promo]
  *     summary: Utiliser un code

@@ -16,8 +16,8 @@ const DivisionSchema = new Schema({
     divisionId: { type: String, required: true, unique: true, uppercase: true, trim: true },
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
-    color: { type: String, trim: true },
-    icon: { type: String, trim: true },
+    color: { type: String, trim: true, default: "#808080" },
+    icon: { type: String, trim: true, default: "users" },
     leaderId: { type: String, trim: true },
     isSystem: { type: Boolean, default: false }
 }, { timestamps: true });

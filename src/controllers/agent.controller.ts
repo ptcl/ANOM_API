@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { agentService } from '../services/agent.service';
 import { Agent } from '../models/agent.model';
+import { Role } from '../models/role.model';
 import { logger } from '../utils';
 import { findAgentByIdentifier } from '../utils/verifyAgent.helper';
 import { agentMigrationService, agentStatsService } from '../services/agentStat.service';
@@ -31,6 +32,28 @@ export const getProfilAgent = async (req: Request, res: Response) => {
             });
         }
 
+        // Récupérer les détails des rôles
+        const roleIds = agent.protocol.roles || [];
+        const rolesDetails = await Role.find({ roleId: { $in: roleIds.map((r: string) => r.toUpperCase()) } })
+            .select('roleId name description color')
+            .lean();
+
+        // Mapper les rôles avec leurs détails
+        const rolesWithDetails = roleIds.map((roleId: string) => {
+            const roleDetail = rolesDetails.find((r: any) => r.roleId === roleId.toUpperCase());
+            return roleDetail ? {
+                roleId: roleDetail.roleId,
+                name: roleDetail.name,
+                description: roleDetail.description,
+                color: roleDetail.color
+            } : {
+                roleId: roleId,
+                name: roleId,
+                description: null,
+                color: '#808080'
+            };
+        });
+
         const formattedAgent = {
             _id: agent._id,
             bungieId: agent.bungieId,
@@ -39,9 +62,10 @@ export const getProfilAgent = async (req: Request, res: Response) => {
             protocol: {
                 agentName: agent.protocol.agentName,
                 customName: agent.protocol.customName,
+                bio: agent.protocol.bio,
                 badges: agent.protocol.badges,
                 species: agent.protocol.species,
-                roles: agent.protocol.roles,
+                roles: rolesWithDetails,
                 clearanceLevel: agent.protocol.clearanceLevel,
                 hasSeenRecruitment: agent.protocol.hasSeenRecruitment,
                 protocolJoinedAt: agent.protocol.protocolJoinedAt,
@@ -116,6 +140,15 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                     flattenedData['protocol.customName'] = undefined;
                 }
             }
+
+            if (updateData.protocol.bio !== undefined) {
+                if (typeof updateData.protocol.bio === 'string' && updateData.protocol.bio.length <= 500) {
+                    flattenedData['protocol.bio'] = updateData.protocol.bio.trim();
+                } else if (updateData.protocol.bio === null || updateData.protocol.bio === '') {
+                    flattenedData['protocol.bio'] = undefined;
+                }
+            }
+
             if (updateData.protocol.species !== undefined &&
                 ['HUMAN', 'EXO', 'AWOKEN'].includes(updateData.protocol.species)) {
                 flattenedData['protocol.species'] = updateData.protocol.species;
@@ -129,13 +162,13 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                     flattenedData['protocol.settings.publicProfile'] = !!updateData.protocol.settings.publicProfile;
                 }
 
-                if (updateData.protocol.settings.protocolOSTheme !== undefined &&
-                    ['DEFAULT', 'DARKNESS'].includes(updateData.protocol.settings.protocolOSTheme)) {
-                    flattenedData['protocol.settings.protocolOSTheme'] = updateData.protocol.settings.protocolOSTheme;
+                if (updateData.protocol.settings.themes !== undefined &&
+                    typeof updateData.protocol.settings.themes === 'object') {
+                    flattenedData['protocol.settings.themes'] = updateData.protocol.settings.themes;
                 }
 
-                if (updateData.protocol.settings.protocolSounds !== undefined) {
-                    flattenedData['protocol.settings.protocolSounds'] = !!updateData.protocol.settings.protocolSounds;
+                if (updateData.protocol.settings.soundEffects !== undefined) {
+                    flattenedData['protocol.settings.soundEffects'] = !!updateData.protocol.settings.soundEffects;
                 }
 
                 if (updateData.protocol.settings.language !== undefined &&

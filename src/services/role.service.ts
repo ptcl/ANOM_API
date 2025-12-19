@@ -1,7 +1,8 @@
-import { Role, IRole } from "../models/role.model";
+import { Role } from "../models/role.model";
 import { Settings, getSettings, IRoleAssignment } from "../models/settings.model";
 import { Agent } from "../models/agent.model";
 import { logger } from "../utils";
+import { IRoleDocument } from "../types/role";
 
 interface CreateRoleInput {
     roleId: string;
@@ -18,7 +19,7 @@ interface UpdateRoleInput {
 }
 
 
-export async function createRole(data: CreateRoleInput): Promise<IRole> {
+export async function createRole(data: CreateRoleInput): Promise<IRoleDocument> {
     const existing = await Role.findOne({ roleId: data.roleId.toUpperCase() });
     if (existing) {
         throw new Error(`Le rôle ${data.roleId} existe déjà`);
@@ -60,7 +61,7 @@ export async function createRole(data: CreateRoleInput): Promise<IRole> {
     return role;
 }
 
-export async function getAllRoles(): Promise<IRole[]> {
+export async function getAllRoles(): Promise<IRoleDocument[]> {
     const settings = await getSettings();
     const roles = await Role.find();
 
@@ -73,11 +74,11 @@ export async function getAllRoles(): Promise<IRole[]> {
     });
 }
 
-export async function getRoleById(roleId: string): Promise<IRole | null> {
+export async function getRoleById(roleId: string): Promise<IRoleDocument | null> {
     return Role.findOne({ roleId: roleId.toUpperCase() });
 }
 
-export async function updateRole(roleId: string, data: UpdateRoleInput): Promise<IRole | null> {
+export async function updateRole(roleId: string, data: UpdateRoleInput): Promise<IRoleDocument | null> {
     const role = await Role.findOne({ roleId: roleId.toUpperCase() });
 
     if (!role) {
@@ -210,12 +211,12 @@ export async function getRoleAssignmentForBungieId(bungieId: string): Promise<IR
 }
 
 const SYSTEM_ROLES = [
-    { roleId: 'FOUNDER', name: 'Fondateur', description: 'Créateur du protocole', isSystem: true },
-    { roleId: 'ARCHITECT', name: 'Architecte', description: 'Administrateur système', isSystem: true },
-    { roleId: 'ORACLE', name: 'Oracle', description: 'Modérateur senior', isSystem: true },
-    { roleId: 'ECHO', name: 'Écho', description: 'Modérateur', isSystem: true },
-    { roleId: 'EMISSARY', name: 'Émissaire', description: 'Ambassadeur', isSystem: true },
-    { roleId: 'AGENT', name: 'Agent', description: 'Membre du protocole', isSystem: true },
+    { roleId: 'FOUNDER', name: 'role.founder.title', description: 'role.founder.description', color: '#3A4BD1', permissions: [], isSystem: true },
+    { roleId: 'ARCHITECT', name: 'role.architect.title', description: 'role.architect.description', color: '#DAC762', permissions: [], isSystem: true },
+    { roleId: 'ORACLE', name: 'role.oracle.title', description: 'role.oracle.description', color: '#62DAAC', permissions: [], isSystem: true },
+    { roleId: 'ECHO', name: 'role.echo.title', description: 'role.echo.description', color: '#DAB062', permissions: [], isSystem: true },
+    { roleId: 'EMISSARY', name: 'role.emissary.title', description: 'role.emissary.description', color: '#DA629E', permissions: [], isSystem: true },
+    { roleId: 'AGENT', name: 'role.agent.title', description: 'role.agent.description', color: '#C0C0C0', permissions: [], isSystem: true },
 ];
 
 export async function seedSystemRoles(): Promise<void> {

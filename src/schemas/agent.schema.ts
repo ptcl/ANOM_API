@@ -1,14 +1,20 @@
 import { z } from 'zod';
 
 export const SpeciesEnum = z.enum(['HUMAN', 'EXO', 'AWOKEN']);
-export const ThemeEnum = z.enum(['DEFAULT', 'DARKNESS']);
+export const ProtocolThemesSchema = z.object({
+    protocol: z.boolean().optional(),
+    clovisBray: z.boolean().optional(),
+    vanguard: z.boolean().optional(),
+    blackArmory: z.boolean().optional(),
+    opulence: z.boolean().optional()
+}).optional();
 export const RoleEnum = z.enum(['AGENT', 'ECHO', 'ORACLE', 'ARCHITECT', 'FOUNDER', 'EMISSARY']);
 
 const SettingsSchema = z.object({
     notifications: z.boolean().optional(),
     publicProfile: z.boolean().optional(),
-    protocolOSTheme: ThemeEnum.optional(),
-    protocolSounds: z.boolean().optional(),
+    themes: ProtocolThemesSchema,
+    soundEffects: z.boolean().optional(),
     language: z.string().max(10, 'Language code too long').optional()
 }).optional();
 
