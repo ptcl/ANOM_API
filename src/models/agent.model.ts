@@ -38,18 +38,10 @@ const BungieUserSchema = new Schema({
   cachedBungieGlobalDisplayNameCode: Number
 }, { _id: false });
 
-const ProtocolThemesSchema = new Schema({
-  protocol: { type: Boolean, default: true },
-  clovisBray: { type: Boolean, default: false },
-  vanguard: { type: Boolean, default: false },
-  blackArmory: { type: Boolean, default: false },
-  opulence: { type: Boolean, default: false }
-}, { _id: false });
-
 const AgentSettingsSchema = new Schema({
   notifications: { type: Boolean, default: true },
   publicProfile: { type: Boolean, default: true },
-  themes: ProtocolThemesSchema,
+  activeTheme: { type: String, default: "protocol", lowercase: true },
   soundEffects: { type: Boolean, default: true },
   language: { type: String, default: "fr" }
 }, { _id: false });

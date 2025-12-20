@@ -1,19 +1,13 @@
 import { z } from 'zod';
 
 export const SpeciesEnum = z.enum(['HUMAN', 'EXO', 'AWOKEN']);
-export const ProtocolThemesSchema = z.object({
-    protocol: z.boolean().optional(),
-    clovisBray: z.boolean().optional(),
-    vanguard: z.boolean().optional(),
-    blackArmory: z.boolean().optional(),
-    opulence: z.boolean().optional()
-}).optional();
+export const ThemeIdEnum = z.enum(['protocol', 'clovisBray', 'vanguard', 'blackArmory', 'opulence']);
 export const RoleEnum = z.enum(['AGENT', 'ECHO', 'ORACLE', 'ARCHITECT', 'FOUNDER', 'EMISSARY']);
 
 const SettingsSchema = z.object({
     notifications: z.boolean().optional(),
     publicProfile: z.boolean().optional(),
-    themes: ProtocolThemesSchema,
+    activeTheme: ThemeIdEnum.optional(),
     soundEffects: z.boolean().optional(),
     language: z.string().max(10, 'Language code too long').optional()
 }).optional();
@@ -22,6 +16,10 @@ export const UpdateAgentProfileSchema = z.object({
     protocol: z.object({
         customName: z.string()
             .max(50, 'Custom name cannot exceed 50 characters')
+            .nullable()
+            .optional(),
+        bio: z.string()
+            .max(500, 'Bio cannot exceed 500 characters')
             .nullable()
             .optional(),
         species: SpeciesEnum.optional(),

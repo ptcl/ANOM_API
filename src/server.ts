@@ -3,6 +3,7 @@ import { connectDB, dbHealthCheck, closeDB } from './config/database';
 import { connectMongoose, closeMongoose } from './config/mongoose';
 import { seedSystemRoles } from './services/role.service';
 import { seedSystemDivisions } from './services/division.service';
+import { seedSystemThemes } from './models/settings.model';
 import app from './app';
 import logger from './utils/logger';
 
@@ -20,6 +21,7 @@ const startServer = async () => {
 
         await seedSystemRoles();
         await seedSystemDivisions();
+        await seedSystemThemes();
 
         const serverConfig = getServerConfig();
 

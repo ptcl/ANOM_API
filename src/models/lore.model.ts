@@ -45,7 +45,6 @@ const LoreSchema = new mongoose.Schema({
 LoreSchema.pre('save', function () {
     this.totalPages = this.pages?.length || 0;
 });
-LoreSchema.index({ loreId: 1 });
 LoreSchema.index({ category: 1 });
 LoreSchema.index({ status: 1, visibility: 1 });
 LoreSchema.index({ tags: 1 });

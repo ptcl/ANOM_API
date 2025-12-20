@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { agentService } from '../services/agent.service';
 import { Agent } from '../models/agent.model';
 import { Role } from '../models/role.model';
+import { Division } from '../models/division.model';
+import { getThemeById } from '../models/settings.model';
 import { logger } from '../utils';
 import { findAgentByIdentifier } from '../utils/verifyAgent.helper';
 import { agentMigrationService, agentStatsService } from '../services/agentStat.service';
@@ -52,6 +54,36 @@ export const getProfilAgent = async (req: Request, res: Response) => {
             };
         });
 
+        const divisionId = agent.protocol.division;
+        let divisionDetails = null;
+        if (divisionId) {
+            const division = await Division.findOne({ divisionId: divisionId.toUpperCase() })
+                .select('divisionId name description color icon')
+                .lean();
+            if (division) {
+                divisionDetails = {
+                    divisionId: division.divisionId,
+                    name: division.name,
+                    description: division.description || null,
+                    color: division.color || '#808080',
+                    icon: division.icon || 'users'
+                };
+            }
+        }
+
+        const activeThemeId = (agent.protocol.settings as any)?.activeTheme || 'protocol';
+        const themeDetails = await getThemeById(activeThemeId);
+        const enrichedSettings = {
+            ...agent.protocol.settings,
+            activeTheme: themeDetails || {
+                themeId: activeThemeId,
+                name: activeThemeId,
+                primary: '#626FDA',
+                secondary: '#1a1a2e',
+                accent: '#00d4ff'
+            }
+        };
+
         const formattedAgent = {
             _id: agent._id,
             bungieId: agent.bungieId,
@@ -67,8 +99,8 @@ export const getProfilAgent = async (req: Request, res: Response) => {
                 clearanceLevel: agent.protocol.clearanceLevel,
                 hasSeenRecruitment: agent.protocol.hasSeenRecruitment,
                 protocolJoinedAt: agent.protocol.protocolJoinedAt,
-                division: agent.protocol.division,
-                settings: agent.protocol.settings,
+                division: divisionDetails || { divisionId: divisionId || 'PROTOCOL', name: divisionId || 'Protocol', description: null, color: '#808080', icon: 'users' },
+                settings: enrichedSettings,
                 stats: agent.protocol.stats
             },
             timelines: agent.timelines,
@@ -162,22 +194,11 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
 
                 if (updateData.protocol.settings.activeTheme !== undefined) {
                     const validThemes = ['protocol', 'clovisBray', 'vanguard', 'blackArmory', 'opulence'];
-                    const activeTheme = updateData.protocol.settings.activeTheme;
+                    const activeTheme = updateData.protocol.settings.activeTheme.toLowerCase();
 
                     if (validThemes.includes(activeTheme)) {
-                        const themes: Record<string, boolean> = {
-                            protocol: false,
-                            clovisBray: false,
-                            vanguard: false,
-                            blackArmory: false,
-                            opulence: false
-                        };
-                        themes[activeTheme] = true;
-                        flattenedData['protocol.settings.themes'] = themes;
+                        flattenedData['protocol.settings.activeTheme'] = activeTheme;
                     }
-                } else if (updateData.protocol.settings.themes !== undefined &&
-                    typeof updateData.protocol.settings.themes === 'object') {
-                    flattenedData['protocol.settings.themes'] = updateData.protocol.settings.themes;
                 }
 
                 if (updateData.protocol.settings.soundEffects !== undefined) {
@@ -226,6 +247,7 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                     protocol: {
                         agentName: updatedAgent.protocol.agentName,
                         customName: updatedAgent.protocol.customName,
+                        bio: updatedAgent.protocol.bio || null,
                         species: updatedAgent.protocol.species,
                         hasSeenRecruitment: updatedAgent.protocol.hasSeenRecruitment,
                         settings: updatedAgent.protocol.settings

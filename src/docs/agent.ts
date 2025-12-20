@@ -2,6 +2,25 @@
  * @swagger
  * components:
  *   schemas:
+ *     ActiveTheme:
+ *       type: object
+ *       properties:
+ *         themeId:
+ *           type: string
+ *           example: "protocol"
+ *         name:
+ *           type: string
+ *           example: "Protocol"
+ *         primary:
+ *           type: string
+ *           example: "#626FDA"
+ *         secondary:
+ *           type: string
+ *           example: "#1a1a2e"
+ *         accent:
+ *           type: string
+ *           example: "#00d4ff"
+ *
  *     AgentSettings:
  *       type: object
  *       properties:
@@ -11,26 +30,14 @@
  *         publicProfile:
  *           type: boolean
  *           example: true
- *         themes:
- *           type: object
- *           properties:
- *             protocol:
- *               type: boolean
- *             clovisBray:
- *               type: boolean
- *             vanguard:
- *               type: boolean
- *             blackArmory:
- *               type: boolean
- *             opulence:
- *               type: boolean
- *           example: { protocol: true, clovisBray: false, vanguard: false, blackArmory: false, opulence: false }
+ *         activeTheme:
+ *           $ref: '#/components/schemas/ActiveTheme'
  *         soundEffects:
  *           type: boolean
  *           example: true
  *         language:
  *           type: string
- *           example: "en"
+ *           example: "fr"
  *
  *     RoleDetail:
  *       type: object
@@ -44,10 +51,30 @@
  *         description:
  *           type: string
  *           nullable: true
- *           example: "Membre du protocole"
+ *           example: "Protocol member"
  *         color:
  *           type: string
  *           example: "#C0C0C0"
+ *
+ *     DivisionDetail:
+ *       type: object
+ *       properties:
+ *         divisionId:
+ *           type: string
+ *           example: "PROTOCOL"
+ *         name:
+ *           type: string
+ *           example: "Protocol"
+ *         description:
+ *           type: string
+ *           nullable: true
+ *           example: "Main division"
+ *         color:
+ *           type: string
+ *           example: "#626FDA"
+ *         icon:
+ *           type: string
+ *           example: "shield"
  *
  *     AgentProtocol:
  *       type: object
@@ -63,7 +90,7 @@
  *           type: string
  *           nullable: true
  *           maxLength: 500
- *           example: "Guardian depuis 2017, passionné par les raids"
+ *           example: "Guardian since 2017, passionate about raids"
  *         species:
  *           type: string
  *           enum: [HUMAN, EXO, AWOKEN]
@@ -78,9 +105,7 @@
  *           maximum: 10
  *           example: 3
  *         division:
- *           type: string
- *           nullable: true
- *           example: "PROTOCOL"
+ *           $ref: '#/components/schemas/DivisionDetail'
  *         hasSeenRecruitment:
  *           type: boolean
  *           example: true

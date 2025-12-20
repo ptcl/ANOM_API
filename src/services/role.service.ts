@@ -222,6 +222,7 @@ const SYSTEM_ROLES = [
 export async function seedSystemRoles(): Promise<void> {
     try {
         let created = 0;
+        let updated = 0;
 
         for (const roleData of SYSTEM_ROLES) {
             const existing = await Role.findOne({ roleId: roleData.roleId });
@@ -230,11 +231,32 @@ export async function seedSystemRoles(): Promise<void> {
                     roleId: roleData.roleId,
                     name: roleData.name,
                     description: roleData.description,
+                    color: roleData.color,
                     permissions: [],
                     isSystem: true
                 });
                 created++;
                 logger.info(`System role created: ${roleData.roleId}`);
+            } else {
+                const needsUpdate =
+                    existing.name !== roleData.name ||
+                    existing.description !== roleData.description ||
+                    existing.color !== roleData.color;
+
+                if (needsUpdate) {
+                    await Role.updateOne(
+                        { roleId: roleData.roleId },
+                        {
+                            $set: {
+                                name: roleData.name,
+                                description: roleData.description,
+                                color: roleData.color
+                            }
+                        }
+                    );
+                    updated++;
+                    logger.info(`System role updated: ${roleData.roleId}`);
+                }
             }
         }
 
@@ -255,10 +277,10 @@ export async function seedSystemRoles(): Promise<void> {
             logger.info('roleOrder updated');
         }
 
-        if (created > 0) {
-            logger.info(`🎭 ${created} system role(s) initialized`);
+        if (created > 0 || updated > 0) {
+            logger.info(`🎭 System roles: ${created} created, ${updated} updated`);
         } else {
-            logger.info('System roles already initialized');
+            logger.info('System roles already up to date');
         }
     } catch (error: any) {
         logger.error('Error seeding system roles', error.message);

@@ -443,7 +443,7 @@ export class TimelineService {
 
         const participant = timeline.participants.find((p: any) => p.agentId === agentId);
         if (participant) {
-            participant.progress = completionResult.progress; // % de complétion
+            participant.progress = completionResult.progress;
             participant.fragmentsFound = agentTimeline.fragmentsFound;
             participant.fragmentsCollected = agentTimeline.fragmentsCollected;
             participant.keysFound = agentTimeline.keysFound;

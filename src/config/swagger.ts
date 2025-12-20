@@ -1,16 +1,17 @@
 import swaggerJSDoc from 'swagger-jsdoc';
+import { version } from '../../package.json';
 
 // English documentation
 const swaggerOptionsEn = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'AN0M Protocol API',
-      version: '3.0.0',
-      description: 'REST API for the AN0M Protocol management system. Handles agents, contracts, badges, divisions, timelines, and more.',
+      title: 'AN0M Archives API',
+      version,
+      description: 'REST API for the AN0M Archives management system. Handles agents, contracts, badges, divisions, timelines, and more.',
       contact: {
-        name: 'Protocol Support',
-        url: 'https://protocol.anom.com/support',
+        name: 'Anom Support',
+        url: 'https://anom-archives.net/support',
       },
     },
     servers: [
@@ -42,6 +43,7 @@ const swaggerOptionsEn = {
       { name: 'Emblems', description: 'Destiny emblem management' },
       { name: 'Divisions', description: 'Division/team management' },
       { name: 'Roles', description: 'Dynamic role management' },
+      { name: 'Themes', description: 'Theme customization' },
       { name: 'Timelines', description: 'Interactive timeline system' },
       { name: 'Lore', description: 'Lore/story management' },
       { name: 'Announcements', description: 'System announcements' },
@@ -60,12 +62,12 @@ const swaggerOptionsFr = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'API AN0M Protocol',
-      version: '3.0.0',
-      description: 'API REST pour le système de gestion du Protocol AN0M. Gère les agents, contrats, badges, divisions, timelines, et plus.',
+      title: 'API AN0M Archives',
+      version,
+      description: 'API REST pour le système de gestion des Archives AN0M. Gère les agents, contrats, badges, divisions, timelines, et plus.',
       contact: {
         name: 'Support Protocol',
-        url: 'https://protocol.anom.com/support',
+        url: 'https://anom-archives.net/support',
       },
     },
     servers: [
@@ -97,6 +99,7 @@ const swaggerOptionsFr = {
       { name: 'Emblèmes', description: 'Gestion des emblèmes Destiny' },
       { name: 'Divisions', description: 'Gestion des divisions/équipes' },
       { name: 'Rôles', description: 'Gestion des rôles dynamiques' },
+      { name: 'Thèmes', description: 'Personnalisation des thèmes' },
       { name: 'Timelines', description: 'Système de timelines interactives' },
       { name: 'Lore', description: 'Gestion des lores/histoires' },
       { name: 'Annonces', description: 'Annonces système' },

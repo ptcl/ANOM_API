@@ -10,6 +10,7 @@ import loreRoutes from './lore.routes';
 import utilsRoutes from './utils.routes';
 import roleRoutes from './role.routes';
 import divisionRoutes from './division.routes';
+import themeRoutes from './theme.routes';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use(loreRoutes);
 router.use(utilsRoutes);
 router.use(roleRoutes);
 router.use(divisionRoutes);
+router.use(themeRoutes);
 
 export default router;
 

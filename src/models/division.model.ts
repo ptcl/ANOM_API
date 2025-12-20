@@ -22,6 +22,4 @@ const DivisionSchema = new Schema({
     isSystem: { type: Boolean, default: false }
 }, { timestamps: true });
 
-DivisionSchema.index({ divisionId: 1 }, { unique: true });
-
 export const Division = model<IDivision>('Division', DivisionSchema);

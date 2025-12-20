@@ -226,6 +226,7 @@ const SYSTEM_DIVISIONS = [
 export async function seedSystemDivisions(): Promise<void> {
     try {
         let created = 0;
+        let updated = 0;
 
         for (const divData of SYSTEM_DIVISIONS) {
             const existing = await Division.findOne({ divisionId: divData.divisionId });
@@ -240,13 +241,35 @@ export async function seedSystemDivisions(): Promise<void> {
                 });
                 created++;
                 logger.info(`System division created: ${divData.divisionId}`);
+            } else {
+                const needsUpdate =
+                    existing.name !== divData.name ||
+                    existing.description !== divData.description ||
+                    existing.color !== divData.color ||
+                    existing.icon !== divData.icon;
+
+                if (needsUpdate) {
+                    await Division.updateOne(
+                        { divisionId: divData.divisionId },
+                        {
+                            $set: {
+                                name: divData.name,
+                                description: divData.description,
+                                color: divData.color,
+                                icon: divData.icon
+                            }
+                        }
+                    );
+                    updated++;
+                    logger.info(`System division updated: ${divData.divisionId}`);
+                }
             }
         }
 
-        if (created > 0) {
-            logger.info(`${created} system division(s) initialized`);
+        if (created > 0 || updated > 0) {
+            logger.info(`🏛️ System divisions: ${created} created, ${updated} updated`);
         } else {
-            logger.info('System divisions already initialized.');
+            logger.info('System divisions already up to date');
         }
     } catch (error: any) {
         logger.error('Error seeding system divisions:', error.message);
