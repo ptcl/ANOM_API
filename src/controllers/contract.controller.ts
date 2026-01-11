@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { contractService } from '../services/contract.service';
 import { logger } from '../utils';
+import { logAgentHistory, HISTORY_ACTIONS } from '../services/history.service';
 
 export const createContract = async (req: Request, res: Response) => {
     try {
@@ -8,6 +9,13 @@ export const createContract = async (req: Request, res: Response) => {
 
         if (!result.success) {
             return res.status(400).json(result);
+        }
+
+        if (req.user?.agentId) {
+            await logAgentHistory(req.user.agentId, HISTORY_ACTIONS.CONTRACT_CREATED, {
+                targetId: (result as any).contract?.contractId,
+                success: true
+            });
         }
 
         return res.status(201).json(result);
@@ -241,6 +249,14 @@ export const validateContract = async (req: Request, res: Response) => {
             return res.status(400).json(result);
         }
 
+        // Log for the contract creator if available
+        if (req.user?.agentId) {
+            await logAgentHistory(req.user.agentId, HISTORY_ACTIONS.CONTRACT_VALIDATED, {
+                targetId: contractId,
+                success: true
+            });
+        }
+
         return res.json(result);
     } catch (error: any) {
         logger.error('Contract validation error:', {
@@ -311,6 +327,13 @@ export const revokeContract = async (req: Request, res: Response) => {
 
         if (!result.success) {
             return res.status(400).json(result);
+        }
+
+        if (req.user?.agentId) {
+            await logAgentHistory(req.user.agentId, HISTORY_ACTIONS.CONTRACT_CANCELLED, {
+                targetId: contractId,
+                success: true
+            });
         }
 
         return res.json(result);

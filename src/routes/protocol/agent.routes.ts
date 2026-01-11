@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { DeactivateOwnAccount, getProfilAgent, syncAgentStats, updateProfilAgent } from '../../controllers/agent.controller';
+import { getMyHistory, getAgentHistoryByFounder } from '../../controllers/history.controller';
+import { getMyTimelines } from '../../controllers/timeline.controller';
 import { IdentityMiddleware } from '../../middlewares/identity.middleware';
 import { ActiveAgentMiddleware } from '../../middlewares/activeAgent.middleware';
 import { AccessMiddleware } from '../../middlewares/access.middleware';
@@ -13,6 +15,8 @@ const router = Router();
 router.post("/agent/sync-stats", IdentityMiddleware, ActiveAgentMiddleware, syncAgentStats);
 router.get('/agent/profile', IdentityMiddleware, ActiveAgentMiddleware, getProfilAgent);
 router.patch('/agent/profile', IdentityMiddleware, ActiveAgentMiddleware, validate(UpdateAgentProfileSchema), updateProfilAgent);
+router.get('/agent/history', IdentityMiddleware, ActiveAgentMiddleware, getMyHistory);
+router.get('/agent/timelines', IdentityMiddleware, ActiveAgentMiddleware, getMyTimelines);
 router.get('/agent/deactivate', IdentityMiddleware, ActiveAgentMiddleware, DeactivateOwnAccount);
 
 router.get('/founder/agents/deactivated', IdentityMiddleware, AccessMiddleware, GetDeactivatedAgents);
@@ -22,6 +26,7 @@ router.patch('/founder/agent/:agentId', IdentityMiddleware, AccessMiddleware, Re
 router.delete('/founder/agent/:agentId', IdentityMiddleware, AccessMiddleware, ResolveAgentMiddleware, validate(DeleteAgentSchema), FounderDeleteAgent);
 router.patch('/founder/agent/:agentId/deactivate', IdentityMiddleware, AccessMiddleware, ResolveAgentMiddleware, validate(DeactivateAgentSchema), FounderDeactivateAgent);
 router.patch('/founder/agent/:agentId/reactivate', IdentityMiddleware, AccessMiddleware, ResolveAgentMiddleware, FounderReactivateAgent);
+router.get('/founder/agent/:agentId/history', IdentityMiddleware, AccessMiddleware, ResolveAgentMiddleware, getAgentHistoryByFounder);
 
 // Promote / Demote
 router.post('/founder/agent/:agentId/promote', IdentityMiddleware, AccessMiddleware, ResolveAgentMiddleware, validate(PromoteDemoteSchema), promoteAgent);

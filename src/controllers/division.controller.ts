@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as divisionService from '../services/division.service';
+import { logAgentHistory, HISTORY_ACTIONS } from '../services/history.service';
 
 export async function getMyDivision(req: Request, res: Response): Promise<void> {
     try {
@@ -212,6 +213,11 @@ export async function setLeader(req: Request, res: Response): Promise<void> {
 
         const division = await divisionService.setLeader(divisionId, agent._id!.toString());
 
+        await logAgentHistory(agent._id!.toString(), HISTORY_ACTIONS.DIVISION_PROMOTED, {
+            targetId: divisionId,
+            success: true
+        });
+
         res.json({
             success: true,
             data: division,
@@ -232,6 +238,11 @@ export async function addMember(req: Request, res: Response): Promise<void> {
 
         const result = await divisionService.addMember(divisionId, agent._id!.toString());
 
+        await logAgentHistory(agent._id!.toString(), HISTORY_ACTIONS.DIVISION_JOINED, {
+            targetId: divisionId,
+            success: true
+        });
+
         res.json({
             success: true,
             data: result,
@@ -251,6 +262,11 @@ export async function removeMember(req: Request, res: Response): Promise<void> {
         const agent = req.resolvedAgent!;
 
         const result = await divisionService.removeMember(divisionId, agent._id!.toString());
+
+        await logAgentHistory(agent._id!.toString(), HISTORY_ACTIONS.DIVISION_LEFT, {
+            targetId: divisionId,
+            success: true
+        });
 
         res.json({
             success: true,

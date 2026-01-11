@@ -5,6 +5,7 @@ import { ApiResponseBuilder } from '../utils/apiresponse';
 import { logger } from '../utils';
 import { Agent } from '../models/agent.model';
 import * as roleService from '../services/role.service';
+import { logAgentHistory, HISTORY_ACTIONS } from '../services/history.service';
 
 
 export const FounderUpdateAgent = async (req: Request, res: Response) => {
@@ -474,6 +475,11 @@ export const FounderDeactivateAgent = async (req: Request, res: Response) => {
                 error: 'deactivation_failed'
             });
         }
+        // Log history
+        await logAgentHistory(agent._id!.toString(), HISTORY_ACTIONS.ACCOUNT_DEACTIVATED, {
+            meta: { reason, deactivatedBy: (req as any).user?.agentId },
+            success: true
+        });
 
         return res.status(200).json({
             success: true,
@@ -538,6 +544,11 @@ export const FounderReactivateAgent = async (req: Request, res: Response) => {
                 error: 'reactivation_failed'
             });
         }
+        // Log history
+        await logAgentHistory(agent._id!.toString(), HISTORY_ACTIONS.ACCOUNT_REACTIVATED, {
+            meta: { reactivatedBy: (req as any).user?.agentId },
+            success: true
+        });
 
         return res.status(200).json({
             success: true,
@@ -643,6 +654,13 @@ export const promoteAgent = async (req: Request, res: Response) => {
             $addToSet: { 'protocol.roles': roleToAdd }
         });
 
+        // Log history
+        await logAgentHistory(agent._id!.toString(), HISTORY_ACTIONS.ROLE_ADDED, {
+            targetId: roleToAdd,
+            meta: { addedBy: (req as any).user?.agentId },
+            success: true
+        });
+
         return res.json({
             success: true,
             message: `Role ${roleToAdd} added to agent`,
@@ -696,6 +714,13 @@ export const demoteAgent = async (req: Request, res: Response) => {
 
         await Agent.findByIdAndUpdate(agent._id, {
             $pull: { 'protocol.roles': roleToRemove }
+        });
+
+        // Log history
+        await logAgentHistory(agent._id!.toString(), HISTORY_ACTIONS.ROLE_REMOVED, {
+            targetId: roleToRemove,
+            meta: { removedBy: (req as any).user?.agentId },
+            success: true
         });
 
         return res.json({

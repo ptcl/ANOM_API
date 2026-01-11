@@ -5,6 +5,7 @@ import { EmblemModel } from "../models/emblem.model";
 import { LoreModel } from "../models/lore.model";
 import { Badge } from "../models/badge.model";
 import { logger } from "../utils";
+import { logAgentHistory, HISTORY_ACTIONS } from "./history.service";
 
 export class TimelineService {
     private generateCodePattern(targetCode: string[]): any {
@@ -314,6 +315,7 @@ export class TimelineService {
             timelineMongoId: timeline._id,
             timelineId: timeline.timelineId,
             title: timeline.name,
+            accessCodeUsed: accessCode,
             accessedAt: new Date(),
             lastUpdatedAt: new Date(),
             currentEntryId: null,
@@ -321,6 +323,7 @@ export class TimelineService {
             fragmentsCollected: 0,
             keysFound: [],
             entriesResolved: [],
+            entriesWithCodes: [],
             completed: false
         } as any);
 
@@ -343,6 +346,12 @@ export class TimelineService {
         }
 
         await this.updateAgentLocalization(agentId, timeline.timelineId, null);
+
+        // Log TIMELINE_STARTED for first access
+        await logAgentHistory(agentId, HISTORY_ACTIONS.TIMELINE_STARTED, {
+            targetId: timeline.timelineId,
+            success: true
+        });
 
         return {
             success: true,
@@ -420,6 +429,15 @@ export class TimelineService {
             if (newFragments.length > 0) {
                 agentTimeline.fragmentsFound.push(...newFragments);
                 agentTimeline.fragmentsCollected = agentTimeline.fragmentsFound.length;
+
+                // Log FRAGMENT_COLLECTED for each new fragment
+                for (const fragment of newFragments) {
+                    await logAgentHistory(agentId, HISTORY_ACTIONS.FRAGMENT_COLLECTED, {
+                        targetId: fragment,
+                        meta: { timelineId, entryId },
+                        success: true
+                    });
+                }
             }
         }
         if (entry.grantKeys && entry.grantKeys.length > 0) {
@@ -435,6 +453,18 @@ export class TimelineService {
         }
 
         agentTimeline.entriesResolved.push(entryId);
+
+        // Add entry with code for tracking
+        if (!agentTimeline.entriesWithCodes) {
+            (agentTimeline as any).entriesWithCodes = [];
+        }
+        (agentTimeline as any).entriesWithCodes.push({
+            entryId,
+            accessCode: entry.accessCode || null,
+            name: entry.name || null,
+            resolvedAt: new Date()
+        });
+
         agentTimeline.lastUpdatedAt = new Date();
 
         const completionResult = await this.checkAndApplyCompletion(agent, timeline, agentTimeline);
@@ -572,6 +602,13 @@ export class TimelineService {
             };
             await timeline.save();
 
+            // Log TIMELINE_COMPLETED
+            await logAgentHistory(agent._id.toString(), HISTORY_ACTIONS.TIMELINE_COMPLETED, {
+                targetId: timeline.timelineId,
+                meta: { rewardsGiven },
+                success: true
+            });
+
             return {
                 completed: true,
                 justCompleted: true,
@@ -672,6 +709,77 @@ export class TimelineService {
                 lastSyncedAt: new Date()
             }
         });
+    }
+
+    async getAgentTimelines(agentId: string): Promise<any> {
+        try {
+            const agent = await Agent.findById(agentId).lean();
+            if (!agent) {
+                return { success: false, message: "Agent not found" };
+            }
+
+            if (!agent.timelines || agent.timelines.length === 0) {
+                return {
+                    success: true,
+                    data: {
+                        timelines: [],
+                        stats: { total: 0, completed: 0, pending: 0 }
+                    }
+                };
+            }
+
+            const timelineIds = agent.timelines.map((t: any) => t.timelineId);
+            const timelines = await Timeline.find({ timelineId: { $in: timelineIds } }).lean();
+            const timelinesMap = new Map(timelines.map((t: any) => [t.timelineId, t]));
+
+            const result = agent.timelines.map((agentTl: any) => {
+                const timeline = timelinesMap.get(agentTl.timelineId);
+                if (!timeline) return null;
+
+                // Calculate total fragments
+                let totalFragments = 0;
+                const pattern = (timeline as any).code?.pattern || {};
+                ['AAA', 'BBB', 'CCC', 'DDD'].forEach(section => {
+                    if (pattern[section]) {
+                        totalFragments += Object.keys(pattern[section]).length;
+                    }
+                });
+
+                return {
+                    timelineId: agentTl.timelineId,
+                    accessCode: agentTl.accessCodeUsed || null,
+                    name: agentTl.title || (timeline as any).name,
+                    emblemId: (timeline as any).emblemId?.[0] || null,
+                    fragments: {
+                        found: agentTl.fragmentsCollected || 0,
+                        total: totalFragments
+                    },
+                    status: agentTl.completed ? 'COMPLETE' : 'PENDING',
+                    accessedAt: agentTl.accessedAt,
+                    completedAt: agentTl.completedAt || null,
+                    entries: (agentTl.entriesWithCodes || []).map((e: any) => ({
+                        entryId: e.entryId,
+                        accessCode: e.accessCode || null,
+                        name: e.name || null,
+                        status: 'COMPLETE',
+                        resolvedAt: e.resolvedAt
+                    }))
+                };
+            }).filter(Boolean);
+
+            const stats = {
+                total: result.length,
+                completed: result.filter((t: any) => t.status === 'COMPLETE').length,
+                pending: result.filter((t: any) => t.status === 'PENDING').length
+            };
+
+            return {
+                success: true,
+                data: { timelines: result, stats }
+            };
+        } catch (error: any) {
+            throw new Error(`Error fetching agent timelines: ${error.message}`);
+        }
     }
 }
 

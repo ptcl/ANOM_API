@@ -3,6 +3,7 @@ import { LoreModel } from '../models/lore.model';
 import { generateUniqueId } from '../utils/generate';
 import { ILore, ILorePage, LoreCategory, LoreStatus, LoreVisibility } from '../types/lore';
 import { logger } from '../utils';
+import { logAgentHistory, HISTORY_ACTIONS } from '../services/history.service';
 
 const VALID_CATEGORIES: LoreCategory[] = ['HISTORY', 'CHARACTER', 'LOCATION', 'EVENT', 'ARTIFACT', 'FACTION', 'TECHNOLOGY', 'OTHER'];
 const VALID_STATUSES: LoreStatus[] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -382,6 +383,15 @@ export const readLore = async (req: Request, res: Response): Promise<any> => {
             );
         }
 
+        // Log first read only
+        if (existingReadIndex === undefined || existingReadIndex < 0) {
+            await logAgentHistory(agentId, HISTORY_ACTIONS.LORE_READ, {
+                targetId: loreId,
+                meta: { targetName: lore.title },
+                success: true
+            });
+        }
+
         return res.status(200).json({
             success: true,
             data: {
@@ -435,6 +445,12 @@ export const unlockLoreForAgent = async (req: Request, res: Response): Promise<a
             { loreId },
             { $push: { unlockedBy: { agentId, unlockedAt: new Date() } } }
         );
+
+        await logAgentHistory(agentId, HISTORY_ACTIONS.LORE_UNLOCKED, {
+            targetId: loreId,
+            meta: { targetName: lore.title },
+            success: true
+        });
 
         return res.status(200).json({
             success: true,

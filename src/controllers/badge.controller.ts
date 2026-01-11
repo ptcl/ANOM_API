@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { badgeService } from '../services/badge.service';
 import { logger } from '../utils';
+import { logAgentHistory, HISTORY_ACTIONS } from '../services/history.service';
 
 export const getAllBadges = async (req: Request, res: Response): Promise<any> => {
     try {
@@ -104,6 +105,16 @@ export const giftBadge = async (req: Request, res: Response): Promise<any> => {
             const status = result.notFound ? 404 : result.alreadyHas ? 409 : 400;
             return res.status(status).json(result);
         }
+
+        await logAgentHistory(agentId, HISTORY_ACTIONS.BADGE_EARNED, {
+            targetId: badgeId,
+            meta: {
+                giftedBy: req.user?.agentId,
+                targetName: (result as any).badge?.name || null
+            },
+            success: true
+        });
+
         return res.status(200).json(result);
     } catch (error: any) {
         logger.error('Error gifting badge:', {
@@ -123,6 +134,16 @@ export const revokeBadge = async (req: Request, res: Response): Promise<any> => 
             const status = result.notFound ? 404 : result.notHasBadge ? 404 : 400;
             return res.status(status).json(result);
         }
+
+        await logAgentHistory(agentId, HISTORY_ACTIONS.BADGE_REMOVED, {
+            targetId: badgeId,
+            meta: {
+                revokedBy: req.user?.agentId,
+                targetName: (result as any).badge?.name || null
+            },
+            success: true
+        });
+
         return res.status(200).json(result);
     } catch (error: any) {
         logger.error('Error revoking badge:', {

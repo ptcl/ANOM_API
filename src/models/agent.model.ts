@@ -41,7 +41,7 @@ const BungieUserSchema = new Schema({
 const AgentSettingsSchema = new Schema({
   notifications: { type: Boolean, default: true },
   publicProfile: { type: Boolean, default: true },
-  activeTheme: { type: String, default: "protocol", lowercase: true },
+  activeTheme: { type: String, default: "PROTOCOL", uppercase: true },
   soundEffects: { type: Boolean, default: true },
   language: { type: String, default: "fr" }
 }, { _id: false });
@@ -121,6 +121,7 @@ const AgentSchema = new Schema({
       timelineMongoId: { type: mongoose.Schema.Types.ObjectId, ref: "Timeline", required: true },
       timelineId: { type: String, required: true },
       title: { type: String },
+      accessCodeUsed: { type: String },
       accessedAt: { type: Date, default: Date.now },
       lastUpdatedAt: { type: Date, default: Date.now },
       currentEntryId: { type: String },
@@ -128,6 +129,12 @@ const AgentSchema = new Schema({
       fragmentsCollected: { type: Number, default: 0 },
       keysFound: { type: [String], default: [] },
       entriesResolved: { type: [String], default: [] },
+      entriesWithCodes: [{
+        entryId: { type: String, required: true },
+        accessCode: { type: String },
+        name: { type: String },
+        resolvedAt: { type: Date, default: Date.now }
+      }],
       completed: { type: Boolean, default: false },
       completedAt: { type: Date }
     }

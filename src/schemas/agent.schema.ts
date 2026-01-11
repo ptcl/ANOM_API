@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const SpeciesEnum = z.enum(['HUMAN', 'EXO', 'AWOKEN']);
-export const ThemeIdEnum = z.enum(['protocol', 'clovisBray', 'vanguard', 'blackArmory', 'opulence']);
+export const ThemeIdEnum = z.enum(['PROTOCOL', 'CLOVIS_BRAY', 'VANGUARD', 'BLACK_ARMORY', 'OPULENCE']);
 export const RoleEnum = z.enum(['AGENT', 'ECHO', 'ORACLE', 'ARCHITECT', 'FOUNDER', 'EMISSARY']);
 
 const SettingsSchema = z.object({

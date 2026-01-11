@@ -60,15 +60,15 @@ export async function getSettings(): Promise<ISettings> {
 
 export async function getThemeById(themeId: string): Promise<ITheme | undefined> {
     const settings = await getSettings();
-    return settings.themes.find(t => t.themeId === themeId.toLowerCase());
+    return settings.themes.find(t => t.themeId === themeId.toUpperCase());
 }
 
 const SYSTEM_THEMES: ITheme[] = [
-    { themeId: 'protocol', name: 'theme.protocol.name', description: 'theme.protocol.description', primary: '#959EE6', secondary: '#172064', accent: '#3A4BD1', isDefault: true, isSystem: true },
-    { themeId: 'clovisBray', name: 'theme.clovisBray.name', description: 'theme.clovisBray.description', primary: '#FAE0DD', secondary: '#FAE0DD', accent: '#FAE0DD', isDefault: false, isSystem: true },
-    { themeId: 'vanguard', name: 'theme.vanguard.name', description: 'theme.vanguard.description', primary: '#E4AB7B', secondary: '#4F2D10', accent: '#C77028', isDefault: false, isSystem: true },
-    { themeId: 'blackArmory', name: 'theme.blackArmory.name', description: 'theme.blackArmory.description', primary: '#BC1F23', secondary: '#000000', accent: '#5C0F11', isDefault: false, isSystem: true },
-    { themeId: 'opulence', name: 'theme.opulence.name', description: 'theme.opulence.description', primary: '#B495E6', secondary: '#351764', accent: '#743AD1', isDefault: false, isSystem: true },
+    { themeId: 'PROTOCOL', name: 'theme.protocol.name', description: 'theme.protocol.description', primary: '#F0F1FB', secondary: '#172064', accent: '#3A4BD1', isDefault: true, isSystem: true },
+    { themeId: 'CLOVIS_BRAY', name: 'theme.clovisBray.name', description: 'theme.clovisBray.description', primary: '#FAE0DD', secondary: '#40100A', accent: '#BC2F1E', isDefault: false, isSystem: true },
+    { themeId: 'VANGUARD', name: 'theme.vanguard.name', description: 'theme.vanguard.description', primary: '#FCF5F0', secondary: '#4F2D10', accent: '#C77028', isDefault: false, isSystem: true },
+    { themeId: 'BLACK_ARMORY', name: 'theme.blackArmory.name', description: 'theme.blackArmory.description', primary: '#EA7E80', secondary: '#000000', accent: '#5C0F11', isDefault: false, isSystem: true },
+    { themeId: 'OPULENCE', name: 'theme.opulence.name', description: 'theme.opulence.description', primary: '#F4F0FB', secondary: '#351764', accent: '#743AD1', isDefault: false, isSystem: true },
 ];
 
 export async function seedSystemThemes(): Promise<void> {

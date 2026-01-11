@@ -202,3 +202,20 @@ export const interact = async (req: Request, res: Response) => {
         return res.status(500).json({ success: false, message: "Error", error: error.message });
     }
 };
+
+export const getMyTimelines = async (req: Request, res: Response) => {
+    try {
+        const agentId = req.user?.agentId;
+        if (!agentId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+        const result = await timelineService.getAgentTimelines(agentId);
+
+        if (!result.success) {
+            return res.status(404).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error: any) {
+        return res.status(500).json({ success: false, message: "Error fetching timelines", error: error.message });
+    }
+};

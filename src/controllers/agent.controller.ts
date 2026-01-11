@@ -4,6 +4,7 @@ import { Agent } from '../models/agent.model';
 import { Role } from '../models/role.model';
 import { Division } from '../models/division.model';
 import { getThemeById } from '../models/settings.model';
+import { logAgentHistory, HISTORY_ACTIONS } from '../services/history.service';
 import { logger } from '../utils';
 import { findAgentByIdentifier } from '../utils/verifyAgent.helper';
 import { agentMigrationService, agentStatsService } from '../services/agentStat.service';
@@ -193,8 +194,8 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
                 }
 
                 if (updateData.protocol.settings.activeTheme !== undefined) {
-                    const validThemes = ['protocol', 'clovisBray', 'vanguard', 'blackArmory', 'opulence'];
-                    const activeTheme = updateData.protocol.settings.activeTheme.toLowerCase();
+                    const validThemes = ['PROTOCOL', 'CLOVIS_BRAY', 'VANGUARD', 'BLACK_ARMORY', 'OPULENCE'];
+                    const activeTheme = updateData.protocol.settings.activeTheme.toUpperCase();
 
                     if (validThemes.includes(activeTheme)) {
                         flattenedData['protocol.settings.activeTheme'] = activeTheme;
@@ -234,6 +235,31 @@ export const updateProfilAgent = async (req: Request, res: Response) => {
             return res.status(500).json({
                 success: false,
                 error: 'Internal server error'
+            });
+        }
+        // Log history for the updates
+        const agentIdStr = existingAgent._id!.toString();
+        const updatedFields = Object.keys(flattenedData);
+
+        if (updatedFields.some(f => f.includes('activeTheme'))) {
+            const oldTheme = existingAgent.protocol?.settings?.activeTheme || 'PROTOCOL';
+            const newTheme = flattenedData['protocol.settings.activeTheme'];
+            await logAgentHistory(agentIdStr, HISTORY_ACTIONS.THEME_CHANGE, {
+                targetId: newTheme,
+                meta: { from: oldTheme, to: newTheme },
+                success: true
+            });
+        } else if (updatedFields.some(f => f.includes('settings'))) {
+            await logAgentHistory(agentIdStr, HISTORY_ACTIONS.SETTINGS_UPDATE, {
+                meta: { fields: updatedFields.filter(f => f.includes('settings')) },
+                success: true
+            });
+        }
+
+        if (updatedFields.some(f => ['protocol.bio', 'protocol.customName', 'protocol.species'].includes(f))) {
+            await logAgentHistory(agentIdStr, HISTORY_ACTIONS.PROFILE_UPDATE, {
+                meta: { fields: updatedFields.filter(f => !f.includes('settings')) },
+                success: true
             });
         }
 
@@ -497,6 +523,10 @@ export const syncAgentStats = async (req: Request, res: Response) => {
 
         const stats = await agentStatsService.syncAgentStats(agentId);
         await agentMigrationService.cleanObsoleteFields(agentId);
+
+        await logAgentHistory(agentId, HISTORY_ACTIONS.SYNC_STATS, {
+            success: true
+        });
 
         return res.json({
             success: true,

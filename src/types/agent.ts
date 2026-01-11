@@ -50,6 +50,7 @@ export interface IAgentSettings {
     notifications: boolean;
     publicProfile: boolean;
     themes?: IProtocolThemes;
+    activeTheme?: string;
     soundEffects?: boolean;
     language?: string;
 }
@@ -114,6 +115,7 @@ export interface IAgentTimelineLink {
     timelineMongoId: Types.ObjectId;
     timelineId: string;
     title?: string;
+    accessCodeUsed?: string;
     accessedAt: Date;
     lastUpdatedAt: Date;
     currentEntryId?: string;
@@ -121,6 +123,12 @@ export interface IAgentTimelineLink {
     fragmentsCollected: number;
     keysFound: string[];
     entriesResolved: string[];
+    entriesWithCodes?: Array<{
+        entryId: string;
+        accessCode?: string;
+        name?: string;
+        resolvedAt: Date;
+    }>;
     completed: boolean;
     completedAt?: Date;
 }
