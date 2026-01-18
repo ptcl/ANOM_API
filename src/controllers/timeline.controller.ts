@@ -19,6 +19,11 @@ export const createTimeline = async (req: Request, res: Response) => {
 
         const result = await timelineService.createTimeline(timelineData);
 
+        // Check if service returned an error (e.g., emblem not found)
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+
         return res.status(201).json({
             success: true,
             message: "Timeline created successfully",
@@ -38,6 +43,7 @@ export const getTimelineById = async (req: Request, res: Response) => {
     try {
         const { timelineId } = req.params;
         const agentId = (req as any).user?.agentId;
+        const isFounder = (req as any).user?.isFounder || false;
 
         if (!timelineId) {
             return res.status(400).json({
@@ -53,6 +59,16 @@ export const getTimelineById = async (req: Request, res: Response) => {
             });
         }
 
+        // Founders get full access to any timeline
+        if (isFounder) {
+            const result = await timelineService.getTimelineById(timelineId);
+            if (!result.success) {
+                return res.status(404).json(result);
+            }
+            return res.status(200).json(result);
+        }
+
+        // Agents only see their progress on timelines they have access to
         const result = await timelineService.getAgentTimelineProgress(agentId, timelineId);
 
         if (!result.success) {

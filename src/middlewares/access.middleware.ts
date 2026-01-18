@@ -57,6 +57,9 @@ export const AccessMiddleware = async (
             });
         }
 
+        // Set isFounder flag for controllers to use
+        (req.user as any).isFounder = normalizedRoles.includes('FOUNDER');
+
         return next();
     } catch (error: any) {
         logger.error('Access middleware system error', {

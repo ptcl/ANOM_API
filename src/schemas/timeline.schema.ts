@@ -12,7 +12,8 @@ const EntryDialogsSchema = z.object({
     failure: z.array(z.string()).optional()
 }).optional();
 
-const EntrySchema = z.object({
+// Base entry schema (without subEntries to avoid circular reference)
+const BaseEntrySchema = z.object({
     entryId: z.string().min(1),
     name: z.string().min(1).max(200),
     description: z.string().max(1000).optional(),
@@ -26,6 +27,15 @@ const EntrySchema = z.object({
     dialogs: EntryDialogsSchema,
     grantKeys: z.array(z.string()).optional(),
     requiredKeys: z.array(z.string()).optional()
+});
+
+// Entry schema with subEntries (recursive)
+type EntryInput = z.infer<typeof BaseEntrySchema> & {
+    subEntries?: EntryInput[];
+};
+
+const EntrySchema: z.ZodType<EntryInput> = BaseEntrySchema.extend({
+    subEntries: z.lazy(() => z.array(EntrySchema)).optional()
 });
 
 const TimelineCodeSchema = z.object({
@@ -42,6 +52,46 @@ const TimelineRewardSchema = z.object({
     indexAccess: z.boolean().optional(),
     specialFragment: z.boolean().optional(),
     irlObject: z.boolean().optional()
+}).optional();
+
+const SecurityProtocolSchema = z.object({
+    clearanceLevel: z.enum(['1', '2', '3', '4', '5']).optional().default('1'),
+    accessMode: z.enum(['PUBLIC', 'RESTRICTED', 'CLASSIFIED']).optional().default('PUBLIC'),
+    accessCode: z.string().min(1, 'Access code is required'),
+    requiresAuth: z.boolean().optional().default(false),
+    requires2FA: z.boolean().optional().default(false),
+    whiteList: z.array(z.string()).optional(),
+    blackList: z.array(z.string()).optional(),
+    autoLockOnBreach: z.boolean().optional().default(false),
+    maxAttempts: z.number().int().optional().default(3),
+    lockDuration: z.number().int().optional().default(60)
+}).optional();
+
+const MetadataSchema = z.object({
+    createdBy: z.string().optional(),
+    collaborators: z.array(z.string()).optional(),
+    ownerTeam: z.string().optional(),
+    version: z.string().optional(),
+    visibility: z.enum(['PUBLIC', 'PRIVATE']).optional(),
+    isVerified: z.boolean().optional(),
+    validatedBy: z.string().optional(),
+    updatedBy: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    difficulty: z.string().optional(),
+    estimatedTime: z.number().optional()
+}).optional();
+
+const ExternalRefsSchema = z.object({
+    images: z.array(z.string()).optional(),
+    videos: z.array(z.string()).optional(),
+    documents: z.array(z.string()).optional(),
+    links: z.array(z.string()).optional()
+}).optional();
+
+const LoreLockRulesSchema = z.object({
+    loreRefs: z.array(z.string()).optional(),
+    loreUnlocked: z.array(z.string()).optional(),
+    loreLockRules: z.array(z.string()).optional()
 }).optional();
 
 export const CreateTimelineSchema = z.object({
@@ -65,7 +115,15 @@ export const CreateTimelineSchema = z.object({
 
     entries: z.array(EntrySchema).optional(),
 
-    rewards: TimelineRewardSchema
+    rewards: TimelineRewardSchema,
+
+    securityProtocol: SecurityProtocolSchema,
+
+    metadata: MetadataSchema,
+
+    externalRefs: ExternalRefsSchema,
+
+    loreLockRules: LoreLockRulesSchema
 });
 
 export const UpdateTimelineSchema = z.object({
@@ -77,7 +135,11 @@ export const UpdateTimelineSchema = z.object({
     code: TimelineCodeSchema,
     emblemId: z.array(z.string()).optional(),
     entries: z.array(EntrySchema).optional(),
-    rewards: TimelineRewardSchema
+    rewards: TimelineRewardSchema,
+    securityProtocol: SecurityProtocolSchema,
+    metadata: MetadataSchema,
+    externalRefs: ExternalRefsSchema,
+    loreLockRules: LoreLockRulesSchema
 });
 
 export const InteractTimelineSchema = z.object({

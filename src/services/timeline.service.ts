@@ -30,6 +30,7 @@ export class TimelineService {
 
     async createTimeline(timelineData: Partial<ITimeline>): Promise<any> {
         try {
+            logger.info(`[Timeline] Creating timeline: ${timelineData.name}`);
 
             if (timelineData.emblemId && timelineData.emblemId.length > 0) {
                 const emblems = await EmblemModel.find({
@@ -40,6 +41,7 @@ export class TimelineService {
                     const foundIds = emblems.map((e: any) => e.emblemId);
                     const missingIds = timelineData.emblemId.filter(id => !foundIds.includes(id));
 
+                    logger.warn(`[Timeline] Emblems not found: ${missingIds.join(', ')}`);
                     return {
                         success: false,
                         message: `Emblems not found: ${missingIds.join(', ')}`
@@ -61,11 +63,13 @@ export class TimelineService {
             }
 
             const timeline = await Timeline.create(timelineData);
+            logger.info(`[Timeline] Timeline created successfully: ${timeline.timelineId}`);
             return {
                 success: true,
                 timeline
             };
         } catch (error: any) {
+            logger.error(`[Timeline] Error creating timeline: ${error.message}`);
             throw new Error(`Error during creation of the timeline: ${error.message}`);
         }
     }
