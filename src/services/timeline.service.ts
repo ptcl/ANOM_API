@@ -732,38 +732,80 @@ export class TimelineService {
             const timelines = await Timeline.find({ timelineId: { $in: timelineIds } }).lean();
             const timelinesMap = new Map(timelines.map((t: any) => [t.timelineId, t]));
 
+            // Fetch Emblems to get their names
+            const emblemIds = timelines.reduce((acc: string[], t: any) => {
+                if (t.emblemId && t.emblemId.length > 0) acc.push(...t.emblemId);
+                return acc;
+            }, []);
+
+            const emblems = await EmblemModel.find({ emblemId: { $in: emblemIds } }).select('emblemId name').lean();
+            const emblemMap = new Map(emblems.map((e: any) => [e.emblemId, e.name]));
+
             const result = agent.timelines.map((agentTl: any) => {
-                const timeline = timelinesMap.get(agentTl.timelineId);
+                const timeline: any = timelinesMap.get(agentTl.timelineId);
                 if (!timeline) return null;
 
                 // Calculate total fragments
                 let totalFragments = 0;
-                const pattern = (timeline as any).code?.pattern || {};
+                const pattern = timeline.code?.pattern || {};
                 ['AAA', 'BBB', 'CCC', 'DDD'].forEach(section => {
                     if (pattern[section]) {
                         totalFragments += Object.keys(pattern[section]).length;
                     }
                 });
 
+                // Get Emblem Name
+                const emblemId = timeline.emblemId?.[0];
+                const emblemName = emblemId ? emblemMap.get(emblemId) : null;
+
+                // Process Entries (Master List from Timeline Definition)
+                // We want to show ALL entries, but mask the ones not yet resolved
+                const allEntries = this.flattenEntries(timeline.entries || []);
+                const resolvedEntryIds = agentTl.entriesResolved || [];
+
+                const mappedEntries = allEntries.map((entry: any) => {
+                    const isResolved = resolvedEntryIds.includes(entry.entryId);
+
+                    if (isResolved) {
+                        // Find the specific resolution info (like accessCode used) from agent history if needed
+                        // For now, we use the definition's code or the one logged in entriesWithCodes
+                        const resolvedInfo = (agentTl.entriesWithCodes || []).find((e: any) => e.entryId === entry.entryId);
+
+                        return {
+                            entryId: entry.entryId,
+                            accessCode: resolvedInfo?.accessCode || entry.accessCode, // Show the code that worked
+                            name: entry.name,
+                            status: 'COMPLETE',
+                            resolvedAt: resolvedInfo?.resolvedAt || null
+                        };
+                    } else {
+                        // Masked - hide all sensitive info
+                        return {
+                            entryId: '????',
+                            accessCode: '????',
+                            name: '????',
+                            status: 'PENDING',
+                            resolvedAt: null
+                        };
+                    }
+                });
+
+
                 return {
                     timelineId: agentTl.timelineId,
                     accessCode: agentTl.accessCodeUsed || null,
-                    name: agentTl.title || (timeline as any).name,
-                    emblemId: (timeline as any).emblemId?.[0] || null,
+                    name: agentTl.title || timeline.name,
+                    emblemId: emblemId || null,
+                    emblemName: emblemName || "Unknown Emblem", // Added Field
+                    globalStatus: timeline.status, // Added Field (OPEN, CLOSED, etc.)
                     fragments: {
                         found: agentTl.fragmentsCollected || 0,
                         total: totalFragments
                     },
-                    status: agentTl.completed ? 'COMPLETE' : 'PENDING',
+                    status: agentTl.completed ? 'COMPLETE' : 'PENDING', // User Status
                     accessedAt: agentTl.accessedAt,
                     completedAt: agentTl.completedAt || null,
-                    entries: (agentTl.entriesWithCodes || []).map((e: any) => ({
-                        entryId: e.entryId,
-                        accessCode: e.accessCode || null,
-                        name: e.name || null,
-                        status: 'COMPLETE',
-                        resolvedAt: e.resolvedAt
-                    }))
+                    entries: mappedEntries // Now contains ALL entries, some masked
                 };
             }).filter(Boolean);
 
@@ -780,6 +822,18 @@ export class TimelineService {
         } catch (error: any) {
             throw new Error(`Error fetching agent timelines: ${error.message}`);
         }
+    }
+
+    // Helper to flatten nested entries (if any) to a single list
+    private flattenEntries(entries: any[]): any[] {
+        let flattened: any[] = [];
+        for (const entry of entries) {
+            flattened.push(entry);
+            if (entry.subEntries && entry.subEntries.length > 0) {
+                flattened = flattened.concat(this.flattenEntries(entry.subEntries));
+            }
+        }
+        return flattened;
     }
 }
 
