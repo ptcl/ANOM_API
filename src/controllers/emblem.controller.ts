@@ -4,6 +4,7 @@ import { EmblemModel } from '../models/emblem.model';
 import { IEmblem } from '../types/emblem';
 import { ApiResponseBuilder } from '../utils/apiresponse';
 import { logger } from '../utils';
+import { encryptField, decryptField, hashField } from '../utils/crypto';
 
 const codePattern = /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}$/;
 
@@ -58,7 +59,8 @@ export const createEmblem = async (req: Request, res: Response) => {
         }
 
         if (code) {
-            const existingEmblem = await EmblemModel.findOne({ code });
+            const codeHashValue = hashField(code);
+            const existingEmblem = await EmblemModel.findOne({ codeHash: codeHashValue });
             if (existingEmblem) {
                 return ApiResponseBuilder.error(res, 409, {
                     message: 'An emblem with this code already exists',
@@ -72,7 +74,8 @@ export const createEmblem = async (req: Request, res: Response) => {
             name: name.trim(),
             description: description?.trim() || undefined,
             image: image || undefined,
-            code: code || undefined,
+            code: code ? encryptField(code) : undefined,
+            codeHash: code ? hashField(code) : undefined,
             rarity: rarity || 'COMMON',
             status
         };
@@ -164,20 +167,26 @@ export const updateEmblem = async (req: Request, res: Response) => {
                 });
             }
 
-            if (code && code !== existingEmblem.code) {
-                const duplicateEmblem = await EmblemModel.findOne({
-                    code,
-                    emblemId: { $ne: emblemId }
-                });
-                if (duplicateEmblem) {
-                    return ApiResponseBuilder.error(res, 409, {
-                        message: 'An emblem with this code already exists',
-                        error: 'duplicate_code'
+            if (code) {
+                const newCodeHash = hashField(code);
+                if (newCodeHash !== existingEmblem.codeHash) {
+                    const duplicateEmblem = await EmblemModel.findOne({
+                        codeHash: newCodeHash,
+                        emblemId: { $ne: emblemId }
                     });
+                    if (duplicateEmblem) {
+                        return ApiResponseBuilder.error(res, 409, {
+                            message: 'An emblem with this code already exists',
+                            error: 'duplicate_code'
+                        });
+                    }
                 }
+                updateData.code = encryptField(code);
+                updateData.codeHash = newCodeHash;
+            } else {
+                updateData.code = undefined;
+                updateData.codeHash = undefined;
             }
-
-            updateData.code = code;
         }
 
         if (rarity !== undefined) {
@@ -298,8 +307,8 @@ export const getAllEmblems = async (req: Request, res: Response) => {
         const skip = (page - 1) * limit;
 
         const selectFields = isFounder
-            ? 'emblemId name description image code rarity status createdAt updatedAt'
-            : 'emblemId name description image rarity status createdAt updatedAt';
+            ? 'emblemId name description image code rarity status createdAt updatedAt -codeHash'
+            : 'emblemId name description image rarity status createdAt updatedAt -codeHash';
 
         const [emblems, total] = await Promise.all([
             EmblemModel.find(filter)
@@ -310,6 +319,14 @@ export const getAllEmblems = async (req: Request, res: Response) => {
                 .lean(),
             EmblemModel.countDocuments(filter)
         ]);
+
+        if (isFounder) {
+            for (const emblem of emblems) {
+                if (emblem.code) {
+                    emblem.code = decryptField(emblem.code) ?? emblem.code;
+                }
+            }
+        }
 
         const pagination = {
             page,
@@ -358,8 +375,8 @@ export const getEmblemById = async (req: Request, res: Response) => {
         });
 
         const selectFields = isFounder
-            ? 'emblemId name description image code rarity status createdAt updatedAt'
-            : 'emblemId name description image rarity status createdAt updatedAt';
+            ? 'emblemId name description image code rarity status createdAt updatedAt -codeHash'
+            : 'emblemId name description image rarity status createdAt updatedAt -codeHash';
 
         const emblem = await EmblemModel.findOne({ emblemId })
             .select(selectFields)
@@ -377,6 +394,10 @@ export const getEmblemById = async (req: Request, res: Response) => {
                 message: 'Emblem not found',
                 error: 'not_found'
             });
+        }
+
+        if (isFounder && emblem.code) {
+            emblem.code = decryptField(emblem.code) ?? emblem.code;
         }
 
         return res.status(200).json({

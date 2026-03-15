@@ -4,6 +4,7 @@ export interface IEmblem {
     description?: string;
     image?: string;
     code?: string;
+    codeHash?: string;
     rarity?: "COMMON" | "UNCOMMON" | "RARE" | "LEGENDARY" | "EXOTIC";
     status: "AVAILABLE" | "UNAVAILABLE" | "REVOKED" | "REJECTED";
     deletedAt?: Date;

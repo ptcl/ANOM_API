@@ -779,6 +779,7 @@ export class TimelineService {
                             entryId: entry.entryId,
                             accessCode: resolvedInfo?.accessCode || entry.accessCode, // Show the code that worked
                             name: entry.name,
+                            type: entry.type, // ENIGMA, FIREWALL, DATA_NODE
                             status: 'COMPLETE',
                             resolvedAt: resolvedInfo?.resolvedAt || null
                         };
@@ -788,6 +789,7 @@ export class TimelineService {
                             entryId: '????',
                             accessCode: '????',
                             name: '????',
+                            type: '????', // Also mask type for pending
                             status: 'PENDING',
                             resolvedAt: null
                         };

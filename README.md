@@ -1,5 +1,9 @@
 # AN0M Protocol API
 
+> **This project has been abandoned and is no longer maintained.**
+> The source code is made public for educational and portfolio purposes only.
+> No support, updates, or bug fixes will be provided.
+
 REST API for the AN0M Protocol management system built with Express.js, TypeScript, and MongoDB.
 
 ## Features

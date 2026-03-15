@@ -6,6 +6,7 @@ const EmblemSchema = new mongoose.Schema({
     description: { type: String },
     image: { type: String },
     code: { type: String },
+    codeHash: { type: String, index: true },
     rarity: { type: String, enum: ["COMMON", "UNCOMMON", "RARE", "LEGENDARY", "EXOTIC"], default: "COMMON", set: (v: string) => v.toUpperCase() },
     status: { type: String, enum: ["AVAILABLE", "UNAVAILABLE", "REVOKED", "REJECTED"], default: "UNAVAILABLE", set: (v: string) => v.toUpperCase() },
     deletedAt: { type: Date }

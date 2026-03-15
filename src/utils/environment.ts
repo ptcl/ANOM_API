@@ -31,6 +31,7 @@ class EnvironmentManager {
 
         const requiredVars = [
             'JWT_SECRET',
+            'ENCRYPTION_KEY',
             'BUNGIE_API_KEY',
             'BUNGIE_CLIENT_ID',
             'BUNGIE_CLIENT_SECRET',
